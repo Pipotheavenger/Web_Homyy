@@ -294,7 +294,7 @@ export default function CrearServicioPage() {
               <MessageCircle size={24} className="md:w-5 md:h-5" />
               {!sidebarCollapsed && <span className="ml-3">Chat</span>}
             </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
+            <a href="/pagos" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
               <CreditCard size={24} className="md:w-5 md:h-5" />
               {!sidebarCollapsed && <span className="ml-3">Pagos</span>}
             </a>
@@ -719,28 +719,6 @@ export default function CrearServicioPage() {
                </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex items-center justify-around py-2">
-          <button className="flex flex-col items-center p-2 text-[#743fc6]">
-            <Briefcase size={20} />
-            <span className="text-xs mt-1">Servicios</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <MessageCircle size={20} />
-            <span className="text-xs mt-1">Chats</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <CreditCard size={20} />
-            <span className="text-xs mt-1">Pagos</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <History size={20} />
-            <span className="text-xs mt-1">Historial</span>
-          </button>
         </div>
       </div>
     </div>

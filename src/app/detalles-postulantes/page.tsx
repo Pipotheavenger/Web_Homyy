@@ -45,7 +45,8 @@ import {
   Mail as MailIcon,
   Clock as ClockIcon,
   MapPin as MapPinIcon,
-  DollarSign as DollarSignIcon
+  DollarSign as DollarSignIcon,
+  ArrowLeft
 } from 'lucide-react';
 
 interface Postulante {
@@ -185,6 +186,10 @@ export default function DetallesPostulantesPage() {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  const handleVolver = () => {
+    router.back();
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -203,26 +208,12 @@ export default function DetallesPostulantesPage() {
     ));
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'aprobado':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'rechazado':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    }
+  const handleVerDetalles = (serviceId: number) => {
+    router.push(`/detalles-postulantes?id=${serviceId}`);
   };
 
-  const getEstadoText = (estado: string) => {
-    switch (estado) {
-      case 'aprobado':
-        return 'Aprobado';
-      case 'rechazado':
-        return 'Rechazado';
-      default:
-        return 'Pendiente';
-    }
+  const handleVerPerfil = (profesionalId: string) => {
+    router.push(`/perfil-profesional?id=${profesionalId}`);
   };
 
   return (
@@ -254,7 +245,7 @@ export default function DetallesPostulantesPage() {
               <MessageCircle size={24} className="md:w-5 md:h-5" />
               {!sidebarCollapsed && <span className="ml-3">Chat</span>}
             </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
+            <a href="/pagos" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
               <CreditCard size={24} className="md:w-5 md:h-5" />
               {!sidebarCollapsed && <span className="ml-3">Pagos</span>}
             </a>
@@ -315,6 +306,12 @@ export default function DetallesPostulantesPage() {
                 className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
               >
                 <Menu size={24} />
+              </button>
+              <button
+                onClick={handleVolver}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
+              >
+                <ArrowLeft size={20} className="text-gray-600" />
               </button>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Detalles y Postulantes</h1>
@@ -504,11 +501,6 @@ export default function DetallesPostulantesPage() {
                           </h4>
                           <p className="text-gray-600">{postulante.especialidad}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getEstadoColor(postulante.estado)}`}>
-                            {getEstadoText(postulante.estado)}
-                          </span>
-                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -549,33 +541,25 @@ export default function DetallesPostulantesPage() {
                       <UserX size={16} />
                       Rechazar
                     </button>
+                    <button 
+                      onClick={() => handleVerPerfil(postulante.id)}
+                      className="px-4 py-2 bg-[#fbbc6c] text-white rounded-lg hover:bg-[#f9b055] transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <Eye size={16} />
+                      Ver Perfil
+                    </button>
+                    <button 
+                      onClick={() => handleVerPerfil(postulante.id)}
+                      className="px-4 py-2 bg-[#743fc6] text-white rounded-lg hover:bg-[#6a37b8] transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare size={16} />
+                      Mensaje
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex items-center justify-around py-2">
-          <button className="flex flex-col items-center p-2 text-[#743fc6]">
-            <Briefcase size={20} />
-            <span className="text-xs mt-1">Servicios</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <MessageCircle size={20} />
-            <span className="text-xs mt-1">Chats</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <CreditCard size={20} />
-            <span className="text-xs mt-1">Pagos</span>
-          </button>
-          <button className="flex flex-col items-center p-2 text-gray-600">
-            <History size={20} />
-            <span className="text-xs mt-1">Historial</span>
-          </button>
         </div>
       </div>
     </div>
