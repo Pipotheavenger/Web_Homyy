@@ -1,36 +1,206 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏠 Hommy - Frontend
 
-## Getting Started
+Aplicación web moderna para conectar usuarios con expertos del hogar, construida con Next.js 15, TypeScript y Supabase.
 
-First, run the development server:
+## 📁 Estructura del Proyecto
+
+```
+frontend/
+├── src/
+│   └── app/
+│       ├── login/           # Página de autenticación
+│       │   ├── page.tsx     # Componente principal de login
+│       │   └── BgWave.tsx   # Componente de fondo animado
+│       ├── layout.tsx       # Layout principal de la aplicación
+│       ├── page.tsx         # Página principal (redirige a /login)
+│       └── globals.css      # Estilos globales
+├── public/
+│   ├── Logo.svg            # Logo principal de Hommy
+│   └── Logo.png            # Logo en formato PNG
+├── package.json            # Dependencias y scripts
+├── tailwind.config.js      # Configuración de Tailwind CSS
+├── tsconfig.json           # Configuración de TypeScript
+└── env.example             # Variables de entorno de ejemplo
+```
+
+## 🚀 Tecnologías Utilizadas
+
+- **Next.js 15.3.5** - Framework de React con App Router
+- **React 19** - Biblioteca de interfaz de usuario
+- **TypeScript 5** - Tipado estático para JavaScript
+- **Tailwind CSS 4** - Framework de CSS utility-first
+- **Supabase** - Backend-as-a-Service para autenticación y base de datos
+
+## 📦 Dependencias Principales
+
+```json
+{
+  "@supabase/supabase-js": "^2.39.0",  // Cliente de Supabase
+  "next": "15.3.5",                    // Framework de React
+  "react": "^19.0.0",                  // Biblioteca de UI
+  "react-dom": "^19.0.0",              // Renderizado de React
+  "tailwindcss": "^4.1.11"             // Framework de CSS
+}
+```
+
+## 🔧 Configuración
+
+### 1. Variables de Entorno
+
+Crea un archivo `.env.local` en la raíz del proyecto:
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+```
+
+### 2. Instalación de Dependencias
+
+```bash
+npm install
+```
+
+### 3. Ejecutar en Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La aplicación estará disponible en `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎨 Componentes Principales
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### `src/app/login/page.tsx`
+**Propósito**: Página principal de autenticación
+**Funcionalidades**:
+- Formulario de login con email y contraseña
+- Login con Google usando Supabase OAuth
+- Validación de formularios en tiempo real
+- Animaciones y efectos visuales
+- Diseño responsive para móvil, tablet y desktop
 
-## Learn More
+**Conexiones**:
+- Se conecta con Supabase para autenticación
+- Usa el componente `BgWave` para el fondo
+- Redirige a `/dashboard` después del login exitoso
 
-To learn more about Next.js, take a look at the following resources:
+### `src/app/login/BgWave.tsx`
+**Propósito**: Componente de fondo animado
+**Funcionalidades**:
+- SVG animado con gradientes
+- Formas redondeadas que salen desde las esquinas
+- Completamente responsive
+- Optimizado para rendimiento
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Conexiones**:
+- Importado por `login/page.tsx`
+- Usa CSS personalizado para animaciones
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `src/app/layout.tsx`
+**Propósito**: Layout principal de la aplicación
+**Funcionalidades**:
+- Configuración de fuentes (Roboto)
+- Metadatos de la aplicación
+- Estructura HTML base
+- Configuración de idioma (español)
 
-## Deploy on Vercel
+**Conexiones**:
+- Envuelve todas las páginas de la aplicación
+- Importa `globals.css` para estilos globales
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `src/app/page.tsx`
+**Propósito**: Página principal (redirección)
+**Funcionalidades**:
+- Redirige automáticamente a `/login`
+- Muestra un spinner de carga durante la redirección
+- Página temporal mientras se desarrolla el dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Conexiones**:
+- Usa Next.js router para redirección
+- Se ejecuta en el cliente (`'use client'`)
+
+## 🎯 Flujo de Autenticación
+
+1. **Usuario accede a la aplicación** → Redirigido a `/login`
+2. **Página de login** → Muestra formulario y botón de Google
+3. **Login con Google** → Usa Supabase OAuth
+4. **Autenticación exitosa** → Redirigido a `/dashboard` (futuro)
+5. **Manejo de errores** → Alertas informativas al usuario
+
+## 🔒 Seguridad
+
+- **Variables de entorno**: Configuración sensible en `.env.local`
+- **Supabase**: Autenticación segura con OAuth
+- **TypeScript**: Tipado estático para prevenir errores
+- **Next.js**: Protección automática contra XSS
+
+## 📱 Responsive Design
+
+La aplicación está optimizada para:
+- **Móvil**: 320px - 768px
+- **Tablet**: 768px - 1024px
+- **Desktop**: 1024px+
+
+## 🎨 Diseño y UX
+
+- **Paleta de colores**: Púrpura y lavanda como colores principales
+- **Tipografía**: Roboto para texto, Fredoka para títulos
+- **Animaciones**: Transiciones suaves y efectos hover
+- **Accesibilidad**: Contraste adecuado y navegación por teclado
+
+## 🚀 Scripts Disponibles
+
+```bash
+npm run dev      # Desarrollo con Turbopack
+npm run build    # Construcción para producción
+npm run start    # Servidor de producción
+npm run lint     # Verificación de código
+```
+
+## 🔄 Integración con Backend
+
+El frontend está preparado para integrarse con:
+- **Supabase**: Autenticación y base de datos
+- **API REST**: Endpoints para funcionalidades adicionales
+- **WebSockets**: Comunicación en tiempo real (futuro)
+
+## 📈 Optimizaciones
+
+- **Next.js 15**: App Router y optimizaciones automáticas
+- **Turbopack**: Compilación rápida en desarrollo
+- **Tailwind CSS 4**: CSS optimizado y purgado
+- **TypeScript**: Detección temprana de errores
+- **Imágenes optimizadas**: Next.js Image component
+
+## 🛠️ Desarrollo
+
+### Estructura de Carpetas Recomendada
+
+```
+src/
+├── app/                    # App Router de Next.js
+├── components/             # Componentes reutilizables (futuro)
+├── lib/                    # Utilidades y configuraciones (futuro)
+├── types/                  # Definiciones de TypeScript (futuro)
+└── utils/                  # Funciones auxiliares (futuro)
+```
+
+### Convenciones de Código
+
+- **Componentes**: PascalCase (`LoginPage.tsx`)
+- **Archivos**: camelCase (`bgWave.tsx`)
+- **Carpetas**: kebab-case (`login/`)
+- **Variables**: camelCase (`userData`)
+- **Constantes**: UPPER_SNAKE_CASE (`API_URL`)
+
+## 🔮 Próximas Características
+
+- [ ] Dashboard principal
+- [ ] Perfil de usuario
+- [ ] Búsqueda de expertos
+- [ ] Sistema de chat
+- [ ] Calificaciones y reseñas
+- [ ] Página de registro
+- [ ] Recuperación de contraseña
+- [ ] Notificaciones push

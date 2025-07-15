@@ -13,9 +13,9 @@ export default function BgWave() {
       {/* Gradiente violeta de fondo */}
       <defs>
         <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="50%" stopColor="#A855F7" />
-          <stop offset="100%" stopColor="#C084FC" />
+          <stop offset="0%" stopColor="#743fc6" />
+          <stop offset="50%" stopColor="#8a5fd1" />
+          <stop offset="100%" stopColor="#a17ad8" />
         </linearGradient>
       </defs>
       
