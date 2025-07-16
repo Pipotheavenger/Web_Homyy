@@ -8,11 +8,14 @@ import {
   ChevronLeft,
   ChevronDown,
   Trash2,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { serviceService, categoryService } from '@/lib/services';
+import type { Category } from '@/types/database';
 
 interface Horario {
   id: string;
@@ -26,8 +29,9 @@ export default function CrearServicioPage() {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    ciudad: '',
-    barrio: ''
+    ciudad: 'Bogotá',
+    barrio: '',
+    categoria: ''
   });
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   const [horaInicio, setHoraInicio] = useState('');
@@ -39,13 +43,16 @@ export default function CrearServicioPage() {
   const [showClockInicio, setShowClockInicio] = useState(false);
   const [showClockFinal, setShowClockFinal] = useState(false);
   const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const clockInicioRef = useRef<HTMLDivElement>(null);
   const clockFinalRef = useRef<HTMLDivElement>(null);
 
-  // Generar horas con intervalos de media hora
+  // Generar horas de 5:00 a 19:00 con intervalos de media hora
   const generarHoras = () => {
     const horas = [];
-    for (let hora = 0; hora < 24; hora++) {
+    for (let hora = 5; hora <= 19; hora++) {
       for (let minuto = 0; minuto < 60; minuto += 30) {
         const horaStr = hora.toString().padStart(2, '0');
         const minutoStr = minuto.toString().padStart(2, '0');
@@ -56,6 +63,22 @@ export default function CrearServicioPage() {
   };
 
   const horasDisponibles = generarHoras();
+
+  // Cargar categorías al montar el componente
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await categoryService.getAll();
+        if (response.success && response.data) {
+          setCategories(response.data);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -81,12 +104,59 @@ export default function CrearServicioPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simular envío del formulario
-    setTimeout(() => {
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Validar campos requeridos
+      if (!formData.titulo || !formData.descripcion || !formData.categoria) {
+        setError('Por favor completa todos los campos requeridos');
+        setIsLoading(false);
+        return;
+      }
+
+      if (horarios.length === 0) {
+        setError('Debes agregar al menos un horario');
+        setIsLoading(false);
+        return;
+      }
+
+      // Preparar datos del servicio
+      const serviceData = {
+        title: formData.titulo,
+        description: formData.descripcion,
+        category_id: formData.categoria,
+        location: `Bogotá, ${formData.barrio}`,
+        status: 'active', // Usar 'active' según el esquema de la tabla
+        schedules: horarios.map(horario => ({
+          date: horario.fecha, // Fecha real (YYYY-MM-DD)
+          start_time: horario.horaInicio,
+          end_time: horario.horaFinal
+        }))
+      };
+
+      console.log('📤 Enviando datos del servicio:', serviceData);
+
+      // Crear servicio
+      const response = await serviceService.create(serviceData);
+      
+      console.log('📥 Respuesta del servicio:', response);
+      
+      if (response.success) {
+        setSuccess('Servicio creado exitosamente');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+      } else {
+        console.error('❌ Error en la respuesta:', response.error);
+        setError(response.error || 'Error al crear el servicio');
+      }
+    } catch (err) {
+      console.error('💥 Error inesperado:', err);
+      setError('Error al crear el servicio. Intenta de nuevo.');
+    } finally {
       setIsLoading(false);
-      router.push('/dashboard');
-    }, 2000);
+    }
   };
 
   const toggleSidebar = () => {
@@ -99,7 +169,9 @@ export default function CrearServicioPage() {
   };
 
   const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    const day = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    // Convertir para que lunes sea 0, martes 1, etc.
+    return day === 0 ? 6 : day - 1;
   };
 
   const formatMonth = (date: Date) => {
@@ -127,18 +199,38 @@ export default function CrearServicioPage() {
     // Días del mes
     for (let day = 1; day <= daysInMonth; day++) {
       const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-      const currentDateString = currentDate.toISOString().split('T')[0];
+      // Formatear fecha sin problemas de zona horaria
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(day).padStart(2, '0');
+      const currentDateString = `${year}-${month}-${dayStr}`;
       const isSelected = fechaSeleccionada === currentDateString;
+      
+      // Verificar si la fecha es pasada
+      const todayString = getTodayString();
+      const isPastDate = currentDateString < todayString;
+      
+      // Para el día actual, verificar si ya pasó la hora actual
+      const isToday = currentDateString === todayString;
+      const currentHour = new Date().getHours();
+      const currentMinute = new Date().getMinutes();
+      const currentTimeString = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+      const isTodayPastTime = isToday && currentTimeString >= '19:00'; // Si ya pasó de las 7 PM
       
       days.push(
         <button
           key={day}
           onClick={() => {
-            setFechaSeleccionada(currentDateString);
+            if (!isPastDate && !isTodayPastTime) {
+              setFechaSeleccionada(currentDateString);
+            }
           }}
+          disabled={isPastDate || isTodayPastTime}
           className={`w-8 h-8 rounded-full text-sm font-medium transition-all duration-200 ${
             isSelected 
               ? 'bg-[#743fc6] text-white' 
+              : isPastDate || isTodayPastTime
+              ? 'text-gray-300 cursor-not-allowed'
               : 'hover:bg-gray-100 text-gray-700'
           }`}
         >
@@ -154,6 +246,13 @@ export default function CrearServicioPage() {
   const agregarHorario = () => {
     if (!fechaSeleccionada || !horaInicio || !horaFinal) {
       alert('Por favor selecciona una fecha y horario completo');
+      return;
+    }
+
+    // Validar que la fecha no sea pasada
+    const todayString = getTodayString();
+    if (fechaSeleccionada < todayString) {
+      alert('No puedes seleccionar fechas pasadas');
       return;
     }
 
@@ -179,12 +278,24 @@ export default function CrearServicioPage() {
   };
 
   const formatFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
+    // Crear fecha sin problemas de zona horaria
+    const [year, month, day] = fecha.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
+    return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const renderTimeSelector = (type: 'inicio' | 'final') => {
@@ -258,6 +369,27 @@ export default function CrearServicioPage() {
             <div className="bg-white rounded-2xl shadow-sm border p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6">Detalles del Servicio</h2>
               
+              {/* Mensajes de error y éxito */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle size={20} className="text-red-500" />
+                    <span className="text-red-700 font-medium">{error}</span>
+                  </div>
+                </div>
+              )}
+              
+              {success && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-700 font-medium">{success}</span>
+                  </div>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Título del Servicio */}
                 <div className="space-y-2">
@@ -305,6 +437,34 @@ export default function CrearServicioPage() {
                   </div>
                 </div>
 
+                {/* Categoría */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Categoría
+                  </label>
+                  <div className="relative">
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300 ${focusedField === 'categoria' ? 'text-[#743fc6] scale-110' : 'text-gray-400'}`}>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                    </div>
+                    <select
+                      value={formData.categoria}
+                      onChange={(e) => handleInputChange('categoria', e.target.value)}
+                      onFocus={() => setFocusedField('categoria')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white font-medium ${focusedField === 'categoria' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                    >
+                      <option value="">Seleccionar categoría</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Ciudad y Barrio en fila */}
                 <div className="grid md:grid-cols-2 gap-4">
                   {/* Ciudad */}
@@ -313,19 +473,16 @@ export default function CrearServicioPage() {
                       Ciudad
                     </label>
                     <div className="relative">
-                      <div className={`absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-300 ${focusedField === 'ciudad' ? 'text-[#743fc6] scale-110' : 'text-gray-400'}`}>
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                       </div>
                       <input
                         type="text"
-                        placeholder="Bogotá"
-                        value={formData.ciudad}
-                        onChange={(e) => handleInputChange('ciudad', e.target.value)}
-                        onFocus={() => setFocusedField('ciudad')}
-                        onBlur={() => setFocusedField(null)}
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white placeholder-gray-400 font-medium ${focusedField === 'ciudad' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                        value="Bogotá"
+                        readOnly
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border-2 bg-gray-50 text-gray-600 font-medium border-gray-200 cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -379,6 +536,13 @@ export default function CrearServicioPage() {
             <div className="bg-white rounded-2xl shadow-sm border p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Disponibilidad</h3>
               
+              {/* Información sobre fechas bloqueadas */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  <span className="font-medium">Nota:</span> Las fechas pasadas están bloqueadas. Solo puedes seleccionar fechas futuras.
+                </p>
+              </div>
+              
               {/* Calendar */}
               <div className="space-y-4">
                 {/* Calendar Header */}
@@ -421,12 +585,7 @@ export default function CrearServicioPage() {
                       Fecha seleccionada:
                     </p>
                     <p className="text-sm text-gray-700">
-                      {new Date(fechaSeleccionada).toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {formatFecha(fechaSeleccionada)}
                     </p>
                   </div>
                 )}
@@ -449,12 +608,7 @@ export default function CrearServicioPage() {
                     Fecha seleccionada:
                   </p>
                   <p className="text-sm text-gray-700">
-                    {new Date(fechaSeleccionada).toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatFecha(fechaSeleccionada)}
                   </p>
                 </div>
               )}
@@ -567,9 +721,9 @@ export default function CrearServicioPage() {
                   <p className="text-sm font-medium text-gray-700 mb-2">Horarios sugeridos:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[
-                      { inicio: '08:00', final: '12:00', label: 'Mañana' },
-                      { inicio: '13:00', final: '17:00', label: 'Tarde' },
-                      { inicio: '09:00', final: '18:00', label: 'Día completo' }
+                      { inicio: '05:00', final: '12:00', label: 'Mañana' },
+                      { inicio: '13:00', final: '19:00', label: 'Tarde' },
+                      { inicio: '08:00', final: '17:00', label: 'Día completo' }
                     ].map((horario, index) => (
                       <button
                         key={index}
