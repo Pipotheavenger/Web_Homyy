@@ -3,26 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, 
-  Briefcase, 
-  User, 
-  Settings, 
-  LogOut, 
-  Bell,
-  Search,
-  Mail,
   Calendar,
   MapPin,
   Clock,
   Star,
   ChevronRight,
-  Menu,
   X,
-  Home,
-  MessageCircle,
-  CreditCard,
-  History,
-  ChevronLeft,
-  ChevronDown,
   Edit,
   Trash2,
   Phone,
@@ -48,6 +34,7 @@ import {
   DollarSign as DollarSignIcon,
   ArrowLeft
 } from 'lucide-react';
+import Layout from '@/components/Layout';
 
 interface Postulante {
   id: string;
@@ -85,7 +72,6 @@ interface Servicio {
 
 export default function DetallesPostulantesPage() {
   const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [selectedSort, setSelectedSort] = useState('reciente');
 
@@ -182,14 +168,6 @@ export default function DetallesPostulantesPage() {
     }
   ]);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
-  const handleVolver = () => {
-    router.back();
-  };
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -203,365 +181,248 @@ export default function DetallesPostulantesPage() {
       <StarIcon
         key={i}
         size={16}
-        className={`${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+        className={`${
+          i < Math.floor(rating) 
+            ? 'text-yellow-400 fill-current' 
+            : i < rating 
+              ? 'text-yellow-400 fill-current' 
+              : 'text-gray-300'
+        }`}
       />
     ));
   };
 
-  const handleVerDetalles = (serviceId: number) => {
-    router.push(`/detalles-postulantes?id=${serviceId}`);
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'aprobado':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rechazado':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    }
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case 'aprobado':
+        return <UserCheck size={16} />;
+      case 'rechazado':
+        return <UserX size={16} />;
+      default:
+        return <UserPlus size={16} />;
+    }
   };
 
   const handleVerPerfil = (profesionalId: string) => {
     router.push(`/perfil-profesional?id=${profesionalId}`);
   };
 
+  const filteredPostulantes = postulantes.filter(postulante => {
+    if (selectedFilter === 'todos') return true;
+    return postulante.estado === selectedFilter;
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className={`fixed top-0 left-0 h-full bg-gradient-to-b from-[#743fc6] to-[#8a5fd1] text-white transition-all duration-300 ease-in-out z-50 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-4 border-b border-purple-400/30">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">H</span>
-              </div>
-              {!sidebarCollapsed && (
-                <h2 className="text-xl font-bold">Hommy</h2>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            <a href="/dashboard" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <Briefcase size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Mis Servicios</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <MessageCircle size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Chat</span>}
-            </a>
-            <a href="/pagos" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <CreditCard size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Pagos</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <History size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Historial</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <User size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Perfil</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <Settings size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Configuración</span>}
-            </a>
-          </nav>
-
-          {/* Premium CTA */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-t border-white/20">
-              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                      <span className="text-white text-sm">💼</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium">¡Usa nuestras</p>
-                      <p className="text-xs font-medium">funciones Premium!</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} />
+    <Layout title="Detalles de Postulantes" showBackButton={true}>
+      <div className="p-6">
+        {/* Información del servicio */}
+        <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{servicio.titulo}</h1>
+              <p className="text-gray-600 mb-4">{servicio.descripcion}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <MapPin size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{servicio.ubicacion}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">Presupuesto: {formatPrice(servicio.presupuesto)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Users size={16} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{servicio.postulantes} postulantes</span>
                 </div>
               </div>
             </div>
-          )}
+            
+            <div className="text-right">
+              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(servicio.estado)}`}>
+                {servicio.estado === 'activo' ? 'Activo' : servicio.estado === 'en_proceso' ? 'En Proceso' : 'Completado'}
+              </div>
+            </div>
+          </div>
 
-          {/* Logout */}
-          <div className="p-4 border-t border-white/20">
-            <button className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105 w-full">
-              <LogOut size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Cerrar sesión</span>}
-            </button>
+          {/* Progreso */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Progreso</span>
+              <span className="text-sm text-gray-500">{servicio.progreso}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] h-2 rounded-full transition-all duration-300"
+                style={{ width: `${servicio.progreso}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-1">{servicio.etapa}</p>
+          </div>
+
+          {/* Horarios de disponibilidad */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Horarios de Disponibilidad</h3>
+            <div className="space-y-1">
+              {servicio.horariosDisponibilidad.map((horario, index) => (
+                <div key={index} className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Clock size={14} />
+                  <span>{horario}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                <Menu size={24} />
-              </button>
-              <button
-                onClick={handleVolver}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
-              >
-                <ArrowLeft size={20} className="text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Detalles y Postulantes</h1>
-                <nav className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                  <span>Inicio</span>
-                  <span className="mx-2">›</span>
-                  <span>Mis Servicios</span>
-                  <span className="mx-2">›</span>
-                  <span className="text-[#743fc6]">{servicio.titulo}</span>
-                </nav>
+        {/* Filtros y ordenamiento */}
+        <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Filter size={16} className="text-gray-500" />
+                <select
+                  value={selectedFilter}
+                  onChange={(e) => setSelectedFilter(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#743fc6]/20 focus:border-[#743fc6] outline-none"
+                >
+                  <option value="todos">Todos los estados</option>
+                  <option value="pendiente">Pendientes</option>
+                  <option value="aprobado">Aprobados</option>
+                  <option value="rechazado">Rechazados</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <SortAsc size={16} className="text-gray-500" />
+                <select
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#743fc6]/20 focus:border-[#743fc6] outline-none"
+                >
+                  <option value="reciente">Más recientes</option>
+                  <option value="experiencia">Más experiencia</option>
+                  <option value="calificacion">Mejor calificación</option>
+                  <option value="precio">Menor precio</option>
+                </select>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Search size={20} className="text-gray-600" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Mail size={20} className="text-gray-600" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Bell size={20} className="text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Usuario</span>
-                <div className="w-8 h-8 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">U</span>
-                </div>
-              </div>
+            
+            <div className="text-sm text-gray-600">
+              {filteredPostulantes.length} postulante{filteredPostulantes.length !== 1 ? 's' : ''} encontrado{filteredPostulantes.length !== 1 ? 's' : ''}
             </div>
           </div>
-        </header>
+        </div>
 
-        {/* Content */}
-        <div className="p-4 sm:p-6">
-          {/* Service Details */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">{servicio.titulo}</h2>
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  {servicio.estado === 'activo' ? 'Activo' : servicio.estado}
-                </span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <MapPinIcon size={20} className="text-[#743fc6]" />
-                <span className="text-gray-700">{servicio.ubicacion}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar size={20} className="text-[#743fc6]" />
-                <span className="text-gray-700">Publicado: {servicio.fechaPublicacion}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users size={20} className="text-[#743fc6]" />
-                <span className="text-gray-700">{servicio.postulantes} postulantes</span>
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Descripción</h3>
-              <p className="text-gray-700 leading-relaxed">{servicio.descripcion}</p>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Horarios de Disponibilidad</h3>
-              <div className="space-y-2">
-                {servicio.horariosDisponibilidad.map((horario, index) => (
-                  <div key={index} className="flex items-center gap-2 text-gray-700">
-                    <Clock size={16} className="text-[#743fc6]" />
-                    <span className="text-sm">{horario}</span>
+        {/* Lista de postulantes */}
+        <div className="space-y-4">
+          {filteredPostulantes.map((postulante) => (
+            <div key={postulante.id} className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="flex items-start space-x-4">
+                {/* Foto del postulante */}
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
+                    <img
+                      src={postulante.foto}
+                      alt={`${postulante.nombre} ${postulante.apellido}`}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="text-sm text-gray-600">
-                  <span>Fecha límite: {servicio.fechaLimite}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-16 relative">
-                    <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-                      <path
-                        className="text-gray-200"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      <path
-                        className="text-[#743fc6]"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeDasharray={`${servicio.progreso}, 100`}
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-700">{servicio.progreso}%</span>
+
+                {/* Información del postulante */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                        {postulante.nombre} {postulante.apellido}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2">{postulante.especialidad}</p>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        <div className="flex items-center space-x-1">
+                          <CalendarDays size={14} />
+                          <span>{postulante.experiencia} años</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Users size={14} />
+                          <span>{postulante.serviciosCompletados} servicios</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <MapPin size={14} />
+                          <span>{postulante.ubicacion}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(postulante.estado)}`}>
+                        {getEstadoIcon(postulante.estado)}
+                        <span className="ml-1">
+                          {postulante.estado === 'pendiente' ? 'Pendiente' : 
+                           postulante.estado === 'aprobado' ? 'Aprobado' : 'Rechazado'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <p className={`text-sm font-medium border-b-2 pb-1 ${
-                      servicio.etapa === "Contratando" 
-                        ? "text-blue-600 border-blue-400" 
-                        : servicio.etapa === "Revisando" 
-                        ? "text-orange-600 border-orange-400" 
-                        : "text-green-600 border-green-400"
-                    }`}>
-                      {servicio.etapa}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-[#743fc6] text-white rounded-lg hover:bg-[#6a37b8] transition-all duration-200">
-                  Editar Servicio
-                </button>
-                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200">
-                  Cerrar Servicio
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* Filters and Actions */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-semibold text-gray-800">Postulantes ({postulantes.length})</h3>
-                <div className="flex gap-2">
-                  <select 
-                    value={selectedFilter}
-                    onChange={(e) => setSelectedFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#743fc6]"
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="pendiente">Pendientes</option>
-                    <option value="aprobado">Aprobados</option>
-                    <option value="rechazado">Rechazados</option>
-                  </select>
-                  <select 
-                    value={selectedSort}
-                    onChange={(e) => setSelectedSort(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#743fc6]"
-                  >
-                    <option value="reciente">Más recientes</option>
-                    <option value="experiencia">Más experiencia</option>
-                    <option value="calificacion">Mejor calificación</option>
-                    <option value="precio">Menor precio</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-[#fbbc6c] text-white rounded-lg hover:bg-[#f9b055] transition-all duration-200 flex items-center gap-2">
-                  <UserPlus size={16} />
-                  Eliminar Servicio
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Postulantes List */}
-          <div className="space-y-4">
-            {postulantes.map((postulante) => (
-              <div key={postulante.id} className="bg-white rounded-2xl shadow-sm border p-6">
-                <div className="flex flex-col lg:flex-row gap-4">
-                  {/* Profile Info */}
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                      <img 
-                        src={postulante.foto} 
-                        alt={`${postulante.nombre} ${postulante.apellido}`}
-                        className="w-full h-full object-cover"
-                      />
+                  {/* Calificación y precio */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        {renderStars(postulante.calificacion)}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">{postulante.calificacion}</span>
                     </div>
                     
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-800">
-                            {postulante.nombre} {postulante.apellido}
-                          </h4>
-                          <p className="text-gray-600">{postulante.especialidad}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Award size={16} className="text-[#743fc6]" />
-                          <span className="text-sm text-gray-700">{postulante.experiencia} años exp.</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Star size={16} className="text-[#743fc6]" />
-                          <span className="text-sm text-gray-700">{postulante.calificacion} ({postulante.serviciosCompletados} servicios)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin size={16} className="text-[#743fc6]" />
-                          <span className="text-sm text-gray-700">{postulante.ubicacion}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign size={16} className="text-[#743fc6]" />
-                          <span className="text-sm text-gray-700">{formatPrice(postulante.precio)}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Clock size={14} />
-                        <span>Disponibilidad: {postulante.disponibilidad}</span>
-                        <span>•</span>
-                        <span>Postulado: {postulante.fechaPostulacion}</span>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-[#743fc6]">{formatPrice(postulante.precio)}</p>
+                      <p className="text-xs text-gray-500">{postulante.disponibilidad}</p>
                     </div>
                   </div>
-                  
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-2 lg:flex-col">
-                    <button className="px-4 py-2 bg-[#743fc6] text-white rounded-lg hover:bg-[#6a37b8] transition-all duration-200 flex items-center justify-center gap-2">
-                      <UserCheck size={16} />
-                      Elegir
-                    </button>
-                    <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-2">
-                      <UserX size={16} />
-                      Rechazar
-                    </button>
-                    <button 
-                      onClick={() => handleVerPerfil(postulante.id)}
-                      className="px-4 py-2 bg-[#fbbc6c] text-white rounded-lg hover:bg-[#f9b055] transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                      <Eye size={16} />
-                      Ver Perfil
-                    </button>
-                    <button 
-                      onClick={() => handleVerPerfil(postulante.id)}
-                      className="px-4 py-2 bg-[#743fc6] text-white rounded-lg hover:bg-[#6a37b8] transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                      <MessageSquare size={16} />
-                      Mensaje
-                    </button>
+
+                  {/* Acciones */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleVerPerfil(postulante.id)}
+                        className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-[#743fc6] hover:bg-[#743fc6]/10 rounded-lg transition-all duration-200"
+                      >
+                        <Eye size={14} />
+                        <span>Ver Perfil</span>
+                      </button>
+                      
+                      <button className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <MessageSquare size={14} />
+                        <span>Mensaje</span>
+                      </button>
+                      
+                      <button className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <PhoneCall size={14} />
+                        <span>Llamar</span>
+                      </button>
+                    </div>
+
+                    <div className="text-xs text-gray-500">
+                      Postulado {postulante.fechaPostulacion}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 } 

@@ -3,26 +3,12 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, 
-  Briefcase, 
-  User, 
-  Settings, 
-  LogOut, 
-  Bell,
-  Search,
-  Mail,
   Calendar,
   MapPin,
   Clock,
   Star,
   ChevronRight,
-  Menu,
   X,
-  Home,
-  MessageCircle,
-  CreditCard,
-  History,
-  ChevronLeft,
-  ChevronDown,
   Edit,
   Trash2,
   Phone,
@@ -36,6 +22,7 @@ import {
   Star as StarIcon,
   ArrowLeft
 } from 'lucide-react';
+import Layout from '@/components/Layout';
 
 interface Profesional {
   id: string;
@@ -88,7 +75,6 @@ export default function PerfilProfesionalPage() {
   const searchParams = useSearchParams();
   const profesionalId = searchParams.get('id');
   
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   // Datos de ejemplo del profesional (en una app real vendrían de la base de datos)
@@ -198,29 +184,21 @@ export default function PerfilProfesionalPage() {
         id: '3',
         cliente: 'Laura Sánchez',
         calificacion: 4,
-        comentario: 'Buen trabajo en general. Recomendada para futuros servicios.',
+        comentario: 'Buen servicio, muy organizada y puntual. Recomendada.',
         fecha: 'Hace 2 semanas',
-        servicio: 'Organización de Closet'
+        servicio: 'Organización de Closets'
       },
       {
         id: '4',
-        cliente: 'Roberto López',
+        cliente: 'Roberto Jiménez',
         calificacion: 5,
-        comentario: 'Increíble profesionalismo. Superó todas mis expectativas.',
+        comentario: 'Excelente profesional. Mi oficina quedó perfecta después de la limpieza.',
         fecha: 'Hace 3 semanas',
         servicio: 'Limpieza General Residencial'
       }
     ],
     foto: '/api/placeholder/200/200'
   });
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
-  const handleVolver = () => {
-    router.back();
-  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -235,326 +213,204 @@ export default function PerfilProfesionalPage() {
       <StarIcon
         key={i}
         size={16}
-        className={`${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+        className={`${
+          i < Math.floor(rating) 
+            ? 'text-yellow-400 fill-current' 
+            : i < rating 
+              ? 'text-yellow-400 fill-current' 
+              : 'text-gray-300'
+        }`}
       />
     ));
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className={`fixed top-0 left-0 h-full bg-gradient-to-b from-[#743fc6] to-[#8a5fd1] text-white transition-all duration-300 ease-in-out z-50 ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-4 border-b border-purple-400/30">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">H</span>
-              </div>
-              {!sidebarCollapsed && (
-                <h2 className="text-xl font-bold">Hommy</h2>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            <a href="/dashboard" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <Briefcase size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Mis Servicios</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <MessageCircle size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Chat</span>}
-            </a>
-            <a href="/pagos" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <CreditCard size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Pagos</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <History size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Historial</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <User size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Perfil</span>}
-            </a>
-            <a href="#" className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105">
-              <Settings size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Configuración</span>}
-            </a>
-          </nav>
-
-          {/* Premium CTA */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-t border-white/20">
-              <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                      <span className="text-white text-sm">💼</span>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium">¡Usa nuestras</p>
-                      <p className="text-xs font-medium">funciones Premium!</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Logout */}
-          <div className="p-4 border-t border-white/20">
-            <button className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105 w-full">
-              <LogOut size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">Cerrar sesión</span>}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
-              >
-                <Menu size={24} />
-              </button>
-              <button
-                onClick={handleVolver}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
-              >
-                <ArrowLeft size={20} className="text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Perfil del Profesional</h1>
-                <nav className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                  <span>Inicio</span>
-                  <span className="mx-2">›</span>
-                  <span>Profesionales</span>
-                  <span className="mx-2">›</span>
-                  <span className="text-[#743fc6]">{profesional.nombre} {profesional.apellido}</span>
-                </nav>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Search size={20} className="text-gray-600" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Mail size={20} className="text-gray-600" />
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100">
-                <Bell size={20} className="text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Usuario</span>
-                <div className="w-8 h-8 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">U</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="relative">
-          {/* Purple Header with Wave Shape */}
-          <div className="bg-[#743fc6] relative overflow-hidden">
-            {/* Organic Wave Shape */}
-            <div className="absolute bottom-0 left-0 w-full">
-              <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-24 sm:h-28 lg:h-32">
-                <path 
-                  d="M0,0 C200,80 400,20 600,80 C800,140 1000,40 1200,80 L1200,120 L0,120 Z" 
-                  fill="white"
-                />
-              </svg>
-            </div>
+    <Layout title="Perfil Profesional" showBackButton={true}>
+      <div className="p-6">
+        {/* Header con figura morada y foto circular */}
+        <div className="relative mb-8">
+          {/* Figura morada superior */}
+          <div className="relative h-48 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-2xl overflow-hidden">
+            {/* Onda SVG */}
+            <svg
+              className="absolute bottom-0 left-0 w-full h-16"
+              viewBox="0 0 1200 120"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+                opacity=".25"
+                fill="#ffffff"
+              />
+              <path
+                d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+                opacity=".5"
+                fill="#ffffff"
+              />
+              <path
+                d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+                fill="#ffffff"
+              />
+            </svg>
             
-            {/* Header Content */}
-            <div className="relative z-10 px-4 sm:px-6 py-10 sm:py-12 lg:py-16">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 lg:gap-8">
-                {/* Profile Image - Positioned at same level as name */}
-                <div className="flex items-center gap-4 lg:gap-6">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden bg-white/20 border-4 border-white shadow-lg">
-                    <img 
-                      src={profesional.foto} 
-                      alt={`${profesional.nombre} ${profesional.apellido}`}
-                      className="w-full h-full object-cover"
-                    />
+            {/* Información del profesional */}
+            <div className="absolute bottom-4 left-6 right-6 text-white">
+              <div className="flex items-end justify-between">
+                <div className="flex items-end space-x-4">
+                  {/* Foto circular */}
+                  <div className="relative">
+                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                      <img
+                        src={profesional.foto}
+                        alt={`${profesional.nombre} ${profesional.apellido}`}
+                        className="w-28 h-28 rounded-full object-cover"
+                      />
+                    </div>
                   </div>
                   
-                  {/* Profile Info */}
-                  <div className="flex-1 text-white">
-                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">
+                  {/* Información básica */}
+                  <div className="mb-2">
+                    <h1 className="text-2xl font-bold mb-1">
                       {profesional.nombre} {profesional.apellido}
-                    </h2>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-2">
-                      <p className="text-base sm:text-lg text-white/90">{profesional.especialidad}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <div className="bg-[#fbbc6c] rounded-lg px-3 py-1 flex items-center gap-1">
-                          <Award size={16} />
-                          <span className="text-sm font-medium text-white">{profesional.experiencia} años</span>
+                    </h1>
+                    <p className="text-lg opacity-90 mb-2">{profesional.especialidad}</p>
+                    
+                    {/* Estadísticas */}
+                    <div className="flex items-center space-x-6">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center">
+                          <CalendarDays size={16} className="text-white" />
                         </div>
-                        <div className="bg-[#fbbc6c] rounded-lg px-3 py-1 flex items-center gap-1">
-                          <Bell size={16} />
-                          <span className="text-sm font-medium text-white">{profesional.serviciosCompletados} servicios</span>
+                        <div>
+                          <p className="text-sm opacity-75">Años de experiencia</p>
+                          <p className="font-semibold">{profesional.experiencia} años</p>
                         </div>
-                        <div className="flex items-center gap-1 text-white">
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center">
+                          <Users size={16} className="text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm opacity-75">Servicios completados</p>
+                          <p className="font-semibold">{profesional.serviciosCompletados}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Calificación */}
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1">
                           {renderStars(profesional.calificacion)}
-                          <span className="text-sm font-medium">{profesional.calificacion}</span>
                         </div>
+                        <span className="font-semibold">{profesional.calificacion}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-white/80 mb-4">
-                      <MapPin size={16} />
-                      <span className="text-sm">{profesional.ubicacion}</span>
-                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="px-4 sm:px-6 py-6 sm:py-8">
-            {/* Detalles del Profesional Section - First */}
-            <div className="mb-6 lg:mb-8">
-              <div className="bg-white rounded-2xl shadow-sm border-2 border-[#743fc6] p-6 sm:p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">Detalles del Profesional</h3>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setIsEditing(!isEditing)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Nombre</label>
-                    <p className="text-gray-800 font-medium">{profesional.nombre}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Apellido</label>
-                    <p className="text-gray-800 font-medium">{profesional.apellido}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Especialidad</label>
-                    <p className="text-gray-800 font-medium">{profesional.especialidad}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Años de Experiencia</label>
-                    <p className="text-gray-800 font-medium">{profesional.experiencia} años</p>
-                  </div>
-                  <div className="md:col-span-2 lg:col-span-3">
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Descripción</label>
-                    <p className="text-gray-700 text-sm leading-relaxed">{profesional.descripcion}</p>
-                  </div>
-                  <div className="md:col-span-2 lg:col-span-3">
-                    <label className="block text-sm font-medium text-gray-600 mb-2">Certificaciones</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {profesional.certificaciones.map((cert, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <CheckCircle size={14} className="text-green-500" />
-                          <span className="text-sm text-gray-700">{cert}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Trabajos Recientes Section */}
-            <div className="mb-6 lg:mb-8">
-              <div className="bg-[#e0cdff] rounded-2xl shadow-sm p-6">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">Trabajos Recientes</h3>
-                  <div className="w-16 h-1 bg-[#7d4ccb] rounded-full"></div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {profesional.trabajosRecientes.map((trabajo) => (
-                    <div key={trabajo.id} className="bg-white rounded-xl overflow-hidden hover:shadow-md transition-all duration-200">
-                      <div className="aspect-video bg-gray-200">
-                        <img 
-                          src={trabajo.imagen} 
-                          alt={trabajo.titulo}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h4 className="font-semibold text-gray-800 mb-1 text-sm">{trabajo.titulo}</h4>
-                        <p className="text-gray-600 text-xs mb-2">{trabajo.descripcion}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">{trabajo.fecha}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Reseñas Section - Last */}
-            <div className="mb-6 lg:mb-8">
-              <div className="bg-[#ffe2be] rounded-2xl shadow-sm p-6">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">Reseñas</h3>
-                  <div className="w-16 h-1 bg-[#7d4ccb] rounded-full"></div>
-                </div>
-                
-                <div className="space-y-4">
-                  {profesional.reseñas.map((reseña) => (
-                    <div key={reseña.id} className="bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 bg-[#743fc6]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#743fc6] font-semibold text-sm">
-                            {reseña.cliente.split(' ').map(n => n[0]).join('')}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-medium text-gray-800">{reseña.cliente}</h4>
-                            <div className="flex items-center gap-1">
-                              {renderStars(reseña.calificacion)}
-                            </div>
-                          </div>
-                          <p className="text-sm text-gray-600">{reseña.servicio}</p>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                        "{reseña.comentario}"
-                      </p>
-                      
-                      <div className="text-xs text-gray-500">{reseña.fecha}</div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Contenido principal */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Columna izquierda - Detalles del profesional */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Detalles del profesional */}
+            <div className="bg-white rounded-2xl shadow-sm border p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Detalles del Profesional</h2>
+              <div className="space-y-4">
+                <p className="text-gray-700 leading-relaxed">{profesional.descripcion}</p>
+                
+                {/* Ubicación */}
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <MapPin size={16} />
+                  <span>{profesional.ubicacion}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Trabajos recientes */}
+            <div className="bg-white rounded-2xl shadow-sm border p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Trabajos Recientes</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                {profesional.trabajosRecientes.map((trabajo) => (
+                  <div key={trabajo.id} className="bg-gray-50 rounded-xl p-4">
+                    <div className="aspect-video bg-gray-200 rounded-lg mb-3 overflow-hidden">
+                      <img
+                        src={trabajo.imagen}
+                        alt={trabajo.titulo}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h3 className="font-semibold text-gray-800 mb-1">{trabajo.titulo}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{trabajo.descripcion}</p>
+                    <p className="text-xs text-gray-500">{trabajo.fecha}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Reseñas */}
+            <div className="bg-white rounded-2xl shadow-sm border p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Reseñas</h2>
+              <div className="space-y-4">
+                {profesional.reseñas.map((reseña) => (
+                  <div key={reseña.id} className="border-b border-gray-100 pb-4 last:border-b-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">{reseña.cliente}</h4>
+                        <p className="text-sm text-gray-600">{reseña.servicio}</p>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        {renderStars(reseña.calificacion)}
+                      </div>
+                    </div>
+                    <p className="text-gray-700 mb-2">{reseña.comentario}</p>
+                    <p className="text-xs text-gray-500">{reseña.fecha}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Columna derecha - Servicios */}
+          <div className="space-y-6">
+            {/* Servicios ofrecidos */}
+            <div className="bg-white rounded-2xl shadow-sm border p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Servicios Ofrecidos</h2>
+              <div className="space-y-4">
+                {profesional.servicios.map((servicio) => (
+                  <div key={servicio.id} className="border border-gray-200 rounded-xl p-4">
+                    <div className="aspect-video bg-gray-200 rounded-lg mb-3 overflow-hidden">
+                      <img
+                        src={servicio.imagen}
+                        alt={servicio.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h3 className="font-semibold text-gray-800 mb-2">{servicio.nombre}</h3>
+                    <p className="text-sm text-gray-600 mb-3">{servicio.descripcion}</p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <Clock size={14} />
+                        <span>{servicio.duracion}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-[#743fc6]">{formatPrice(servicio.precio)}</p>
+                        <p className="text-xs text-gray-500">
+                          {servicio.disponible ? 'Disponible' : 'No disponible'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 } 
