@@ -36,16 +36,16 @@ export default function Sidebar({ sidebarCollapsed, currentPage = '' }: SidebarP
       active: currentPage === 'pagos'
     },
     {
-      href: '#',
+      href: '/historial',
       icon: History,
       label: 'Historial',
-      active: false
+      active: currentPage === 'historial'
     },
     {
-      href: '#',
+      href: '/perfil',
       icon: User,
       label: 'Perfil',
-      active: false
+      active: currentPage === 'perfil'
     },
     {
       href: '#',

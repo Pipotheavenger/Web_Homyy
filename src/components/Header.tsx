@@ -1,8 +1,6 @@
 'use client';
 import { 
   Menu,
-  Search,
-  Mail,
   Bell,
   ArrowLeft
 } from 'lucide-react';
@@ -66,22 +64,18 @@ export default function Header({
             )}
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-lg hover:bg-gray-100">
-            <Search size={20} className="text-gray-600" />
-          </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100">
-            <Mail size={20} className="text-gray-600" />
-          </button>
-          <button className="p-2 rounded-lg hover:bg-gray-100">
-            <Bell size={20} className="text-gray-600" />
-          </button>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">Usuario</span>
-            <div className="w-8 h-8 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">U</span>
+        <div className="flex items-center">
+          <button 
+            onClick={() => window.location.href = '/notificaciones'}
+            className="relative group"
+          >
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:rotate-3 border-2 border-[#fbbc6]">
+              <Bell size={22} className="text-orange-600 group-hover:animate-bounce" />
             </div>
-          </div>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">3</span>
+            </div>
+          </button>
         </div>
       </div>
     </header>
