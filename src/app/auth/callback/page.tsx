@@ -14,34 +14,66 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
+        // Obtener los parámetros de la URL
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const errorParam = searchParams.get('error');
+        const errorDescription = searchParams.get('error_description');
+
+        console.log('Auth callback params:', { accessToken, refreshToken, errorParam, errorDescription });
+
+        if (errorParam) {
+          console.error('Auth error:', errorParam, errorDescription);
           setStatus('error');
-          setMessage('Error al verificar la cuenta. Intenta de nuevo.');
+          setMessage(errorDescription || 'Error en la verificación. Intenta de nuevo.');
           return;
         }
 
-        if (data.session) {
-          // Usuario autenticado exitosamente
-          setStatus('success');
-          setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
-          
-          // Redirigir al dashboard después de 2 segundos
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
-        } else {
-          // No hay sesión, verificar si hay error en la URL
-          const errorParam = searchParams.get('error');
-          const errorDescription = searchParams.get('error_description');
-          
-          if (errorParam) {
+        if (accessToken && refreshToken) {
+          // Establecer la sesión manualmente
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
             setStatus('error');
-            setMessage(errorDescription || 'Error en la verificación. Intenta de nuevo.');
+            setMessage('Error al establecer la sesión. Intenta de nuevo.');
+            return;
+          }
+
+          if (data.session) {
+            setStatus('success');
+            setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
+            
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
           } else {
-            // Redirigir al login si no hay sesión ni error
+            setStatus('error');
+            setMessage('No se pudo establecer la sesión. Intenta de nuevo.');
+          }
+        } else {
+          // Verificar si ya hay una sesión activa
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Error getting session:', sessionError);
+            setStatus('error');
+            setMessage('Error al verificar la cuenta. Intenta de nuevo.');
+            return;
+          }
+
+          if (sessionData.session) {
+            setStatus('success');
+            setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
+            
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
+          } else {
+            // Redirigir al login si no hay sesión
             router.push('/login');
           }
         }

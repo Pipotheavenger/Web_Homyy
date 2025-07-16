@@ -68,7 +68,7 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           options: {
-            emailRedirectTo: 'https://www.mcdonalds.com'
+            emailRedirectTo: 'https://www.mcdonalds.com.co/'
           }
         });
         

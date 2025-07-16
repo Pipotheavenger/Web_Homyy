@@ -24,10 +24,10 @@ export default function Sidebar({ sidebarCollapsed, currentPage = '' }: SidebarP
       active: currentPage === 'dashboard'
     },
     {
-      href: '#',
+      href: '/chats',
       icon: MessageCircle,
       label: 'Chat',
-      active: false
+      active: currentPage === 'chats'
     },
     {
       href: '/pagos',
