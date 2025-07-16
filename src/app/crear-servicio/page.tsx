@@ -11,8 +11,6 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
-import Sidebar from '@/components/Sidebar';
-import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { serviceService, categoryService } from '@/lib/services';
 import type { Category } from '@/types/database';
@@ -38,7 +36,7 @@ export default function CrearServicioPage() {
   const [horaFinal, setHoraFinal] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showClockInicio, setShowClockInicio] = useState(false);
   const [showClockFinal, setShowClockFinal] = useState(false);
@@ -159,9 +157,7 @@ export default function CrearServicioPage() {
     }
   };
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+
 
   // Funciones para el calendario
   const getDaysInMonth = (date: Date) => {

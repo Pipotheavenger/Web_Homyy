@@ -21,7 +21,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const router = useRouter();
+
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,7 +44,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let newErrors = { email: '', password: '', confirmPassword: '', general: '' };
+    const newErrors = { email: '', password: '', confirmPassword: '', general: '' };
     if (!formData.email) {
       newErrors.email = 'El correo es requerido';
     } else if (!validateEmail(formData.email)) {

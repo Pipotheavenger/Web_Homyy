@@ -44,7 +44,7 @@ export default function HistorialPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Datos de ejemplo de transacciones
-  const [transacciones, setTransacciones] = useState<Transaccion[]>([
+  const [transacciones] = useState<Transaccion[]>([
     {
       id: '1',
       tipo: 'servicio',

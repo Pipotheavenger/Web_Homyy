@@ -76,7 +76,7 @@ export default function DetallesPostulantesPage() {
   const [selectedSort, setSelectedSort] = useState('reciente');
 
   // Datos de ejemplo del servicio
-  const [servicio, setServicio] = useState<Servicio>({
+  const [servicio] = useState<Servicio>({
     id: '1',
     titulo: 'Limpieza Residencial Completa',
     descripcion: 'Necesito servicios de limpieza profesional para mi casa de 3 habitaciones. Incluye cocina, baños, dormitorios y áreas comunes. Preferiblemente con productos eco-friendly.',
@@ -97,7 +97,7 @@ export default function DetallesPostulantesPage() {
   });
 
   // Datos de ejemplo de postulantes
-  const [postulantes, setPostulantes] = useState<Postulante[]>([
+  const [postulantes] = useState<Postulante[]>([
     {
       id: '1',
       nombre: 'María',

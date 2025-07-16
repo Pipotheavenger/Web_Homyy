@@ -13,7 +13,7 @@ export async function testDatabaseConnection() {
   try {
     // 1. Probar conexión básica
     console.log('1. Probando conexión básica...');
-    const { data: testData, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from('categories')
       .select('*')
       .limit(1);
@@ -129,7 +129,7 @@ export async function checkDatabaseStructure() {
     const tables = ['categories', 'services', 'schedules', 'professionals', 'reviews', 'transactions'];
     
     for (const table of tables) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from(table)
         .select('*')
         .limit(1);

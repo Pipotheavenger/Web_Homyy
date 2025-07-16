@@ -8,13 +8,9 @@ import {
   MapPin,
   User,
   Star,
-  Clock,
-  DollarSign,
   Trash2
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import VerPerfilButton from '@/components/VerPerfilButton';
-import { formatPrice } from '@/lib/utils';
 import { serviceService, statsService, categoryService } from '@/lib/services';
 import type { Service, Category, ServiceSchedule } from '@/types/database';
 

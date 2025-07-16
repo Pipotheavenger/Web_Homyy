@@ -43,7 +43,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    let newErrors = { email: '', password: '', general: '' };
+    const newErrors = { email: '', password: '', general: '' };
     
     if (!formData.email) {
       newErrors.email = 'El correo es requerido';
@@ -63,7 +63,7 @@ export default function LoginPage() {
       setIsLoading(true);
       
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
@@ -92,7 +92,7 @@ export default function LoginPage() {
     try {
       console.log('🔄 Iniciando login con Google...');
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+              const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
@@ -103,7 +103,7 @@ export default function LoginPage() {
         throw error;
       }
       
-      console.log('✅ Login con Google iniciado:', data);
+              console.log('✅ Login con Google iniciado');
       
     } catch (err: any) {
       console.error('❌ Google login error:', err);

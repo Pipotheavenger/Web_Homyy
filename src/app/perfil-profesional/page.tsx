@@ -71,14 +71,14 @@ interface Servicio {
 }
 
 export default function PerfilProfesionalPage() {
-  const router = useRouter();
+
   const searchParams = useSearchParams();
   const profesionalId = searchParams.get('id');
   
-  const [isEditing, setIsEditing] = useState(false);
+
 
   // Datos de ejemplo del profesional (en una app real vendrían de la base de datos)
-  const [profesional, setProfesional] = useState<Profesional>({
+  const [profesional] = useState<Profesional>({
     id: profesionalId || '1',
     nombre: 'María',
     apellido: 'González',

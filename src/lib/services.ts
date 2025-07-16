@@ -1,16 +1,14 @@
 import { supabase } from './supabase';
-import type { 
-  Service, 
-  Category, 
-  ServiceSchedule, 
-  Professional, 
-  Review, 
+import type {
+  Service,
+  Category,
+  ServiceSchedule,
+  Professional,
   Transaction,
   CreateServiceData,
   UpdateServiceData,
   ServiceFilters,
-  ApiResponse,
-  PaginatedResponse
+  ApiResponse
 } from '@/types/database';
 
 // =====================================================
