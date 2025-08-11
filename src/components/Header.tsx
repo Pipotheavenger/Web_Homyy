@@ -38,6 +38,7 @@ export default function Header({
             <button
               onClick={onBackClick}
               className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
+              title="Regresar"
             >
               <ArrowLeft size={20} className="text-gray-600" />
             </button>

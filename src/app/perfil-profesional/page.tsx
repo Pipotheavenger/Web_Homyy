@@ -71,9 +71,13 @@ interface Servicio {
 }
 
 export default function PerfilProfesionalPage() {
-
+  const router = useRouter();
   const searchParams = useSearchParams();
   const profesionalId = searchParams.get('id');
+
+  const handleBack = () => {
+    router.back();
+  };
   
 
 
@@ -225,7 +229,7 @@ export default function PerfilProfesionalPage() {
   };
 
   return (
-    <Layout title="Perfil Profesional" showBackButton={true}>
+    <Layout title="Perfil Profesional" showBackButton={true} onBackClick={handleBack}>
       <div className="p-6">
         {/* Header con figura morada y foto circular */}
         <div className="relative mb-8">
