@@ -1,4 +1,5 @@
 import { X, CheckCircle, Clock } from 'lucide-react';
+import Image from 'next/image';
 
 interface QRModalProps {
   isOpen: boolean;
@@ -98,57 +99,19 @@ export const QRModal = ({ isOpen, onClose, metodoPago, monto, onConfirmPayment }
             {/* QR Code */}
             <div className="bg-gradient-to-r from-gray-50/80 to-purple-50/80 border border-gray-200/30 rounded-xl p-6">
               <div className="text-center">
-                <div className="w-48 h-48 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg border-2 border-gray-200 overflow-hidden">
-                  {metodoPago.toLowerCase() === 'nequi' ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                      {/* QR CSS que se ve real */}
-                      <div className="w-40 h-40 bg-white p-2 rounded-lg">
-                        <div className="w-full h-full bg-black grid grid-cols-11 grid-rows-11 gap-0.5">
-                          {/* Patrón de QR más realista */}
-                          {Array.from({ length: 121 }, (_, i) => {
-                            const row = Math.floor(i / 11);
-                            const col = i % 11;
-                            
-                            // Patrón de QR más complejo
-                            let isWhite = false;
-                            
-                            // Esquinas (finder patterns)
-                            if ((row < 3 && col < 3) || 
-                                (row < 3 && col > 7) || 
-                                (row > 7 && col < 3)) {
-                              isWhite = (row === 1 && col === 1) || 
-                                       (row === 1 && col === 9) || 
-                                       (row === 9 && col === 1);
-                            }
-                            // Patrón central
-                            else if (row >= 4 && row <= 6 && col >= 4 && col <= 6) {
-                              isWhite = (row === 5 && col === 5);
-                            }
-                            // Patrón fijo para el resto
-                            else {
-                              isWhite = (row + col) % 2 === 0;
-                            }
-                            
-                            return (
-                              <div 
-                                key={i} 
-                                className={`w-full h-full ${isWhite ? 'bg-white' : 'bg-black'}`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center mb-2">
-                        <span className="text-4xl">📱</span>
-                      </div>
-                      <p className="text-xs text-gray-500 font-medium">Código QR</p>
-                      <p className="text-xs text-gray-400">Escanea con tu app</p>
-                    </div>
-                  )}
-                </div>
+                                 <div className="w-48 h-48 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg border-2 border-gray-200 overflow-hidden">
+                   <div className="w-full h-full flex items-center justify-center p-2">
+                     {/* QR real de Nequi para todos los métodos */}
+                     <Image
+                       src="/nequi.jpg"
+                       alt="Código QR para pago"
+                       width={160}
+                       height={160}
+                       className="w-40 h-40 object-contain rounded-lg"
+                       priority
+                     />
+                   </div>
+                 </div>
                 
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-gray-800">
@@ -157,19 +120,42 @@ export const QRModal = ({ isOpen, onClose, metodoPago, monto, onConfirmPayment }
                   <p className="text-xs text-gray-600">
                     El pago se procesará automáticamente
                   </p>
-                  {metodoPago.toLowerCase() === 'nequi' && (
-                    <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 border border-purple-200/30 rounded-lg p-3 mt-3">
-                      <p className="text-xs text-purple-700 font-medium mb-1">
-                        Información del pago:
-                      </p>
-                      <p className="text-xs text-purple-600">
-                        Número: <strong>321-268-1034</strong>
-                      </p>
-                      <p className="text-xs text-purple-600">
-                        Nombre: <strong>Sebastián Valencia</strong>
-                      </p>
-                    </div>
-                  )}
+                  {/* Información específica según el método de pago */}
+                  <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 border border-purple-200/30 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-purple-700 font-medium mb-1">
+                      Información del pago: Sebastián Valencia - 3212681034
+                    </p>
+                    {metodoPago.toLowerCase() === 'nequi' && (
+                      <>
+                        <p className="text-xs text-purple-600">
+                          Número: <strong>321-268-1034</strong>
+                        </p>
+                        <p className="text-xs text-purple-600">
+                          Nombre: <strong>Sebastián Valencia</strong>
+                        </p>
+                      </>
+                    )}
+                    {metodoPago.toLowerCase() === 'daviplata' && (
+                      <>
+                        <p className="text-xs text-purple-600">
+                          Número: <strong>300-123-4567</strong>
+                        </p>
+                        <p className="text-xs text-purple-600">
+                          Nombre: <strong>Sebastián Valencia</strong>
+                        </p>
+                      </>
+                    )}
+                    {metodoPago.toLowerCase() === 'pse' && (
+                      <>
+                        <p className="text-xs text-purple-600">
+                          Referencia: <strong>REF-{Date.now().toString().slice(-6)}</strong>
+                        </p>
+                        <p className="text-xs text-purple-600">
+                          Banco: <strong>Bancolombia</strong>
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { User, Award, Settings } from 'lucide-react';
+import { User, Award, Settings, Star } from 'lucide-react';
 
 interface Tab {
   id: string;
@@ -15,6 +15,7 @@ export const ProfileTabs = ({ activeTab, onTabChange }: ProfileTabsProps) => {
   const tabs: Tab[] = [
     { id: 'informacion', label: 'Información Personal', icon: User },
     { id: 'servicios', label: 'Mis Servicios', icon: Award },
+    { id: 'reseñas', label: 'Mis Reseñas', icon: Star },
     { id: 'preferencias', label: 'Preferencias', icon: Settings }
   ];
 

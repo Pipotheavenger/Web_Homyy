@@ -47,9 +47,8 @@ export default function AuthCallback() {
             setStatus('success');
             setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
             
-            setTimeout(() => {
-              router.push('/dashboard');
-            }, 2000);
+            // Determinar el tipo de usuario y redirigir apropiadamente
+            await redirectToAppropriateDashboard(data.session.user);
           } else {
             setStatus('error');
             setMessage('No se pudo establecer la sesión. Intenta de nuevo.');
@@ -69,9 +68,8 @@ export default function AuthCallback() {
             setStatus('success');
             setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
             
-            setTimeout(() => {
-              router.push('/dashboard');
-            }, 2000);
+            // Determinar el tipo de usuario y redirigir apropiadamente
+            await redirectToAppropriateDashboard(sessionData.session.user);
           } else {
             // Redirigir al login si no hay sesión
             router.push('/login');
@@ -81,6 +79,29 @@ export default function AuthCallback() {
         console.error('Unexpected error:', err);
         setStatus('error');
         setMessage('Error inesperado. Intenta de nuevo.');
+      }
+    };
+
+    const redirectToAppropriateDashboard = async (user: any) => {
+      try {
+        // TEMPORAL: Cambiar a 'worker' para probar la vista del trabajador
+        // Por defecto, redirigir al dashboard del usuario
+        // En el futuro, aquí se puede verificar el tipo de usuario desde la base de datos
+        const userType = 'worker'; // TEMPORAL: Cambiado a worker para pruebas
+        
+        setTimeout(() => {
+          if (userType === 'worker') {
+            router.push('/worker/dashboard');
+          } else {
+            router.push('/user/dashboard');
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('Error determining user type:', error);
+        // Fallback: redirigir al dashboard del usuario
+        setTimeout(() => {
+          router.push('/user/dashboard');
+        }, 2000);
       }
     };
 

@@ -101,7 +101,7 @@ export const useCreateService = () => {
       if (response.success) {
         setSuccess('Servicio creado exitosamente');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/user/dashboard');
         }, 1500);
       } else {
         console.error('❌ Error en la respuesta:', response.error);

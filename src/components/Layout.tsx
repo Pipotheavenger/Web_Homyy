@@ -1,51 +1,66 @@
 'use client';
-import { useState } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
+import { ReactNode } from 'react';
+import { useUserType } from '@/contexts/UserTypeContext';
+import { getNavigationItems, getPageConfig } from '@/utils/userTypeUtils';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
 
 interface LayoutProps {
-  children: React.ReactNode;
-  title: string;
+  children: ReactNode;
+  title?: string;
+  description?: string;
   breadcrumbs?: Array<{ label: string; href?: string; active?: boolean }>;
   showBackButton?: boolean;
   onBackClick?: () => void;
   currentPage?: string;
 }
 
-export default function Layout({ 
-  children, 
-  title, 
-  breadcrumbs = [], 
+export default function Layout({
+  children,
+  title,
+  description,
+  breadcrumbs,
   showBackButton = false,
   onBackClick,
-  currentPage = ''
+  currentPage = 'dashboard'
 }: LayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { userType, colors } = useUserType();
+  const navigationItems = getNavigationItems(userType);
+  const pageConfig = getPageConfig(userType, currentPage);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  const finalTitle = title || pageConfig.title;
+  const finalDescription = description || pageConfig.description;
+  const finalBreadcrumbs = breadcrumbs || pageConfig.breadcrumbs;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar sidebarCollapsed={sidebarCollapsed} currentPage={currentPage} />
-
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? 'ml-16' : 'ml-64'
-      }`}>
-        {/* Header */}
-        <Header 
-          title={title}
-          breadcrumbs={breadcrumbs}
-          showBackButton={showBackButton}
-          onBackClick={onBackClick}
-          onMenuClick={toggleSidebar}
+      <div className="flex">
+        {/* Sidebar */}
+        <Sidebar 
+          navigationItems={navigationItems}
+          currentPage={currentPage}
+          userType={userType}
+          colors={colors}
         />
 
-        {/* Content */}
-        {children}
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <Header
+            title={finalTitle}
+            description={finalDescription}
+            breadcrumbs={finalBreadcrumbs}
+            showBackButton={showBackButton}
+            onBackClick={onBackClick}
+            userType={userType}
+            colors={colors}
+          />
+
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface FormData {
   email: string;
@@ -7,109 +8,137 @@ interface FormData {
   remember: boolean;
 }
 
-interface FormErrors {
-  email: string;
-  password: string;
-  general: string;
+interface Errors {
+  email?: string;
+  password?: string;
+  general?: string;
 }
 
 export const useAuthForm = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     remember: false
   });
-  
-  const [errors, setErrors] = useState<FormErrors>({
-    email: '',
-    password: '',
-    general: ''
-  });
-  
+
+  const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validateForm = (): boolean => {
+    const newErrors: Errors = {};
 
-  const validatePassword = (password: string) => {
-    return password.length >= 6;
-  };
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear errors on change
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+    // Validar email
+    if (!formData.email) {
+      newErrors.email = 'El correo electrónico es requerido';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'El correo electrónico no es válido';
     }
+
+    // Validar contraseña
+    if (!formData.password) {
+      newErrors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    if (errors[field as keyof Errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+
+    // Limpiar error general cuando el usuario empiece a escribir
     if (errors.general) {
-      setErrors(prev => ({ ...prev, general: '' }));
+      setErrors(prev => ({
+        ...prev,
+        general: undefined
+      }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newErrors = { email: '', password: '', general: '' };
-    
-    if (!formData.email) {
-      newErrors.email = 'El correo es requerido';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Formato de correo inválido';
+    if (!validateForm()) {
+      return;
     }
-    
-    if (!formData.password) {
-      newErrors.password = 'La contraseña es requerida';
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Mínimo 6 caracteres';
-    }
-    
-    setErrors(newErrors);
-    
-    if (!newErrors.email && !newErrors.password) {
-      setIsLoading(true);
-      
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
 
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            setErrors(prev => ({ ...prev, general: 'Correo o contraseña incorrectos' }));
-          } else if (error.message.includes('Email not confirmed')) {
-            setErrors(prev => ({ ...prev, general: 'Por favor verifica tu correo electrónico' }));
-          } else {
-            setErrors(prev => ({ ...prev, general: 'Error al iniciar sesión. Intenta de nuevo.' }));
-          }
-        } else {
-          window.location.href = '/dashboard';
-        }
-      } catch (err: any) {
-        setErrors(prev => ({ ...prev, general: 'Error de conexión. Verifica tu internet.' }));
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        throw error;
       }
+
+      if (data.user) {
+        // Redirigir según el tipo de usuario
+        // Por ahora redirigimos al dashboard del usuario
+        router.push('/user/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Error de autenticación:', error);
+      
+      let errorMessage = 'Error al iniciar sesión. Inténtalo de nuevo.';
+      
+      if (error.message) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Correo electrónico o contraseña incorrectos';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Por favor confirma tu correo electrónico antes de iniciar sesión';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Inténtalo más tarde';
+        }
+      }
+
+      setErrors({
+        general: errorMessage
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setErrors({});
+
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
         }
       });
-      
-      if (error) throw error;
-      
-    } catch (err: any) {
-      setErrors(prev => ({ ...prev, general: 'Error al conectar con Google. Intenta de nuevo.' }));
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Error de autenticación con Google:', error);
+      setErrors({
+        general: 'Error al iniciar sesión con Google. Inténtalo de nuevo.'
+      });
+      setIsLoading(false);
     }
   };
 

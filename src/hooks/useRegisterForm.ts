@@ -1,108 +1,132 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-interface RegisterFormData {
+interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
 }
 
-interface RegisterFormErrors {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  general: string;
+interface Errors {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  general?: string;
 }
 
 export const useRegisterForm = () => {
-  const [formData, setFormData] = useState<RegisterFormData>({
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     confirmPassword: ''
   });
-  
-  const [errors, setErrors] = useState<RegisterFormErrors>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    general: ''
-  });
-  
+
+  const [errors, setErrors] = useState<Errors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validateForm = (): boolean => {
+    const newErrors: Errors = {};
 
-  const validatePassword = (password: string) => {
-    return password.length >= 6;
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field as keyof RegisterFormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    if (errors.general) {
-      setErrors(prev => ({ ...prev, general: '' }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors = { email: '', password: '', confirmPassword: '', general: '' };
-    
+    // Validar email
     if (!formData.email) {
-      newErrors.email = 'El correo es requerido';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Formato de correo inválido';
+      newErrors.email = 'El correo electrónico es requerido';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'El correo electrónico no es válido';
     }
-    
+
+    // Validar contraseña
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Mínimo 6 caracteres';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'La contraseña debe contener al menos una mayúscula, una minúscula y un número';
     }
-    
+
+    // Validar confirmación de contraseña
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Confirma tu contraseña';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
-    
+
     setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    if (errors[field as keyof Errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+
+    // Limpiar error general cuando el usuario empiece a escribir
+    if (errors.general) {
+      setErrors(prev => ({
+        ...prev,
+        general: undefined
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!newErrors.email && !newErrors.password && !newErrors.confirmPassword) {
-      setIsLoading(true);
-      try {
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: 'https://www.mcdonalds.com.co/'
-          }
-        });
-        
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            setErrors(prev => ({ ...prev, email: 'Este correo ya está registrado' }));
-          } else if (error.message.includes('Invalid email')) {
-            setErrors(prev => ({ ...prev, email: 'Correo electrónico inválido' }));
-          } else {
-            setErrors(prev => ({ ...prev, general: 'Error al crear la cuenta. Intenta de nuevo.' }));
-          }
-        } else {
-          setShowSuccess(true);
-          setFormData({ email: '', password: '', confirmPassword: '' });
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
-      } catch (err: any) {
-        setErrors(prev => ({ ...prev, general: 'Error de conexión. Verifica tu internet.' }));
-      } finally {
-        setIsLoading(false);
+      });
+
+      if (error) {
+        throw error;
       }
+
+      if (data.user) {
+        setShowSuccess(true);
+      }
+    } catch (error: any) {
+      console.error('Error de registro:', error);
+      
+      let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
+      
+      if (error.message) {
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'Ya existe una cuenta con este correo electrónico';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'El correo electrónico no es válido';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = 'Demasiados intentos. Inténtalo más tarde';
+        }
+      }
+
+      setErrors({
+        general: errorMessage
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,4 +140,4 @@ export const useRegisterForm = () => {
     handleSubmit,
     showSuccess
   };
-}; 
+};

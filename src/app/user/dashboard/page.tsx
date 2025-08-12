@@ -13,11 +13,11 @@ export default function Dashboard() {
   const { services, categories, loading, error, handleDeleteService } = useDashboard();
 
   const handleCrearServicio = () => {
-    router.push('/crear-servicio');
+    router.push('/user/crear-servicio');
   };
 
   const handleVerDetalles = (serviceId: string) => {
-    router.push(`/detalles-postulantes?id=${serviceId}`);
+    router.push(`/user/detalles-postulantes?id=${serviceId}`);
   };
 
   const topProfessionals = [

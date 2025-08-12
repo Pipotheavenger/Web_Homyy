@@ -1,123 +1,154 @@
 'use client';
-import { 
-  Briefcase, 
-  User, 
-  Settings, 
-  LogOut, 
-  MessageCircle,
-  CreditCard,
-  History,
-  ChevronRight
-} from 'lucide-react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUserType } from '@/contexts/UserTypeContext';
+import { UserType } from '@/contexts/UserTypeContext';
+import { NavigationItem } from '@/utils/userTypeUtils';
 
 interface SidebarProps {
-  sidebarCollapsed: boolean;
-  currentPage?: string;
+  navigationItems: NavigationItem[];
+  currentPage: string;
+  userType: UserType;
+  colors: any;
 }
 
-export default function Sidebar({ sidebarCollapsed, currentPage = '' }: SidebarProps) {
-  const navigationItems = [
-    {
-      href: '/dashboard',
-      icon: Briefcase,
-      label: 'Mis Servicios',
-      active: currentPage === 'dashboard'
+export const Sidebar: React.FC<SidebarProps> = ({
+  navigationItems,
+  currentPage,
+  userType,
+  colors
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const router = useRouter();
+
+  const handleNavigation = (href: string) => {
+    router.push(href);
+  };
+
+  // Colores específicos para el sidebar
+  const sidebarColors = {
+    user: {
+      background: 'bg-gradient-to-b from-[#743fc6] to-[#8a5fd1]',
+      activeBackground: 'bg-white',
+      text: 'text-white',
+      activeText: 'text-[#743fc6]',
+      hover: 'hover:bg-white/10'
     },
-    {
-      href: '/chats',
-      icon: MessageCircle,
-      label: 'Chat',
-      active: currentPage === 'chats'
-    },
-    {
-      href: '/pagos',
-      icon: CreditCard,
-      label: 'Pagos',
-      active: currentPage === 'pagos'
-    },
-    {
-      href: '/historial',
-      icon: History,
-      label: 'Historial',
-      active: currentPage === 'historial'
-    },
-    {
-      href: '/perfil',
-      icon: User,
-      label: 'Perfil',
-      active: currentPage === 'perfil'
-    },
-    {
-      href: '#',
-      icon: Settings,
-      label: 'Configuración',
-      active: false
+    worker: {
+      background: 'bg-gradient-to-b from-orange-300 to-orange-400',
+      activeBackground: 'bg-white',
+      text: 'text-white',
+      activeText: 'text-orange-400',
+      hover: 'hover:bg-white/10'
     }
-  ];
+  };
+
+  const currentColors = sidebarColors[userType];
 
   return (
-    <div className={`fixed top-0 left-0 h-full bg-gradient-to-b from-[#743fc6] to-[#8a5fd1] text-white transition-all duration-300 ease-in-out z-50 ${
-      sidebarCollapsed ? 'w-16' : 'w-64'
-    }`}>
-      <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="p-4 border-b border-purple-400/30">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center mr-3">
-              <span className="text-white font-bold text-sm">H</span>
+    <aside className={`${currentColors.background} shadow-lg transition-all duration-300 ${
+      collapsed ? 'w-16' : 'w-64'
+    } min-h-screen`}>
+      <div className="p-6">
+        {/* Logo/Brand */}
+        <div className="flex items-center justify-between mb-8">
+          {!collapsed && (
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-lg">
+                  {userType === 'worker' ? 'W' : 'H'}
+                </span>
+              </div>
+              <div>
+                                 <h2 className="text-lg font-bold text-white">
+                   {userType === 'worker' ? (
+                     <>
+                       <span className="text-orange-400">H</span>ommy
+                     </>
+                   ) : (
+                     <>
+                       <span className="text-orange-400">H</span>ommy
+                     </>
+                   )}
+                 </h2>
+                <p className="text-xs text-white/80">
+                  {userType === 'worker' ? 'Profesional' : 'Cliente'}
+                </p>
+              </div>
             </div>
-            {!sidebarCollapsed && (
-              <h2 className="text-xl font-bold">Hommy</h2>
-            )}
-          </div>
+          )}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {navigationItems.map((item, index) => (
-            <a 
-              key={index}
-              href={item.href}
-              className={`flex items-center justify-center md:justify-start p-3 rounded-lg transition-all duration-200 transform hover:scale-105 ${
-                item.active 
-                  ? 'bg-white/20 hover:bg-white/30' 
-                  : 'hover:bg-white/20'
-              }`}
-            >
-              <item.icon size={24} className="md:w-5 md:h-5" />
-              {!sidebarCollapsed && <span className="ml-3">{item.label}</span>}
-            </a>
-          ))}
+        <nav className="space-y-2">
+          {navigationItems.map((item) => {
+            // Mejorar la detección de página activa
+            const itemPath = item.href.split('/').pop();
+            const isActive = currentPage === itemPath || 
+                           (currentPage === 'chats' && itemPath === 'chats') ||
+                           (currentPage === 'dashboard' && itemPath === 'dashboard') ||
+                           (currentPage === 'pagos' && itemPath === 'pagos') ||
+                           (currentPage === 'perfil' && itemPath === 'perfil') ||
+                           (currentPage === 'historial' && itemPath === 'historial') ||
+                           (currentPage === 'aplicaciones' && itemPath === 'aplicaciones');
+            
+            return (
+              <button
+                key={item.href}
+                onClick={() => handleNavigation(item.href)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                  isActive
+                    ? `${currentColors.activeBackground} ${currentColors.activeText} shadow-lg`
+                    : `${currentColors.text} ${currentColors.hover}`
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                <span className="text-lg">{item.icon}</span>
+                {!collapsed && (
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{item.label}</div>
+                    <div className="text-xs opacity-75">{item.description}</div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Premium CTA */}
-        {!sidebarCollapsed && (
-          <div className="p-4 border-t border-white/20">
-            <div className="bg-white/10 border border-white/20 rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2">
-                    <span className="text-white text-sm">💼</span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium">¡Usa nuestras</p>
-                    <p className="text-xs font-medium">funciones Premium!</p>
-                  </div>
-                </div>
-                <ChevronRight size={16} />
+        {/* User Info */}
+        {!collapsed && (
+          <div className="mt-8 pt-6 border-t border-white/20">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold">
+                  {userType === 'worker' ? 'T' : 'U'}
+                </span>
+              </div>
+              <div>
+                <p className="font-medium text-white">
+                  {userType === 'worker' ? 'Trabajador' : 'Usuario'}
+                </p>
+                <p className="text-xs text-white/80">
+                  {userType === 'worker' ? 'Profesional' : 'Cliente'}
+                </p>
               </div>
             </div>
           </div>
         )}
-
-        {/* Logout */}
-        <div className="p-4 border-t border-white/20">
-          <button className="flex items-center justify-center md:justify-start p-3 rounded-lg hover:bg-white/20 transition-all duration-200 transform hover:scale-105 w-full">
-            <LogOut size={24} className="md:w-5 md:h-5" />
-            {!sidebarCollapsed && <span className="ml-3">Cerrar sesión</span>}
-          </button>
-        </div>
       </div>
-    </div>
+    </aside>
   );
-} 
+}; 
