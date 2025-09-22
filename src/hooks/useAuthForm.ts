@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { getUserType, redirectToUserDashboard } from '@/lib/auth-utils';
 
 interface FormData {
   email: string;
   password: string;
-  remember: boolean;
 }
 
 interface Errors {
@@ -18,8 +18,7 @@ export const useAuthForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     email: '',
-    password: '',
-    remember: false
+    password: ''
   });
 
   const [errors, setErrors] = useState<Errors>({});
@@ -91,9 +90,19 @@ export const useAuthForm = () => {
       }
 
       if (data.user) {
-        // Redirigir según el tipo de usuario
-        // Por ahora redirigimos al dashboard del usuario
-        router.push('/user/dashboard');
+        // Obtener el tipo de usuario desde la base de datos
+        const userType = await getUserType(data.user.id);
+        
+        if (userType) {
+          // Redirigir al dashboard correspondiente
+          const dashboardPath = redirectToUserDashboard(userType);
+          router.push(dashboardPath);
+        } else {
+          // Si no se puede determinar el tipo de usuario, mostrar error
+          setErrors({
+            general: 'No se pudo verificar tu tipo de usuario. Contacta al soporte.'
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error de autenticación:', error);
@@ -118,29 +127,6 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setErrors({});
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      console.error('Error de autenticación con Google:', error);
-      setErrors({
-        general: 'Error al iniciar sesión con Google. Inténtalo de nuevo.'
-      });
-      setIsLoading(false);
-    }
-  };
 
   return {
     formData,
@@ -149,7 +135,6 @@ export const useAuthForm = () => {
     focusedField,
     setFocusedField,
     handleInputChange,
-    handleSubmit,
-    handleGoogleLogin
+    handleSubmit
   };
 }; 

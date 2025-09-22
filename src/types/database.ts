@@ -2,6 +2,39 @@
 // TIPOS DE BASE DE DATOS PARA HOMMY
 // =====================================================
 
+export interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  user_type: 'user' | 'worker';
+  phone: string | null;
+  birth_date: string | null;
+  profile_picture_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkerProfile {
+  id: string;
+  user_id: string;
+  profession: string;
+  experience_years: number;
+  bio: string | null;
+  profile_description: string | null;
+  categories: string[];
+  certifications: string[];
+  hourly_rate: number | null;
+  rating: number;
+  total_services: number;
+  is_verified: boolean;
+  is_available: boolean;
+  location: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -85,6 +118,23 @@ export interface Transaction {
 // =====================================================
 // TIPOS PARA FORMULARIOS
 // =====================================================
+
+export interface RegisterUserData {
+  fullName: string;
+  email: string;
+  phone: string;
+  birthDate: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface RegisterWorkerData extends RegisterUserData {
+  profession: string;
+  experienceYears: number;
+  selectedCategories: string[];
+  profileDescription: string;
+  certifications?: string[];
+}
 
 export interface CreateServiceData {
   title: string;

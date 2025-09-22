@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { FormInput } from '@/components/ui/FormInput';
-import { GoogleButton } from '@/components/ui/GoogleButton';
 import { LoginHeader } from '@/components/ui/LoginHeader';
 import BgWave from './BgWave';
 
@@ -15,8 +14,7 @@ export default function LoginPage() {
     focusedField,
     setFocusedField,
     handleInputChange,
-    handleSubmit,
-    handleGoogleLogin
+    handleSubmit
   } = useAuthForm();
 
   const emailIcon = (
@@ -92,16 +90,7 @@ export default function LoginPage() {
             rightElement={passwordToggle}
           />
 
-          <div className="flex justify-between items-center text-xs sm:text-sm text-gray-600">
-            <label className="flex items-center gap-1 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                checked={formData.remember}
-                onChange={(e) => handleInputChange('remember', e.target.checked)}
-                className="w-3 h-3 sm:w-4 sm:h-4 text-[#743fc6] border-2 border-gray-300 rounded focus:ring-[#743fc6] focus:ring-2 transition-all duration-200 hover:border-[#743fc6]"
-              />
-              <span className="font-medium group-hover:text-gray-800 transition-colors">Recuérdame</span>
-            </label>
+          <div className="flex justify-end text-xs sm:text-sm text-gray-600">
             <a href="#" className="text-[#743fc6] hover:text-[#8a5fd1] font-medium hover:underline transition-all duration-200 text-right leading-tight">
               ¿No puedes entrar?<br />
               <span className="text-[#743fc6]">Recupera tu contraseña</span>
@@ -124,15 +113,6 @@ export default function LoginPage() {
             </div>
           </button>
 
-          <div className="flex items-center gap-2 my-1 sm:my-2 md:my-3">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-          </div>
-
-          <GoogleButton onClick={handleGoogleLogin}>
-            Inicia sesión con Google
-          </GoogleButton>
 
           <p className="text-center text-xs sm:text-sm text-gray-600 font-medium mb-0 pb-0">
             ¿Primera vez aquí?{' '}

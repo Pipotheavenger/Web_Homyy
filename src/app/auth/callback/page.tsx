@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getUserType, redirectToUserDashboard } from '@/lib/auth-utils';
 import Image from 'next/image';
 
 export default function AuthCallback() {
@@ -84,18 +85,23 @@ export default function AuthCallback() {
 
     const redirectToAppropriateDashboard = async (user: any) => {
       try {
-        // TEMPORAL: Cambiar a 'worker' para probar la vista del trabajador
-        // Por defecto, redirigir al dashboard del usuario
-        // En el futuro, aquí se puede verificar el tipo de usuario desde la base de datos
-        const userType = 'worker'; // TEMPORAL: Cambiado a worker para pruebas
+        // Obtener el tipo de usuario desde la base de datos
+        const userType = await getUserType(user.id);
         
-        setTimeout(() => {
-          if (userType === 'worker') {
-            router.push('/worker/dashboard');
-          } else {
+        if (userType) {
+          // Redirigir al dashboard correspondiente
+          const dashboardPath = redirectToUserDashboard(userType);
+          
+          setTimeout(() => {
+            router.push(dashboardPath);
+          }, 2000);
+        } else {
+          console.error('No se pudo determinar el tipo de usuario');
+          // Fallback: redirigir al dashboard del usuario
+          setTimeout(() => {
             router.push('/user/dashboard');
-          }
-        }, 2000);
+          }, 2000);
+        }
       } catch (error) {
         console.error('Error determining user type:', error);
         // Fallback: redirigir al dashboard del usuario
