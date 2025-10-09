@@ -9,8 +9,8 @@ interface RegisterSuccessProps {
 export default function RegisterSuccess({ userType }: RegisterSuccessProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
-      window.location.href = userType === 'worker' ? '/worker/dashboard' : '/user/dashboard';
-    }, 3000);
+      window.location.href = '/login';
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [userType]);
@@ -32,11 +32,27 @@ export default function RegisterSuccess({ userType }: RegisterSuccessProps) {
             ¡Registro exitoso! 🎉
           </h2>
           <p className="text-gray-600 text-lg">
-            {userType === 'worker' 
-              ? 'Bienvenido a Hommy. Ya puedes comenzar a ofrecer tus servicios.' 
-              : 'Bienvenido a Hommy. Ya puedes buscar los mejores profesionales.'
-            }
+            Tu cuenta ha sido creada correctamente.
           </p>
+        </div>
+
+        {/* Información adicional - Email de confirmación */}
+        <div className="bg-blue-50 rounded-2xl p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+              <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-800 mb-2">
+                Verifica tu correo electrónico
+              </h3>
+              <p className="text-sm text-gray-600">
+                Hemos enviado un enlace de confirmación a tu correo. Por favor, verifica tu bandeja de entrada (y spam) para activar tu cuenta.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Información adicional */}
@@ -51,19 +67,11 @@ export default function RegisterSuccess({ userType }: RegisterSuccessProps) {
               <h3 className="font-semibold text-gray-800 mb-2">
                 Próximos pasos:
               </h3>
-              {userType === 'worker' ? (
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Completa tu perfil profesional</li>
-                  <li>• Explora trabajos disponibles</li>
-                  <li>• Comienza a aplicar a proyectos</li>
-                </ul>
-              ) : (
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Explora profesionales verificados</li>
-                  <li>• Publica tu primer servicio</li>
-                  <li>• Conecta con expertos cerca de ti</li>
-                </ul>
-              )}
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• Confirma tu correo electrónico</li>
+                <li>• Inicia sesión en tu cuenta</li>
+                <li>• {userType === 'worker' ? 'Completa tu perfil profesional' : 'Publica tu primer servicio'}</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -71,7 +79,7 @@ export default function RegisterSuccess({ userType }: RegisterSuccessProps) {
         {/* Indicador de redirección */}
         <div className="flex items-center justify-center gap-3 text-sm text-gray-500">
           <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-          <span>Redirigiendo al dashboard en unos segundos...</span>
+          <span>Redirigiendo al login en unos segundos...</span>
         </div>
       </div>
 

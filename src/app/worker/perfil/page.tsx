@@ -17,25 +17,74 @@ import {
   ThumbsUp,
   MessageCircle
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
-import { useProfile } from '@/hooks/useProfile';
+import { useWorkerProfile } from '@/hooks/useWorkerProfile';
 import { ProfileHeader } from '@/components/ui/ProfileHeader';
 import { ProfileTabs } from '@/components/ui/ProfileTabs';
+import { supabase } from '@/lib/supabase';
 
 export default function PerfilWorkerPage() {
+  const router = useRouter();
   const {
     usuario,
+    workerProfile,
     formData,
     isEditing,
     activeTab,
     serviciosRecientes,
+    reviews,
+    reviewStats,
+    loading,
     setIsEditing,
     setActiveTab,
     handleSave,
     handleCancel,
     handleInputChange,
-    formatPrice
-  } = useProfile();
+    formatPrice,
+    formatDate
+  } = useWorkerProfile();
+
+  const handleLogout = async () => {
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      try {
+        await supabase.auth.signOut();
+        router.push('/login');
+      } catch (error) {
+        alert('Error al cerrar sesión');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout 
+        title="Mi Perfil Profesional" 
+        currentPage="perfil"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!usuario) {
+    return (
+      <Layout 
+        title="Mi Perfil Profesional" 
+        currentPage="perfil"
+      >
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">
+            Error al cargar el perfil. Por favor, intenta de nuevo.
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -66,16 +115,13 @@ export default function PerfilWorkerPage() {
         {/* Header con información del usuario */}
         <ProfileHeader
           usuario={usuario}
-          isEditing={isEditing}
-          onEdit={() => setIsEditing(true)}
-          onSave={handleSave}
-          onCancel={handleCancel}
           formatPrice={formatPrice}
+          createdAt={workerProfile?.created_at}
         />
 
         {/* Tabs de navegación */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgba(249,115,22,0.12)] border border-white/40 p-4 md:p-6">
-          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} userType="worker" />
 
           {/* Contenido de los tabs */}
           {activeTab === 'informacion' && (
@@ -93,85 +139,40 @@ export default function PerfilWorkerPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.nombre}
-                          onChange={(e) => handleInputChange('nombre', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3">
-                          <p className="text-gray-800 font-medium">{usuario.nombre}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3">
+                        <p className="text-gray-800 font-medium">{usuario.nombre}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.apellido}
-                          onChange={(e) => handleInputChange('apellido', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3">
-                          <p className="text-gray-800 font-medium">{usuario.apellido}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3">
+                        <p className="text-gray-800 font-medium">{usuario.apellido}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <Mail size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.email}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <Mail size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.email}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={formData.telefono}
-                          onChange={(e) => handleInputChange('telefono', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <Phone size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.telefono}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <Phone size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.telefono}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.ubicacion}
-                          onChange={(e) => handleInputChange('ubicacion', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <MapPin size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.ubicacion}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <MapPin size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.ubicacion}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -212,6 +213,22 @@ export default function PerfilWorkerPage() {
                         <CheckCircle size={20} className="text-green-500" />
                       </div>
                     </div>
+
+                    {/* Botón de cerrar sesión */}
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full bg-gradient-to-r from-gray-50/80 to-red-50/80 rounded-xl p-4 border border-red-200/30 hover:border-red-300/50 transition-all duration-300 group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-lg flex items-center justify-center group-hover:from-red-500 group-hover:to-red-600 transition-all duration-300">
+                          <LogOut size={16} className="text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-gray-700 group-hover:text-red-600 transition-colors">Cerrar Sesión</p>
+                          <p className="text-xs text-gray-600">Salir de tu cuenta</p>
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -228,26 +245,37 @@ export default function PerfilWorkerPage() {
               </div>
               
               <div className="space-y-4">
-                {serviciosRecientes.map((servicio) => (
-                  <div key={servicio.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800 text-base md:text-lg">{servicio.titulo}</h4>
-                      <div className={`inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium border ${getEstadoColor(servicio.estado)}`}>
-                        {servicio.estado === 'completado' ? 'Completado' : 
-                         servicio.estado === 'en_proceso' ? 'En Proceso' : 
-                         servicio.estado === 'activo' ? 'Activo' : 'Cancelado'}
+                {serviciosRecientes && serviciosRecientes.length > 0 ? (
+                  serviciosRecientes.map((booking) => (
+                    <div key={booking.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-gray-800 text-base md:text-lg">
+                          {booking.service?.title || 'Servicio'}
+                        </h4>
+                        <div className={`inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium border ${getEstadoColor(booking.status)}`}>
+                          {booking.status === 'completed' ? 'Completado' : 
+                           booking.status === 'in_progress' ? 'En Progreso' : 
+                           booking.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600 space-y-2 md:space-y-0">
+                        <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+                          <span className="font-medium">Cliente: {booking.client?.name || 'N/A'}</span>
+                          <span className="font-medium">Fecha: {booking.start_date}</span>
+                        </div>
+                        <span className="font-bold text-orange-600 text-lg">{formatPrice(Number(booking.total_price))}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600 space-y-2 md:space-y-0">
-                      <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
-                        <span className="font-medium">Cliente: {servicio.profesional}</span>
-                        <span className="font-medium">Fecha: {servicio.fecha}</span>
-                      </div>
-                      <span className="font-bold text-orange-600 text-lg">{formatPrice(servicio.precio)}</span>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Settings size={24} className="text-gray-400" />
                     </div>
+                    <p className="text-gray-600 text-sm">No tienes trabajos recientes</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -260,225 +288,90 @@ export default function PerfilWorkerPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-800">Mis Reseñas</h3>
               </div>
+
+              {/* Resumen de calificaciones - ARRIBA */}
+              <div className="bg-gradient-to-r from-orange-50/80 to-red-50/80 rounded-xl p-6 border border-orange-200/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-2">Resumen de Calificaciones</h4>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            size={18} 
+                            className={star <= reviewStats.averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-2xl font-bold text-gray-800">
+                        {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
+                      </span>
+                      <span className="text-sm text-gray-600">({reviewStats.totalReviews} reseñas)</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-orange-600">{reviewStats.satisfaction}%</div>
+                    <div className="text-sm text-gray-600">Satisfacción</div>
+                  </div>
+                </div>
+              </div>
               
-              <div className="space-y-4">
-                {/* Reseña 1 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">MG</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-800">María González</h4>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} size={14} className="text-yellow-400 fill-current" />
-                          ))}
-                          <span className="text-sm text-gray-600 ml-2">Hace 2 días</span>
+              {/* Lista de reseñas */}
+              <div className="space-y-4">{reviews.length > 0 ? (
+                  reviews.map((review) => (
+                    <div key={review.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                            {review.reviewer?.profile_picture_url ? (
+                              <img 
+                                src={review.reviewer.profile_picture_url} 
+                                alt={review.reviewer.name}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-white font-bold text-sm">
+                                {review.reviewer?.name?.substring(0, 2).toUpperCase() || 'US'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">{review.reviewer?.name || 'Usuario'}</h4>
+                            <div className="flex items-center space-x-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star 
+                                  key={star} 
+                                  size={14} 
+                                  className={star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                                />
+                              ))}
+                              <span className="text-sm text-gray-600 ml-2">{formatDate(review.created_at)}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
+                      
+                      {review.comment && (
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          {review.comment}
+                        </p>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-orange-600 font-semibold">Limpieza Residencial</div>
-                      <div className="text-sm text-gray-500">$180,000</div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Star size={24} className="text-gray-400" />
                     </div>
+                    <p className="text-gray-600 text-sm">Aún no tienes reseñas</p>
+                    <p className="text-gray-500 text-xs mt-1">Completa tu primer trabajo para recibir calificaciones</p>
                   </div>
-                  
-                  <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                    "Excelente trabajo de limpieza. Carlos fue muy profesional, puntual y dejó mi apartamento impecable. Definitivamente lo recomendaría y volvería a contratarlo."
-                  </p>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp size={12} className="text-green-500" />
-                      <span>Muy útil</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <MessageCircle size={12} className="text-blue-500" />
-                      <span>Responder</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reseña 2 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">CL</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-800">Carlos López</h4>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4].map((star) => (
-                            <Star key={star} size={14} className="text-yellow-400 fill-current" />
-                          ))}
-                          <Star size={14} className="text-gray-300" />
-                          <span className="text-sm text-gray-600 ml-2">Hace 1 semana</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-orange-600 font-semibold">Reparación de Grifo</div>
-                      <div className="text-sm text-gray-500">$120,000</div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                    "Buen trabajo en la reparación del grifo. Llegó a tiempo y solucionó el problema rápidamente. El precio fue justo por el trabajo realizado."
-                  </p>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp size={12} className="text-green-500" />
-                      <span>Útil</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <MessageCircle size={12} className="text-blue-500" />
-                      <span>Responder</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reseña 3 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(249,115,22,0.12)] transition-all duration-300">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">AM</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-800">Ana Martínez</h4>
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} size={14} className="text-yellow-400 fill-current" />
-                          ))}
-                          <span className="text-sm text-gray-600 ml-2">Hace 2 semanas</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-orange-600 font-semibold">Organización de Closet</div>
-                      <div className="text-sm text-gray-500">$200,000</div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                    "Increíble trabajo de organización. Carlos transformó mi closet completamente. Ahora tengo mucho más espacio y todo está perfectamente organizado. ¡Altamente recomendado!"
-                  </p>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <ThumbsUp size={12} className="text-green-500" />
-                      <span>Muy útil</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <MessageCircle size={12} className="text-blue-500" />
-                      <span>Responder</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Estadísticas de reseñas */}
-                <div className="bg-gradient-to-r from-orange-50/80 to-red-50/80 rounded-xl p-4 border border-orange-200/30">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-gray-800 mb-1">Resumen de Calificaciones</h4>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} size={16} className="text-yellow-400 fill-current" />
-                          ))}
-                        </div>
-                        <span className="text-lg font-bold text-gray-800">4.8</span>
-                        <span className="text-sm text-gray-600">(156 reseñas)</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-orange-600">98%</div>
-                      <div className="text-sm text-gray-600">Satisfacción</div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
 
-          {activeTab === 'preferencias' && (
-            <div className="space-y-6 mt-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Settings size={20} className="text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800">Configuración de Preferencias</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-gray-50/80 to-blue-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-lg flex items-center justify-center">
-                        <Bell size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Notificaciones Push</p>
-                        <p className="text-xs text-gray-600">Recibe notificaciones sobre tus trabajos</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.notificaciones} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-orange-500 peer-checked:to-red-500"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-gray-50/80 to-green-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-400 rounded-lg flex items-center justify-center">
-                        <Mail size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Email Marketing</p>
-                        <p className="text-xs text-gray-600">Recibe ofertas y promociones por email</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.emailMarketing} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-orange-500 peer-checked:to-red-500"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-gray-50/80 to-orange-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-400 rounded-lg flex items-center justify-center">
-                        <Shield size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Privacidad</p>
-                        <p className="text-xs text-gray-600">Mantén tu información privada</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.privacidad} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-orange-500 peer-checked:to-red-500"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botón de cerrar sesión */}
-              <div className="pt-6 border-t border-gray-200/60">
-                <button className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50/80 rounded-xl transition-all duration-300 font-medium">
-                  <LogOut size={16} />
-                  <span>Cerrar Sesión</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Layout>

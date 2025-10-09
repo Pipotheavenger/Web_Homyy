@@ -1,23 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TrendingUp,
   TrendingDown,
-  CreditCard as CreditCardIcon,
   Smartphone,
-  Banknote,
   Zap,
-  Shield,
   CheckCircle2,
   Wallet,
   X,
-  DollarSign,
   Clock,
-  Users
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { QRModal } from '@/components/ui/QRModal';
+import { PaymentSuccessModal } from '@/components/ui/PaymentSuccessModal';
+import { transactionsService, Transaction } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
 
 interface MetodoPago {
@@ -32,27 +31,43 @@ interface MetodoPago {
 export default function PagosPage() {
   const router = useRouter();
   const [showRecargar, setShowRecargar] = useState(false);
-  const [showRetirar, setShowRetirar] = useState(false);
   const [selectedMetodo, setSelectedMetodo] = useState<string | null>(null);
   const [monto, setMonto] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [currentTransactionRef, setCurrentTransactionRef] = useState('');
 
-  const balance = 1250000; // $1,250,000 COP
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    
+    // Cargar balance
+    const balanceResponse = await transactionsService.getBalance();
+    if (balanceResponse.success && balanceResponse.data !== null) {
+      setBalance(balanceResponse.data);
+    }
+
+    // Cargar transacciones
+    const transactionsResponse = await transactionsService.getMyTransactions();
+    if (transactionsResponse.success) {
+      setTransactions(transactionsResponse.data);
+    }
+
+    setLoading(false);
+  };
 
   const handleVolver = () => {
     router.back();
   };
 
-  // Solo PSE, Nequi y Daviplata para recargas
+  // Solo Nequi y DaviPlata para recargas
   const metodosRecarga: MetodoPago[] = [
-    {
-      id: 'pse',
-      nombre: 'PSE',
-      icono: <Banknote size={24} />,
-      color: 'bg-gradient-to-br from-blue-500 to-blue-600',
-      descripcion: 'Pagos Seguros en Línea',
-      disponible: true
-    },
     {
       id: 'nequi',
       nombre: 'Nequi',
@@ -65,41 +80,14 @@ export default function PagosPage() {
       id: 'daviplata',
       nombre: 'DaviPlata',
       icono: <Zap size={24} />,
-      color: 'bg-gradient-to-br from-green-500 to-green-600',
-      descripcion: 'Billetera Digital Davivienda',
-      disponible: true
-    }
-  ];
-
-  // Métodos completos para retiros
-  const metodosRetiro: MetodoPago[] = [
-    ...metodosRecarga,
-    {
-      id: 'bancolombia',
-      nombre: 'Bancolombia',
-      icono: <CreditCardIcon size={24} />,
       color: 'bg-gradient-to-br from-red-500 to-red-600',
-      descripcion: 'Transferencia Bancaria',
-      disponible: true
-    },
-    {
-      id: 'bancodebogota',
-      nombre: 'Banco de Bogotá',
-      icono: <CreditCardIcon size={24} />,
-      color: 'bg-gradient-to-br from-yellow-500 to-yellow-600',
-      descripcion: 'Transferencia Bancaria',
+      descripcion: 'Billetera Digital Davivienda',
       disponible: true
     }
   ];
 
   const handleRecargar = () => {
     setShowRecargar(true);
-    setShowRetirar(false);
-  };
-
-  const handleRetirar = () => {
-    setShowRetirar(true);
-    setShowRecargar(false);
   };
 
   const handleMetodoSeleccionado = (metodoId: string) => {
@@ -107,54 +95,127 @@ export default function PagosPage() {
   };
 
   const handleConfirmarTransaccion = () => {
-    if (showRecargar) {
-      // Para recargas, mostrar el QR modal
-      console.log('Monto a pasar al QRModal:', monto, 'Tipo:', typeof monto);
+    if (showRecargar && selectedMetodo && monto) {
+      // Mostrar modal QR para confirmar pago
       setShowQRModal(true);
       setShowRecargar(false);
-    } else {
-      // Para retiros, lógica normal
-      alert(`Transacción de retiro confirmada por ${monto}`);
-      setShowRetirar(false);
     }
-    // No limpiar el monto aquí para que se mantenga en el QRModal
-    setSelectedMetodo(null);
   };
 
   const handleCerrarModal = () => {
     setShowRecargar(false);
-    setShowRetirar(false);
     setSelectedMetodo(null);
     setMonto('');
   };
 
   const handleCerrarQRModal = () => {
     setShowQRModal(false);
-    setMonto(''); // Limpiar el monto solo al cerrar el QRModal
+    setSelectedMetodo(null);
+    setMonto('');
   };
 
-  const handleConfirmarPago = () => {
-    // Aquí se podría agregar la lógica para confirmar el pago
-    console.log('Pago confirmado por el usuario');
-    // Mostrar mensaje de éxito o actualizar el balance
-    alert('¡Pago confirmado! Tu recarga se procesará en 5-10 minutos.');
-    setMonto(''); // Limpiar el monto después de confirmar
+  const handleConfirmarPago = async () => {
+    // Crear transacción en la base de datos
+    const transactionRef = `TXN-${Date.now()}`;
+    const response = await transactionsService.create({
+      type: 'recarga',
+      amount: parseFloat(monto),
+      payment_method: selectedMetodo || 'nequi',
+      transaction_reference: transactionRef,
+      description: `Recarga ${selectedMetodo?.toUpperCase()}`
+    });
+
+    if (response.success) {
+      setCurrentTransactionRef(transactionRef);
+      setShowQRModal(false);
+      setShowSuccessModal(true);
+      
+      // Recargar datos
+      await loadData();
+    } else {
+      alert('Error al procesar la transacción: ' + response.error);
+    }
   };
 
-  const metodosActuales = showRecargar ? metodosRecarga : metodosRetiro;
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setMonto('');
+    setSelectedMetodo(null);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completado':
+        return 'from-green-50/80 to-blue-50/80 border-green-200/30';
+      case 'pendiente':
+        return 'from-yellow-50/80 to-orange-50/80 border-yellow-200/30';
+      case 'rechazado':
+        return 'from-red-50/80 to-pink-50/80 border-red-200/30';
+      default:
+        return 'from-gray-50/80 to-gray-100/80 border-gray-200/30';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completado':
+        return <CheckCircle size={20} className="text-green-600" />;
+      case 'pendiente':
+        return <Clock size={20} className="text-yellow-600" />;
+      case 'rechazado':
+        return <XCircle size={20} className="text-red-600" />;
+      default:
+        return <Clock size={20} className="text-gray-600" />;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completado':
+        return 'Completada';
+      case 'pendiente':
+        return 'Pendiente';
+      case 'rechazado':
+        return 'Rechazada';
+      default:
+        return status;
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    return type === 'recarga' ? (
+      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+        <TrendingUp size={20} className="text-white" />
+      </div>
+    ) : (
+      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+        <TrendingDown size={20} className="text-white" />
+      </div>
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('es-CO', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <Layout 
       title="Pagos y Balance"
       breadcrumbs={[
-        { label: 'Inicio', href: '/dashboard' },
+        { label: 'Inicio', href: '/user/dashboard' },
         { label: 'Pagos', active: true }
       ]}
       showBackButton={true}
       onBackClick={handleVolver}
       currentPage="pagos"
     >
-      {/* Content */}
       <div className="p-4 sm:p-6 bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-blue-50/30 min-h-screen">
         {/* Balance Card */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-6 mb-6">
@@ -169,8 +230,17 @@ export default function PagosPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-purple-600">{formatPrice(balance)}</div>
-              <div className="text-gray-600 text-sm">COP</div>
+              {loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-purple-600">{formatPrice(balance)}</div>
+                  <div className="text-gray-600 text-sm">COP</div>
+                </>
+              )}
             </div>
           </div>
           
@@ -182,76 +252,85 @@ export default function PagosPage() {
               <TrendingUp size={20} />
               Recargar Cuenta
             </button>
-            <button
-              onClick={handleRetirar}
-              className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:from-gray-200 hover:to-gray-300 transition-all duration-300 border-2 border-gray-200 flex items-center justify-center gap-2"
-            >
-              <TrendingDown size={20} />
-              Retirar Dinero
-            </button>
           </div>
         </div>
 
         {/* Transaction History */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Historial de Transacciones</h3>
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-green-50/80 to-blue-50/80 border border-green-200/30 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingUp size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Recarga Nequi</h4>
-                    <p className="text-sm text-gray-600">15 Oct 2024 - 2:30 PM</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-green-600 font-semibold">+$500,000</div>
-                  <div className="text-sm text-gray-500">Completada</div>
-                </div>
-              </div>
+          
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse bg-gray-100 rounded-xl p-4 h-20"></div>
+              ))}
             </div>
-            
-            <div className="bg-gradient-to-r from-red-50/80 to-pink-50/80 border border-red-200/30 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingDown size={20} className="text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Retiro Bancolombia</h4>
-                    <p className="text-sm text-gray-600">12 Oct 2024 - 10:15 AM</p>
+          ) : transactions.length > 0 ? (
+            <div className="space-y-4">
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className={`bg-gradient-to-r ${getStatusColor(transaction.status)} border rounded-xl p-4`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {getTypeIcon(transaction.type)}
+                      <div>
+                        <h4 className="font-semibold text-gray-800">
+                          {transaction.type === 'recarga' ? 'Recarga' : 'Retiro'} {transaction.payment_method.toUpperCase()}
+                        </h4>
+                        <p className="text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
+                        {transaction.transaction_reference && (
+                          <p className="text-xs text-gray-500 font-mono">{transaction.transaction_reference}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold ${
+                        transaction.type === 'recarga' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'recarga' ? '+' : '-'}{formatPrice(Number(transaction.amount))}
+                      </div>
+                      <div className="flex items-center space-x-1 text-sm">
+                        {getStatusIcon(transaction.status)}
+                        <span className="text-gray-600">{getStatusText(transaction.status)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-red-600 font-semibold">-$300,000</div>
-                  <div className="text-sm text-gray-500">Completada</div>
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet size={24} className="text-gray-400" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">No hay transacciones</h4>
+              <p className="text-gray-600 mb-4">Aún no has realizado ninguna transacción</p>
+              <button
+                onClick={handleRecargar}
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+              >
+                Hacer mi primera recarga
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Modal de Métodos de Pago */}
-      {(showRecargar || showRetirar) && (
+      {showRecargar && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(116,63,198,0.15)] border border-white/40">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center shadow-lg">
-                    {showRecargar ? <TrendingUp size={24} className="text-purple-500" /> : <TrendingDown size={24} className="text-purple-500" />}
+                    <TrendingUp size={24} className="text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {showRecargar ? 'Recargar Cuenta' : 'Retirar Dinero'}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-medium">
-                      {showRecargar ? 'Elige tu método de pago' : 'Elige tu método de retiro'}
-                    </p>
+                    <h3 className="text-xl font-bold text-gray-800">Recargar Cuenta</h3>
+                    <p className="text-xs text-gray-500 font-medium">Elige tu método de pago</p>
                   </div>
                 </div>
                 <button
@@ -265,30 +344,34 @@ export default function PagosPage() {
               {/* Monto */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monto
+                  Monto a recargar
                 </label>
-                <input
-                  type="number"
-                  value={monto}
-                  onChange={(e) => setMonto(e.target.value)}
-                  placeholder="Ingresa el monto"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
+                  <input
+                    type="number"
+                    value={monto}
+                    onChange={(e) => setMonto(e.target.value)}
+                    placeholder="50,000"
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Monto mínimo: $10,000 COP</p>
               </div>
 
               {/* Métodos de Pago */}
               <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4">Método de Pago</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Método de Pago</h4>
                 <div className="grid grid-cols-1 gap-3">
-                  {metodosActuales.map((metodo) => (
+                  {metodosRecarga.map((metodo) => (
                     <button
                       key={metodo.id}
                       onClick={() => handleMetodoSeleccionado(metodo.id)}
                       disabled={!metodo.disponible}
                       className={`p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
                         selectedMetodo === metodo.id
-                          ? 'border-purple-500 bg-purple-50/80'
-                          : 'border-gray-200 hover:border-gray-300 bg-white/60'
+                          ? 'border-purple-500 bg-purple-50/80 shadow-md'
+                          : 'border-gray-200 hover:border-purple-300 bg-white/60 hover:shadow-sm'
                       } ${!metodo.disponible ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <div className={`w-12 h-12 ${metodo.color} rounded-xl flex items-center justify-center text-white shadow-lg`}>
@@ -296,7 +379,7 @@ export default function PagosPage() {
                       </div>
                       <div className="flex-1 text-left">
                         <h5 className="font-semibold text-gray-800">{metodo.nombre}</h5>
-                        <p className="text-sm text-gray-600">{metodo.descripcion}</p>
+                        <p className="text-xs text-gray-600">{metodo.descripcion}</p>
                       </div>
                       {selectedMetodo === metodo.id && (
                         <CheckCircle2 size={20} className="text-purple-500" />
@@ -309,10 +392,10 @@ export default function PagosPage() {
               {/* Botón Confirmar */}
               <button
                 onClick={handleConfirmarTransaccion}
-                disabled={!selectedMetodo || !monto}
-                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedMetodo || !monto || parseInt(monto) < 10000}
+                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-500 disabled:hover:to-pink-500"
               >
-                Confirmar {showRecargar ? 'Recarga' : 'Retiro'}
+                Continuar con el pago
               </button>
             </div>
           </div>
@@ -327,6 +410,15 @@ export default function PagosPage() {
         monto={parseInt(monto) || 0}
         onConfirmPayment={handleConfirmarPago}
       />
+
+      {/* Success Modal */}
+      <PaymentSuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+        amount={parseFloat(monto) || 0}
+        paymentMethod={selectedMetodo || ''}
+        transactionRef={currentTransactionRef}
+      />
     </Layout>
   );
-} 
+}

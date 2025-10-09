@@ -9,11 +9,13 @@ interface ApplicationModalProps {
     titulo: string;
     descripcion: string;
   };
-  onSubmit: (precio: number) => void;
+  onSubmit: (precio: number, coverLetter: string, estimatedDuration: string) => void;
 }
 
 export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: ApplicationModalProps) => {
   const [precio, setPrecio] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [estimatedDuration, setEstimatedDuration] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -22,19 +24,19 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
     
     setIsSubmitting(true);
     
-    // Simular envío
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     setIsSubmitting(false);
     setIsSuccess(true);
     
-    // Simular éxito y cerrar
     setTimeout(() => {
       setIsSuccess(false);
-      onSubmit(Number(precio));
+      onSubmit(Number(precio), coverLetter, estimatedDuration);
       onClose();
       setPrecio('');
-    }, 2000);
+      setCoverLetter('');
+      setEstimatedDuration('');
+    }, 1500);
   };
 
   const formatPrice = (price: string) => {
@@ -79,7 +81,7 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
           {/* Input de precio */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              ¿Cuál es tu precio para este trabajo?
+              ¿Cuál es tu precio para este trabajo? <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -99,6 +101,34 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
                 Precio formateado: {formatPrice(precio)}
               </p>
             )}
+          </div>
+
+          {/* Duración estimada */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Duración estimada (opcional)
+            </label>
+            <input
+              type="text"
+              value={estimatedDuration}
+              onChange={(e) => setEstimatedDuration(e.target.value)}
+              placeholder="Ej: 3-4 horas, 2 días, etc."
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
+            />
+          </div>
+
+          {/* Mensaje de presentación */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mensaje de presentación (opcional)
+            </label>
+            <textarea
+              value={coverLetter}
+              onChange={(e) => setCoverLetter(e.target.value)}
+              placeholder="Cuéntale al cliente por qué eres el mejor para este trabajo..."
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none resize-none"
+            />
           </div>
 
           {/* Botones */}

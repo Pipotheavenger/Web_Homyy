@@ -1,4 +1,4 @@
-import { Camera, Edit, Save, X, Award, Clock, DollarSign, Star } from 'lucide-react';
+import { Camera, Award, Clock, DollarSign, Star, Sparkles } from 'lucide-react';
 
 interface Usuario {
   id: string;
@@ -22,21 +22,32 @@ interface Usuario {
 
 interface ProfileHeaderProps {
   usuario: Usuario;
-  isEditing: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
   formatPrice: (price: number) => string;
+  createdAt?: string;
 }
 
 export const ProfileHeader = ({ 
   usuario, 
-  isEditing, 
-  onEdit, 
-  onSave, 
-  onCancel,
-  formatPrice 
+  formatPrice,
+  createdAt
 }: ProfileHeaderProps) => {
+  const getDaysActive = () => {
+    if (!createdAt) return 0;
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - created.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const getCreativeMessage = () => {
+    const days = getDaysActive();
+    if (days === 0) return '¡Bienvenido! Comienza tu aventura hoy 🎉';
+    if (days < 7) return `${days} ${days === 1 ? 'día' : 'días'} de aventura juntos 🌟`;
+    if (days < 30) return `${Math.floor(days / 7)} ${Math.floor(days / 7) === 1 ? 'semana' : 'semanas'} construyendo confianza ✨`;
+    if (days < 365) return `${Math.floor(days / 30)} ${Math.floor(days / 30) === 1 ? 'mes' : 'meses'} de experiencia compartida 🚀`;
+    const years = Math.floor(days / 365);
+    return `${years} ${years === 1 ? 'año' : 'años'} de trayectoria profesional 🏆`;
+  };
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -64,15 +75,12 @@ export const ProfileHeader = ({
                 <img
                   src={usuario.foto}
                   alt={`${usuario.nombre} ${usuario.apellido}`}
-                  className="w-20 h-20 rounded-full object-cover"
+                  className="w-full h-full rounded-full object-cover"
                 />
               ) : (
-                `${usuario.nombre[0]}${usuario.apellido[0]}`
+                `${usuario.nombre?.[0] || ''}${usuario.apellido?.[0] || ''}`
               )}
             </div>
-            <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#fbbc6c] rounded-full flex items-center justify-center hover:bg-[#f9b055] transition-colors">
-              <Camera size={16} className="text-white" />
-            </button>
           </div>
 
           {/* Información básica */}
@@ -80,47 +88,24 @@ export const ProfileHeader = ({
             <h1 className="text-2xl font-bold text-gray-800 mb-1">
               {usuario.nombre} {usuario.apellido}
             </h1>
-            <p className="text-gray-600 mb-2">Miembro desde {usuario.fechaRegistro}</p>
             
             {/* Calificación */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mb-2">
               <div className="flex items-center space-x-1">
                 {renderStars(usuario.calificacion)}
               </div>
-              <span className="text-sm font-medium text-gray-700">{usuario.calificacion}</span>
+              <span className="text-sm font-medium text-gray-700">{usuario.calificacion.toFixed(1)}</span>
               <span className="text-sm text-gray-500">({usuario.serviciosCompletados} servicios)</span>
             </div>
-          </div>
-        </div>
 
-        {/* Botón de editar */}
-        <div className="flex items-center space-x-2">
-          {isEditing ? (
-            <>
-              <button
-                onClick={onSave}
-                className="flex items-center space-x-2 px-4 py-2 bg-[#743fc6] text-white rounded-lg hover:bg-[#6a37b8] transition-colors"
-              >
-                <Save size={16} />
-                <span>Guardar</span>
-              </button>
-              <button
-                onClick={onCancel}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <X size={16} />
-                <span>Cancelar</span>
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onEdit}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              <Edit size={16} />
-              <span>Editar Perfil</span>
-            </button>
-          )}
+            {/* Mensaje creativo de tiempo de cuenta */}
+            <div className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200/40 rounded-full w-fit">
+              <Sparkles size={14} className="text-purple-500" />
+              <span className="text-xs font-medium text-purple-700">
+                {getCreativeMessage()}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

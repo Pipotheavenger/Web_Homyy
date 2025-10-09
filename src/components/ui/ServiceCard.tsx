@@ -200,7 +200,15 @@ export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: Se
         </div>
       </div>
       <button 
-        onClick={() => onViewDetails(service.id)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (service?.id) {
+            onViewDetails(service.id);
+          } else {
+            alert('Error: El servicio no tiene ID');
+          }
+        }}
         className="mt-3 w-full bg-[#743fc6] text-white py-2 rounded-lg hover:bg-[#6a37b8] transition-colors text-sm font-medium"
       >
         Ver Detalles

@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { FormInput } from '@/components/ui/FormInput';
 import { LoginHeader } from '@/components/ui/LoginHeader';
+import { RecoverPasswordModal } from '@/components/ui/RecoverPasswordModal';
 import BgWave from './BgWave';
 
 export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
+  const [showRecoverModal, setShowRecoverModal] = useState(false);
   const {
     formData,
     errors,
@@ -91,10 +93,14 @@ export default function LoginPage() {
           />
 
           <div className="flex justify-end text-xs sm:text-sm text-gray-600">
-            <a href="#" className="text-[#743fc6] hover:text-[#8a5fd1] font-medium hover:underline transition-all duration-200 text-right leading-tight">
+            <button 
+              type="button"
+              onClick={() => setShowRecoverModal(true)}
+              className="text-[#743fc6] hover:text-[#8a5fd1] font-medium hover:underline transition-all duration-200 text-right leading-tight"
+            >
               ¿No puedes entrar?<br />
               <span className="text-[#743fc6]">Recupera tu contraseña</span>
-            </a>
+            </button>
           </div>
 
           <button
@@ -122,6 +128,12 @@ export default function LoginPage() {
           </p>
         </form>
       </section>
+
+      {/* Modal de recuperación de contraseña */}
+      <RecoverPasswordModal 
+        isOpen={showRecoverModal} 
+        onClose={() => setShowRecoverModal(false)} 
+      />
 
       <style jsx>{`
         @keyframes fade-in-up {

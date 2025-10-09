@@ -1,420 +1,347 @@
 'use client';
-import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Plus, 
-  Calendar,
-  MapPin,
-  Clock,
-  Star,
-  ChevronRight,
-  X,
-  Edit,
-  Trash2,
-  Phone,
-  Heart,
-  Eye,
-  DollarSign,
-  Award,
-  CalendarDays,
-  Users,
-  CheckCircle,
-  Star as StarIcon,
-  ArrowLeft
-} from 'lucide-react';
+import { MapPin, Star, Users, MessageCircle, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
-
-interface Profesional {
-  id: string;
-  nombre: string;
-  apellido: string;
-  especialidad: string;
-  experiencia: number;
-  calificacion: number;
-  serviciosCompletados: number;
-  ubicacion: string;
-  descripcion: string;
-  vidaLaboral: string;
-  certificaciones: string[];
-  areasServicio: string[];
-  servicios: Servicio[];
-  trabajosRecientes: TrabajoReciente[];
-  reseñas: Reseña[];
-  foto: string;
-}
-
-interface TrabajoReciente {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  fecha: string;
-  imagen: string;
-}
-
-interface Reseña {
-  id: string;
-  cliente: string;
-  calificacion: number;
-  comentario: string;
-  fecha: string;
-  servicio: string;
-}
-
-interface Servicio {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  precio: number;
-  duracion: string;
-  disponible: boolean;
-  imagen: string;
-}
+import { useWorkerProfile } from '@/hooks/useWorkerProfile';
 
 export default function PerfilProfesionalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const profesionalId = searchParams.get('id');
+  const workerId = searchParams.get('id');
 
-  const handleBack = () => {
-    router.back();
-  };
-  
+  console.log('🔗 URL params - Worker ID:', workerId);
+  console.log('🔗 Search params completos:', Object.fromEntries(searchParams.entries()));
 
-
-  // Datos de ejemplo del profesional (en una app real vendrían de la base de datos)
-  const [profesional] = useState<Profesional>({
-    id: profesionalId || '1',
-    nombre: 'María',
-    apellido: 'González',
-    especialidad: 'Limpieza Profesional',
-    experiencia: 5,
-    calificacion: 4.8,
-    serviciosCompletados: 127,
-    ubicacion: 'Bogotá, Colombia',
-    descripcion: 'Profesional con más de 5 años de experiencia en limpieza residencial y comercial. Especializada en técnicas eco-friendly y organización de espacios.',
-    vidaLaboral: 'Inicié mi carrera en el sector de servicios domésticos en 2019, trabajando inicialmente con familias particulares. A lo largo de estos años, he desarrollado especialización en técnicas de limpieza ecológica y organización profesional de espacios. He trabajado con más de 200 clientes satisfechos, incluyendo residencias de lujo, oficinas corporativas y espacios comerciales.',
-    certificaciones: [
-      'Certificación en Limpieza Profesional - Instituto Colombiano de Servicios',
-      'Manejo de Productos Ecológicos - Green Clean Colombia',
-      'Organización de Espacios - Academia de Organización Profesional',
-      'Seguridad Laboral - SENA',
-      'Atención al Cliente - Cámara de Comercio de Bogotá'
-    ],
-    areasServicio: [
-      'Chapinero',
-      'Usaquén', 
-      'Teusaquillo',
-      'La Soledad',
-      'Rosales',
-      'Zona T'
-    ],
-    servicios: [
-      {
-        id: '1',
-        nombre: 'Limpieza General Residencial',
-        descripcion: 'Limpieza completa de hogares incluyendo cocina, baños, dormitorios y áreas comunes',
-        precio: 80000,
-        duracion: '4-6 horas',
-        disponible: true,
-        imagen: '/api/placeholder/150/100'
-      },
-      {
-        id: '2',
-        nombre: 'Limpieza Post-Mudanza',
-        descripcion: 'Limpieza profunda después de mudanzas, incluyendo paredes y ventanas',
-        precio: 120000,
-        duracion: '6-8 horas',
-        disponible: true,
-        imagen: '/api/placeholder/150/100'
-      },
-      {
-        id: '3',
-        nombre: 'Organización de Closets',
-        descripcion: 'Organización y limpieza de closets y armarios con técnicas profesionales',
-        precio: 60000,
-        duracion: '3-4 horas',
-        disponible: false,
-        imagen: '/api/placeholder/150/100'
-      }
-    ],
-    trabajosRecientes: [
-      {
-        id: '1',
-        titulo: 'Limpieza Residencial Completa',
-        descripcion: 'Limpieza profunda de casa de 3 habitaciones en Chapinero',
-        fecha: '15 Oct 2024',
-        imagen: '/api/placeholder/300/200'
-      },
-      {
-        id: '2',
-        titulo: 'Organización de Oficina',
-        descripcion: 'Organización y limpieza de espacio de trabajo corporativo',
-        fecha: '12 Oct 2024',
-        imagen: '/api/placeholder/300/200'
-      },
-      {
-        id: '3',
-        titulo: 'Limpieza Post-Evento',
-        descripcion: 'Limpieza después de evento corporativo en zona T',
-        fecha: '10 Oct 2024',
-        imagen: '/api/placeholder/300/200'
-      },
-      {
-        id: '4',
-        titulo: 'Organización de Closet',
-        descripcion: 'Reorganización completa de closet principal',
-        fecha: '8 Oct 2024',
-        imagen: '/api/placeholder/300/200'
-      }
-    ],
-    reseñas: [
-      {
-        id: '1',
-        cliente: 'Ana Martínez',
-        calificacion: 5,
-        comentario: 'Excelente trabajo! María es muy profesional y detallista. Mi casa quedó impecable.',
-        fecha: 'Hace 2 días',
-        servicio: 'Limpieza General Residencial'
-      },
-      {
-        id: '2',
-        cliente: 'Carlos Rodríguez',
-        calificacion: 5,
-        comentario: 'Muy satisfecho con el servicio. Puntual, eficiente y muy limpia.',
-        fecha: 'Hace 1 semana',
-        servicio: 'Limpieza Post-Mudanza'
-      },
-      {
-        id: '3',
-        cliente: 'Laura Sánchez',
-        calificacion: 4,
-        comentario: 'Buen servicio, muy organizada y puntual. Recomendada.',
-        fecha: 'Hace 2 semanas',
-        servicio: 'Organización de Closets'
-      },
-      {
-        id: '4',
-        cliente: 'Roberto Jiménez',
-        calificacion: 5,
-        comentario: 'Excelente profesional. Mi oficina quedó perfecta después de la limpieza.',
-        fecha: 'Hace 3 semanas',
-        servicio: 'Limpieza General Residencial'
-      }
-    ],
-    foto: '/api/placeholder/200/200'
-  });
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
+  const {
+    worker,
+    workerProfile,
+    reviews,
+    reviewStats,
+    loading,
+    error,
+    formatDate,
+    getTimeAgo,
+    getStarClass
+  } = useWorkerProfile(workerId || '');
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
-      <StarIcon
+      <Star
         key={i}
+        className={getStarClass(i, rating)}
         size={16}
-        className={`${
-          i < Math.floor(rating) 
-            ? 'text-yellow-400 fill-current' 
-            : i < rating 
-              ? 'text-yellow-400 fill-current' 
-              : 'text-gray-300'
-        }`}
       />
     ));
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
+  if (loading) {
+    return (
+      <Layout title="Perfil Profesional" showBackButton={true} onBackClick={handleBack}>
+        <div className="p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando perfil...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !worker) {
+    return (
+      <Layout title="Perfil Profesional" showBackButton={true} onBackClick={handleBack}>
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Error al cargar el perfil</h3>
+            <p className="text-red-600 mb-4">{error || 'Usuario no encontrado'}</p>
+            <button
+              onClick={handleBack}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout title="Perfil Profesional" showBackButton={true} onBackClick={handleBack}>
-      <div className="p-6">
-        {/* Header con figura morada y foto circular */}
-        <div className="relative mb-8">
-          {/* Figura morada superior */}
-          <div className="relative h-48 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-2xl overflow-hidden">
-            {/* Onda SVG */}
-            <svg
-              className="absolute bottom-0 left-0 w-full h-16"
-              viewBox="0 0 1200 120"
-              preserveAspectRatio="none"
-            >
-              <path
-                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-                opacity=".25"
-                fill="#ffffff"
-              />
-              <path
-                d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
-                opacity=".5"
-                fill="#ffffff"
-              />
-              <path
-                d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
-                fill="#ffffff"
-              />
-            </svg>
-            
-            {/* Información del profesional */}
-            <div className="absolute bottom-4 left-6 right-6 text-white">
-              <div className="flex items-end justify-between">
-                <div className="flex items-end space-x-4">
-                  {/* Foto circular */}
-                  <div className="relative">
-                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-                      <img
-                        src={profesional.foto}
-                        alt={`${profesional.nombre} ${profesional.apellido}`}
-                        className="w-28 h-28 rounded-full object-cover"
-                      />
-                    </div>
+      <div className="p-6 max-w-5xl mx-auto">
+        {/* Header del Perfil */}
+        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 mb-6 text-white shadow-lg">
+          <div className="flex items-center space-x-6">
+            {/* Foto de perfil */}
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-white/30 shadow-xl">
+              {workerProfile?.profile_picture_url ? (
+                <img
+                  src={workerProfile.profile_picture_url}
+                  alt={worker.name}
+                  className="w-20 h-20 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-4xl font-bold text-purple-600">
+                  {worker.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                </span>
+              )}
+            </div>
+
+            {/* Información básica */}
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold mb-2">{worker.name}</h1>
+              <p className="text-lg opacity-90 mb-3">
+                {workerProfile?.profession || 'Profesional'}
+              </p>
+
+              {/* Estadísticas rápidas */}
+              <div className="flex items-center space-x-6">
+                {workerProfile?.experience_years && (
+                  <div className="flex items-center space-x-2">
+                    <Calendar size={18} />
+                    <span>{workerProfile.experience_years} años de experiencia</span>
                   </div>
-                  
-                  {/* Información básica */}
-                  <div className="mb-2">
-                    <h1 className="text-2xl font-bold mb-1">
-                      {profesional.nombre} {profesional.apellido}
-                    </h1>
-                    <p className="text-lg opacity-90 mb-2">{profesional.especialidad}</p>
-                    
-                    {/* Estadísticas */}
-                    <div className="flex items-center space-x-6">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center">
-                          <CalendarDays size={16} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-sm opacity-75">Años de experiencia</p>
-                          <p className="font-semibold">{profesional.experiencia} años</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-[#fbbc6c] rounded-lg flex items-center justify-center">
-                          <Users size={16} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-sm opacity-75">Servicios completados</p>
-                          <p className="font-semibold">{profesional.serviciosCompletados}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Calificación */}
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-1">
-                          {renderStars(profesional.calificacion)}
-                        </div>
-                        <span className="font-semibold">{profesional.calificacion}</span>
-                      </div>
+                )}
+                
+                {reviewStats.totalReviews > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center">
+                      {renderStars(reviewStats.averageRating)}
                     </div>
+                    <span className="font-semibold">
+                      {reviewStats.averageRating.toFixed(1)} ({reviewStats.totalReviews})
+                    </span>
                   </div>
-                </div>
+                )}
+
+                {workerProfile?.total_services && (
+                  <div className="flex items-center space-x-2">
+                    <Users size={18} />
+                    <span>{workerProfile.total_services} servicios</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Contenido principal */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Columna izquierda - Detalles del profesional */}
+          {/* Información Principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Detalles del profesional */}
+            {/* Sobre el profesional */}
             <div className="bg-white rounded-2xl shadow-sm border p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Detalles del Profesional</h2>
-              <div className="space-y-4">
-                <p className="text-gray-700 leading-relaxed">{profesional.descripcion}</p>
-                
-                {/* Ubicación */}
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <MapPin size={16} />
-                  <span>{profesional.ubicacion}</span>
-                </div>
-              </div>
-            </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Sobre el Profesional</h2>
+              
+              {workerProfile?.bio ? (
+                <p className="text-gray-700 leading-relaxed mb-4">{workerProfile.bio}</p>
+              ) : (
+                <p className="text-gray-500 italic">Este profesional aún no ha agregado una biografía.</p>
+              )}
 
-            {/* Trabajos recientes */}
-            <div className="bg-white rounded-2xl shadow-sm border p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Trabajos Recientes</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {profesional.trabajosRecientes.map((trabajo) => (
-                  <div key={trabajo.id} className="bg-gray-50 rounded-xl p-4">
-                    <div className="aspect-video bg-gray-200 rounded-lg mb-3 overflow-hidden">
-                      <img
-                        src={trabajo.imagen}
-                        alt={trabajo.titulo}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <h3 className="font-semibold text-gray-800 mb-1">{trabajo.titulo}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{trabajo.descripcion}</p>
-                    <p className="text-xs text-gray-500">{trabajo.fecha}</p>
+              {workerProfile?.location && (
+                <div className="flex items-center space-x-2 text-gray-600 mt-4">
+                  <MapPin size={16} />
+                  <span>{workerProfile.location}</span>
+                </div>
+              )}
+
+              {workerProfile?.certifications && workerProfile.certifications.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-semibold text-gray-800 mb-2">Certificaciones</h3>
+                  <ul className="space-y-1">
+                    {workerProfile.certifications.map((cert: string, index: number) => (
+                      <li key={index} className="text-sm text-gray-600 flex items-center space-x-2">
+                        <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                        <span>{cert}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {workerProfile?.service_areas && workerProfile.service_areas.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-semibold text-gray-800 mb-2">Áreas de Servicio</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {workerProfile.service_areas.map((area: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
+                      >
+                        {area}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Reseñas */}
-            <div className="bg-white rounded-2xl shadow-sm border p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Reseñas</h2>
-              <div className="space-y-4">
-                {profesional.reseñas.map((reseña) => (
-                  <div key={reseña.id} className="border-b border-gray-100 pb-4 last:border-b-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-gray-800">{reseña.cliente}</h4>
-                        <p className="text-sm text-gray-600">{reseña.servicio}</p>
+            {reviewStats.totalReviews > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">
+                  Reseñas ({reviewStats.totalReviews})
+                </h2>
+
+                {/* Resumen de calificaciones */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 mb-6">
+                  <div className="flex items-center space-x-6">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-800">
+                        {reviewStats.averageRating.toFixed(1)}
                       </div>
-                      <div className="flex items-center space-x-1">
-                        {renderStars(reseña.calificacion)}
+                      <div className="flex items-center justify-center my-2">
+                        {renderStars(reviewStats.averageRating)}
                       </div>
+                      <div className="text-sm text-gray-600">{reviewStats.totalReviews} reseñas</div>
                     </div>
-                    <p className="text-gray-700 mb-2">{reseña.comentario}</p>
-                    <p className="text-xs text-gray-500">{reseña.fecha}</p>
+
+                    <div className="flex-1">
+                      {[5, 4, 3, 2, 1].map((rating) => (
+                        <div key={rating} className="flex items-center space-x-2 mb-1">
+                          <span className="text-sm w-2">{rating}</span>
+                          <Star size={12} className="text-yellow-400 fill-current" />
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-yellow-400 h-2 rounded-full"
+                              style={{
+                                width: `${
+                                  reviewStats.totalReviews > 0
+                                    ? (reviewStats.ratingDistribution[rating] / reviewStats.totalReviews) * 100
+                                    : 0
+                                }%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-600 w-8">
+                            {reviewStats.ratingDistribution[rating]}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Lista de reseñas */}
+                <div className="space-y-4">
+                  {reviews.slice(0, 5).map((review: any) => (
+                    <div key={review.id} className="border-b border-gray-100 pb-4 last:border-b-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {review.client?.name || 'Cliente'}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {review.service?.title || 'Servicio'}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          {renderStars(Number(review.rating))}
+                        </div>
+                      </div>
+                      <p className="text-gray-700 mb-2">{review.comment}</p>
+                      <p className="text-xs text-gray-500">{getTimeAgo(review.created_at)}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {reviewStats.totalReviews === 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
+                <MessageCircle size={48} className="text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">Sin reseñas aún</h3>
+                <p className="text-gray-600">
+                  Este profesional aún no tiene reseñas. ¡Sé el primero en contratarlo!
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Columna derecha - Servicios */}
+          {/* Sidebar - Información de Contacto */}
           <div className="space-y-6">
-            {/* Servicios ofrecidos */}
             <div className="bg-white rounded-2xl shadow-sm border p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Servicios Ofrecidos</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Información</h2>
+              
               <div className="space-y-4">
-                {profesional.servicios.map((servicio) => (
-                  <div key={servicio.id} className="border border-gray-200 rounded-xl p-4">
-                    <div className="aspect-video bg-gray-200 rounded-lg mb-3 overflow-hidden">
-                      <img
-                        src={servicio.imagen}
-                        alt={servicio.nombre}
-                        className="w-full h-full object-cover"
-                      />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Users size={16} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Estado</p>
+                    <p className="text-xs text-green-600">
+                      {workerProfile?.is_available !== false ? 'Disponible' : 'No disponible'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Calendar size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Miembro desde</p>
+                    <p className="text-xs text-gray-600">{formatDate(worker.created_at)}</p>
+                  </div>
+                </div>
+
+                {worker.phone && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <span className="text-green-600">📱</span>
                     </div>
-                    <h3 className="font-semibold text-gray-800 mb-2">{servicio.nombre}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{servicio.descripcion}</p>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <Clock size={14} />
-                        <span>{servicio.duracion}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-[#743fc6]">{formatPrice(servicio.precio)}</p>
-                        <p className="text-xs text-gray-500">
-                          {servicio.disponible ? 'Disponible' : 'No disponible'}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">Teléfono</p>
+                      <p className="text-xs text-gray-600">{worker.phone}</p>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
+
+            {workerProfile && (
+              <div className="bg-white rounded-2xl shadow-sm border p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Estadísticas</h2>
+                <div className="space-y-3">
+                  {workerProfile.total_services && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Servicios completados</span>
+                      <span className="font-semibold text-gray-800">{workerProfile.total_services}</span>
+                    </div>
+                  )}
+                  {workerProfile.experience_years && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Años de experiencia</span>
+                      <span className="font-semibold text-gray-800">{workerProfile.experience_years}</span>
+                    </div>
+                  )}
+                  {reviewStats.totalReviews > 0 && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Calificación promedio</span>
+                        <span className="font-semibold text-gray-800">
+                          {reviewStats.averageRating.toFixed(1)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total de reseñas</span>
+                        <span className="font-semibold text-gray-800">{reviewStats.totalReviews}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </Layout>
   );
-} 
+}

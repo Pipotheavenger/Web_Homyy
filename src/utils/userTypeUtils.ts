@@ -23,16 +23,10 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
         description: 'Panel principal del trabajador'
       },
       {
-        label: 'Mis Aplicaciones',
-        href: '/worker/aplicaciones',
-        icon: '📝',
-        description: 'Trabajos a los que he aplicado'
-      },
-      {
-        label: 'Historial',
-        href: '/worker/historial',
-        icon: '📋',
-        description: 'Historial de trabajos'
+        label: 'Trabajos',
+        href: '/worker/trabajos',
+        icon: '💼',
+        description: 'Buscar trabajos disponibles'
       },
       {
         label: 'Pagos',
@@ -60,12 +54,6 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
         href: '/chats',
         icon: '💬',
         description: 'Mensajes y conversaciones'
-      },
-      {
-        label: 'Historial',
-        href: '/user/historial',
-        icon: '📋',
-        description: 'Historial de transacciones'
       },
       {
         label: 'Pagos',

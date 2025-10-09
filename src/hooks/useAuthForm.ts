@@ -85,11 +85,40 @@ export const useAuthForm = () => {
         password: formData.password,
       });
 
+      // Manejar todos los errores específicos sin lanzar excepciones
       if (error) {
-        throw error;
+        let errorMessage = '';
+
+        if (error.message.includes('Email not confirmed')) {
+          errorMessage = '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para activar tu cuenta.';
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = '❌ Correo electrónico o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = '⏰ Demasiados intentos. Por favor, espera unos minutos antes de intentar nuevamente.';
+        } else if (error.message.includes('User not found')) {
+          errorMessage = '❌ No existe una cuenta con este correo electrónico. ¿Deseas registrarte?';
+        } else {
+          errorMessage = '❌ Error al iniciar sesión. ' + error.message;
+        }
+
+        setErrors({ general: errorMessage });
+        setIsLoading(false);
+        return;
       }
 
       if (data.user) {
+        // Verificar si el email está confirmado
+        if (!data.user.email_confirmed_at) {
+          setErrors({
+            general: '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para confirmar tu cuenta antes de iniciar sesión.'
+          });
+          setIsLoading(false);
+          
+          // Cerrar la sesión si el email no está confirmado
+          await supabase.auth.signOut();
+          return;
+        }
+
         // Obtener el tipo de usuario desde la base de datos
         const userType = await getUserType(data.user.id);
         
@@ -105,22 +134,9 @@ export const useAuthForm = () => {
         }
       }
     } catch (error: any) {
-      console.error('Error de autenticación:', error);
-      
-      let errorMessage = 'Error al iniciar sesión. Inténtalo de nuevo.';
-      
-      if (error.message) {
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Correo electrónico o contraseña incorrectos';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Por favor confirma tu correo electrónico antes de iniciar sesión';
-        } else if (error.message.includes('Too many requests')) {
-          errorMessage = 'Demasiados intentos. Inténtalo más tarde';
-        }
-      }
-
+      // Capturar cualquier otro error inesperado
       setErrors({
-        general: errorMessage
+        general: '❌ Error inesperado. Por favor, intenta de nuevo.'
       });
     } finally {
       setIsLoading(false);

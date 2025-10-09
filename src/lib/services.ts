@@ -2,9 +2,6 @@ import { supabase } from './supabase';
 import type {
   Service,
   Category,
-  ServiceSchedule,
-  Professional,
-  Transaction,
   CreateServiceData,
   UpdateServiceData,
   ServiceFilters,
@@ -16,7 +13,6 @@ import type {
 // =====================================================
 
 export const categoryService = {
-  // Obtener todas las categorías
   async getAll(): Promise<ApiResponse<Category[]>> {
     try {
       const { data, error } = await supabase
@@ -25,12 +21,7 @@ export const categoryService = {
         .order('name');
 
       if (error) throw error;
-
-      return {
-        data: data || [],
-        error: null,
-        success: true
-      };
+      return { data: data || [], error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -40,7 +31,6 @@ export const categoryService = {
     }
   },
 
-  // Obtener una categoría por ID
   async getById(id: string): Promise<ApiResponse<Category>> {
     try {
       const { data, error } = await supabase
@@ -50,12 +40,7 @@ export const categoryService = {
         .single();
 
       if (error) throw error;
-
-      return {
-        data,
-        error: null,
-        success: true
-      };
+      return { data, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -71,9 +56,11 @@ export const categoryService = {
 // =====================================================
 
 export const serviceService = {
-  // Obtener servicios del usuario actual
   async getUserServices(): Promise<ApiResponse<Service[]>> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
       const { data, error } = await supabase
         .from('services')
         .select(`
@@ -81,15 +68,11 @@ export const serviceService = {
           category:categories(*),
           schedules:service_schedules(*)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      return {
-        data: data || [],
-        error: null,
-        success: true
-      };
+      return { data: data || [], error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -99,26 +82,120 @@ export const serviceService = {
     }
   },
 
-  // Obtener un servicio por ID
+  async getAvailableServices(): Promise<ApiResponse<Service[]>> {
+    try {
+      // Primero obtenemos los servicios
+      const { data: services, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!services || services.length === 0) {
+        return { data: [], error: null, success: true };
+      }
+
+      // Ahora enriquecemos cada servicio con sus relaciones
+      const enrichedServices = await Promise.all(
+        services.map(async (service) => {
+          // Obtener categoría
+          let category = null;
+          if (service.category_id) {
+            const { data: cat } = await supabase
+              .from('categories')
+              .select('*')
+              .eq('id', service.category_id)
+              .single();
+            category = cat;
+          }
+
+          // Obtener schedules
+          const { data: schedules } = await supabase
+            .from('service_schedules')
+            .select('*')
+            .eq('service_id', service.id);
+
+          // Obtener info del cliente
+          let client = null;
+          if (service.user_id) {
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('name, profile_picture_url')
+              .eq('user_id', service.user_id)
+              .single();
+            client = userProfile;
+          }
+
+          return {
+            ...service,
+            category,
+            schedules: schedules || [],
+            client
+          };
+        })
+      );
+
+      return { data: enrichedServices, error: null, success: true };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Error al obtener servicios',
+        success: false
+      };
+    }
+  },
+
   async getById(id: string): Promise<ApiResponse<Service>> {
     try {
-      const { data, error } = await supabase
+      // Consulta simple del servicio
+      const { data: service, error } = await supabase
         .from('services')
-        .select(`
-          *,
-          category:categories(*),
-          schedules:service_schedules(*)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw error;
+      if (!service) throw new Error('Servicio no encontrado');
 
-      return {
-        data,
-        error: null,
-        success: true
+      // Obtener categoría separadamente
+      let category = null;
+      if (service.category_id) {
+        const { data: cat } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('id', service.category_id)
+          .single();
+        category = cat;
+      }
+
+      // Obtener schedules separadamente
+      const { data: schedules } = await supabase
+        .from('service_schedules')
+        .select('*')
+        .eq('service_id', id);
+
+      // Obtener info del cliente separadamente
+      let client = null;
+      if (service.user_id) {
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('name, email, phone, profile_picture_url')
+          .eq('user_id', service.user_id)
+          .single();
+        client = userProfile;
+      }
+
+      // Combinar todo
+      const enrichedService = {
+        ...service,
+        category,
+        schedules: schedules || [],
+        client
       };
+
+      return { data: enrichedService, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -128,71 +205,43 @@ export const serviceService = {
     }
   },
 
-  // Crear un nuevo servicio
   async create(serviceData: CreateServiceData): Promise<ApiResponse<Service>> {
     try {
-      console.log('🔍 Verificando autenticación...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
-      console.log('✅ Usuario autenticado:', user.id);
-
-      console.log('📝 Insertando servicio en la base de datos...');
-      const serviceToInsert = {
-        user_id: user.id,
-        title: serviceData.title,
-        description: serviceData.description,
-        category_id: serviceData.category_id,
-        location: serviceData.location || null,
-        status: serviceData.status || 'active' // Usar 'active' como default según el esquema
-        // No incluir price, applicants, created_at, updated_at - estos no existen o son automáticos
-      };
-      
-      console.log('📤 Datos del servicio a insertar:', serviceToInsert);
 
       const { data, error } = await supabase
         .from('services')
-        .insert(serviceToInsert)
+        .insert({
+          user_id: user.id,
+          title: serviceData.title,
+          description: serviceData.description,
+          category_id: serviceData.category_id,
+          location: serviceData.location || null,
+          status: serviceData.status || 'active'
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Error insertando servicio:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('✅ Servicio creado con ID:', data.id);
-
-      // Si hay horarios, crearlos
-      if (serviceData.schedules && serviceData.schedules.length > 0) {
-        console.log('📅 Insertando horarios...');
-        const schedules = serviceData.schedules.map(schedule => ({
+      if (serviceData.schedules?.length) {
+        const schedules = serviceData.schedules.map(s => ({
           service_id: data.id,
-          date_available: schedule.date, // Usar date_available según el esquema
-          start_time: schedule.start_time,
-          end_time: schedule.end_time
+          date_available: s.date,
+          start_time: s.start_time,
+          end_time: s.end_time
         }));
-
-        console.log('📤 Horarios a insertar:', schedules);
 
         const { error: scheduleError } = await supabase
           .from('service_schedules')
           .insert(schedules);
 
-        if (scheduleError) {
-          console.error('❌ Error insertando horarios:', scheduleError);
-          throw scheduleError;
-        }
-
-        console.log('✅ Horarios insertados correctamente');
+        if (scheduleError) throw scheduleError;
       }
 
-      return {
-        data,
-        error: null,
-        success: true
-      };
+      return { data, error: null, success: true };
     } catch (error) {
-      console.error('💥 Error en create service:', error);
       return {
         data: null,
         error: error instanceof Error ? error.message : 'Error al crear servicio',
@@ -201,23 +250,21 @@ export const serviceService = {
     }
   },
 
-  // Actualizar un servicio
   async update(id: string, serviceData: UpdateServiceData): Promise<ApiResponse<Service>> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
       const { data, error } = await supabase
         .from('services')
         .update(serviceData)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-
-      return {
-        data,
-        error: null,
-        success: true
-      };
+      return { data, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -227,21 +274,19 @@ export const serviceService = {
     }
   },
 
-  // Eliminar un servicio
   async delete(id: string): Promise<ApiResponse<void>> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
       const { error } = await supabase
         .from('services')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
-
-      return {
-        data: null,
-        error: null,
-        success: true
-      };
+      return { data: null, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -251,45 +296,24 @@ export const serviceService = {
     }
   },
 
-  // Buscar servicios con filtros
   async search(filters: ServiceFilters): Promise<ApiResponse<Service[]>> {
     try {
       let query = supabase
         .from('services')
         .select(`
           *,
-          category:categories(*)
-        `);
+          category:categories(*),
+          client:user_profiles!services_user_id_fkey(name, profile_picture_url)
+        `)
+        .eq('status', 'active');
 
-      if (filters.category_id) {
-        query = query.eq('category_id', filters.category_id);
-      }
-
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-
-      if (filters.location) {
-        query = query.ilike('location', `%${filters.location}%`);
-      }
-
-      if (filters.price_min) {
-        query = query.gte('price', filters.price_min);
-      }
-
-      if (filters.price_max) {
-        query = query.lte('price', filters.price_max);
-      }
+      if (filters.category_id) query = query.eq('category_id', filters.category_id);
+      if (filters.location) query = query.ilike('location', `%${filters.location}%`);
 
       const { data, error } = await query.order('created_at', { ascending: false });
-
       if (error) throw error;
 
-      return {
-        data: data || [],
-        error: null,
-        success: true
-      };
+      return { data: data || [], error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -301,85 +325,117 @@ export const serviceService = {
 };
 
 // =====================================================
-// SERVICIOS PARA PROFESIONALES
+// SERVICIOS PARA PERFILES DE TRABAJADORES
 // =====================================================
 
-export const professionalService = {
-  // Obtener todos los profesionales
-  async getAll(): Promise<ApiResponse<Professional[]>> {
+export const workerService = {
+  async getAll(filters?: { is_available?: boolean; is_verified?: boolean }): Promise<ApiResponse<any[]>> {
     try {
-      const { data, error } = await supabase
-        .from('professionals')
+      let query = supabase
+        .from('worker_profiles')
         .select('*')
-        .order('name');
+        .order('rating', { ascending: false });
 
+      if (filters?.is_available !== undefined) {
+        query = query.eq('is_available', filters.is_available);
+      }
+      if (filters?.is_verified !== undefined) {
+        query = query.eq('is_verified', filters.is_verified);
+      }
+
+      const { data: workers, error } = await query;
       if (error) throw error;
 
-      return {
-        data: data || [],
-        error: null,
-        success: true
-      };
+      // Cargar información de usuario para cada trabajador
+      if (workers && workers.length > 0) {
+        const workersWithUsers = await Promise.all(
+          workers.map(async (worker) => {
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('name, email, phone, profile_picture_url')
+              .eq('user_id', worker.user_id)
+              .single();
+
+            return {
+              ...worker,
+              user: userProfile
+            };
+          })
+        );
+        return { data: workersWithUsers, error: null, success: true };
+      }
+
+      return { data: workers || [], error: null, success: true };
     } catch (error) {
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Error al obtener profesionales',
+        error: error instanceof Error ? error.message : 'Error al obtener trabajadores',
         success: false
       };
     }
   },
 
-  // Obtener profesional por ID
-  async getById(id: string): Promise<ApiResponse<Professional>> {
+  async getByUserId(userId: string): Promise<ApiResponse<any>> {
     try {
-      const { data, error } = await supabase
-        .from('professionals')
+      const { data: worker, error } = await supabase
+        .from('worker_profiles')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('user_id', userId)
+        .maybeSingle(); // Usar maybeSingle() en lugar de single()
 
-      if (error) throw error;
+      // Si no hay perfil de trabajador, no es un error, simplemente no existe
+      if (error && error.message && error.message.length > 0) {
+        throw error;
+      }
 
-      return {
-        data,
-        error: null,
-        success: true
+      // Si no hay worker, retornar sin éxito
+      if (!worker) {
+        return {
+          data: null,
+          error: null,
+          success: false
+        };
+      }
+
+      // Cargar información de usuario
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('name, email, phone, profile_picture_url, created_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      return { 
+        data: { ...worker, user: userProfile }, 
+        error: null, 
+        success: true 
       };
     } catch (error) {
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Error al obtener profesional',
+        error: error instanceof Error ? error.message : 'Error al obtener trabajador',
         success: false
       };
     }
   },
 
-  // Crear perfil profesional
-  async create(professionalData: any): Promise<ApiResponse<Professional>> {
+  async updateProfile(updates: any): Promise<ApiResponse<any>> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
       const { data, error } = await supabase
-        .from('professionals')
-        .insert({
-          user_id: user.id,
-          ...professionalData
-        })
+        .from('worker_profiles')
+        .update(updates)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-
-      return {
-        data,
-        error: null,
-        success: true
-      };
+      return { data, error: null, success: true };
     } catch (error) {
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Error al crear perfil profesional',
+        error: error instanceof Error ? error.message : 'Error al actualizar perfil',
         success: false
       };
     }
@@ -387,33 +443,50 @@ export const professionalService = {
 };
 
 // =====================================================
-// SERVICIOS PARA TRANSACCIONES
+// SERVICIOS PARA PERFIL DE USUARIO
 // =====================================================
 
-export const transactionService = {
-  // Obtener transacciones del usuario
-  async getUserTransactions(): Promise<ApiResponse<Transaction[]>> {
+export const profileService = {
+  async getProfile(): Promise<ApiResponse<any>> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
       const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          service:services(*),
-          professional:professionals(*)
-        `)
-        .order('created_at', { ascending: false });
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
       if (error) throw error;
-
-      return {
-        data: data || [],
-        error: null,
-        success: true
-      };
+      return { data, error: null, success: true };
     } catch (error) {
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Error al obtener transacciones',
+        error: error instanceof Error ? error.message : 'Error al obtener perfil',
+        success: false
+      };
+    }
+  },
+
+  async updateProfile(updates: any): Promise<ApiResponse<any>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update(updates)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null, success: true };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Error al actualizar perfil',
         success: false
       };
     }
@@ -425,53 +498,64 @@ export const transactionService = {
 // =====================================================
 
 export const statsService = {
-  // Obtener estadísticas del dashboard
   async getDashboardStats(): Promise<ApiResponse<any>> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Obtener servicios del usuario
-      const { data: services, error: servicesError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (servicesError) throw servicesError;
-
-      // Obtener transacciones del usuario
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_type')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .single();
 
-      if (transactionsError) throw transactionsError;
+      if (profile?.user_type === 'worker') {
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('*, service:services(title)')
+          .eq('worker_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-      // Calcular estadísticas
-      const totalServices = services?.length || 0;
-      const activeServices = services?.filter(s => s.status === 'active').length || 0;
-      const totalEarnings = transactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+        const completed = bookings?.filter(b => b.status === 'completed').length || 0;
+        const totalEarnings = bookings
+          ?.filter(b => b.status === 'completed')
+          .reduce((sum, b) => sum + Number(b.total_price), 0) || 0;
 
-      const stats = {
-        services: {
-          total_services: totalServices,
-          active_services: activeServices,
-          total_earnings: totalEarnings,
-          average_rating: 0,
-          total_reviews: 0
-        },
-        recent_services: services?.slice(0, 5) || [],
-        recent_transactions: transactions || [],
-        top_categories: []
-      };
+        return {
+          data: {
+            total_bookings: bookings?.length || 0,
+            completed_bookings: completed,
+            total_earnings: totalEarnings,
+            recent_bookings: bookings || []
+          },
+          error: null,
+          success: true
+        };
+      } else {
+        const { data: services } = await supabase
+          .from('services')
+          .select('*')
+          .eq('user_id', user.id);
 
-      return {
-        data: stats,
-        error: null,
-        success: true
-      };
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('client_id', user.id)
+          .limit(5);
+
+        return {
+          data: {
+            total_services: services?.length || 0,
+            active_services: services?.filter(s => s.status === 'active').length || 0,
+            completed_services: services?.filter(s => s.status === 'completed').length || 0,
+            recent_services: services?.slice(0, 5) || [],
+            recent_bookings: bookings || []
+          },
+          error: null,
+          success: true
+        };
+      }
     } catch (error) {
       return {
         data: null,
@@ -480,4 +564,12 @@ export const statsService = {
       };
     }
   }
-}; 
+};
+
+// Exportar servicios de API adicionales
+export * from './api/applications';
+export * from './api/bookings';
+export * from './api/reviews';
+export * from './api/questions';
+export * from './api/transactions';
+export * from './api/admin'; 

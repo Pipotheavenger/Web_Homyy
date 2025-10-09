@@ -47,23 +47,18 @@ export const useRegister = (): UseRegisterReturn => {
         throw new Error('No se pudo crear el usuario');
       }
 
-      // 2. Crear perfil de usuario
-      const profileData = {
-        user_id: authData.user.id,
-        email: data.email,
-        name: data.fullName,
-        user_type: 'user' as const,
-        phone: data.phone,
-        birth_date: data.birthDate
-      };
-
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert(profileData);
+      // 2. Crear perfil de usuario usando función RPC
+      const { error: profileError } = await supabase.rpc('create_user_profile', {
+        p_user_id: authData.user.id,
+        p_email: data.email,
+        p_name: data.fullName,
+        p_user_type: 'user',
+        p_phone: data.phone,
+        p_birth_date: data.birthDate
+      });
 
       if (profileError) {
-        console.error('Error creando perfil de usuario:', profileError);
-        throw new Error('Error al crear el perfil de usuario');
+        throw new Error(profileError.message || 'Error al crear el perfil de usuario');
       }
 
       setSuccess(true);
@@ -121,50 +116,33 @@ export const useRegister = (): UseRegisterReturn => {
         throw new Error('No se pudo crear el usuario');
       }
 
-      // 2. Crear perfil de usuario
-      const profileData = {
-        user_id: authData.user.id,
-        email: data.email,
-        name: data.fullName,
-        user_type: 'worker' as const,
-        phone: data.phone,
-        birth_date: data.birthDate
-      };
-
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert(profileData);
+      // 2. Crear perfil de usuario usando función RPC
+      const { error: profileError } = await supabase.rpc('create_user_profile', {
+        p_user_id: authData.user.id,
+        p_email: data.email,
+        p_name: data.fullName,
+        p_user_type: 'worker',
+        p_phone: data.phone,
+        p_birth_date: data.birthDate
+      });
 
       if (profileError) {
-        console.error('Error creando perfil de usuario:', profileError);
-        throw new Error('Error al crear el perfil de usuario');
+        throw new Error(profileError.message || 'Error al crear el perfil de usuario');
       }
 
-      // 3. Crear perfil de trabajador
-      const workerData = {
-        user_id: authData.user.id,
-        profession: data.profession,
-        experience_years: data.experienceYears,
-        bio: data.profileDescription,
-        profile_description: data.profileDescription,
-        categories: data.selectedCategories,
-        certifications: data.certifications || [],
-        hourly_rate: null,
-        rating: 0.0,
-        total_services: 0,
-        is_verified: false,
-        is_available: true,
-        location: null
-      };
-
-      const { error: workerError } = await supabase
-        .from('worker_profiles')
-        .insert(workerData);
+      // 3. Crear perfil de trabajador usando función RPC
+      const { error: workerError } = await supabase.rpc('create_worker_profile', {
+        p_user_id: authData.user.id,
+        p_profession: data.profession,
+        p_experience_years: data.experienceYears,
+        p_bio: data.profileDescription,
+        p_profile_description: data.profileDescription,
+        p_categories: data.selectedCategories,
+        p_certifications: data.certifications || []
+      });
 
       if (workerError) {
-        console.error('Error creando perfil de trabajador:', workerError);
-        // No lanzamos error aquí para no interrumpir el flujo
-        console.warn('El perfil de trabajador no se pudo crear, pero el usuario fue registrado');
+        throw new Error(workerError.message || 'Error al crear el perfil de trabajador');
       }
 
       setSuccess(true);

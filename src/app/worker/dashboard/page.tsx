@@ -1,82 +1,107 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { Plus, TrendingUp, Clock, DollarSign, Star, MapPin, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, Star, MapPin, Calendar, XCircle, Clock, Briefcase } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useUserType } from '@/contexts/UserTypeContext';
+import { useWorkerDashboard } from '@/hooks/useWorkerDashboard';
 import Image from 'next/image';
 
 export default function WorkerDashboard() {
   const router = useRouter();
   const { colors } = useUserType();
+  const { userName, applications, stats, loading, error, formatPrice, formatDate, withdrawApplication } = useWorkerDashboard();
 
   const handleVerTrabajos = () => {
     router.push('/worker/trabajos');
   };
 
-  const handleVerAplicaciones = () => {
-    router.push('/worker/aplicaciones');
+  const handleWithdrawApplication = async (applicationId: string) => {
+    if (confirm('¿Estás seguro de que quieres retirar esta aplicación?')) {
+      const response = await withdrawApplication(applicationId);
+      if (response.success) {
+        alert('Aplicación retirada exitosamente');
+      } else {
+        alert('Error al retirar la aplicación');
+      }
+    }
   };
 
-  // Datos de ejemplo para el trabajador
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200';
+      case 'pending':
+        return 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border-yellow-200';
+      case 'rejected':
+        return 'bg-gradient-to-r from-red-50 to-pink-50 text-red-700 border-red-200';
+      default:
+        return 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'Aceptada';
+      case 'pending':
+        return 'Pendiente';
+      case 'rejected':
+        return 'Rechazada';
+      case 'withdrawn':
+        return 'Retirada';
+      default:
+        return 'Desconocido';
+    }
+  };
+
+  // Estadísticas con datos reales
   const estadisticas = [
     {
       titulo: 'Total Ganancias',
-      valor: '$2,450,000',
-      cambio: '+12%',
+      valor: formatPrice(stats.totalEarnings),
+      cambio: stats.completedBookings > 0 ? `+${stats.completedBookings}` : '0',
       icono: <DollarSign className="w-6 h-6 text-orange-600" />,
       color: 'from-green-500 to-emerald-500'
     },
     {
       titulo: 'Trabajos Completados',
-      valor: '24',
-      cambio: '+3',
+      valor: stats.completedBookings.toString(),
+      cambio: '+0',
       icono: <TrendingUp className="w-6 h-6 text-orange-600" />,
       color: 'from-blue-500 to-cyan-500'
     },
     {
       titulo: 'Calificación Promedio',
-      valor: '4.8',
-      cambio: '+0.2',
+      valor: stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0',
+      cambio: '—',
       icono: <Star className="w-6 h-6 text-orange-600" />,
       color: 'from-yellow-500 to-orange-500'
     }
   ];
 
-  const trabajosDisponibles = [
-    {
-      id: '1',
-      titulo: 'Limpieza Residencial',
-      cliente: 'María González',
-      ubicacion: 'Chapinero, Bogotá',
-      precio: '$180,000',
-      fecha: '15 Dic',
-      categoria: 'Limpieza',
-      descripcion: 'Limpieza general de apartamento de 3 habitaciones',
-      urgencia: 'Alta'
-    },
-    {
-      id: '2',
-      titulo: 'Reparación de Grifo',
-      cliente: 'Carlos López',
-      ubicacion: 'Usaquén, Bogotá',
-      precio: '$120,000',
-      fecha: '16 Dic',
-      categoria: 'Plomería',
-      descripcion: 'Cambio de grifo en cocina',
-      urgencia: 'Media'
-    },
-    {
-      id: '3',
-      titulo: 'Organización de Closet',
-      cliente: 'Ana Martínez',
-      ubicacion: 'Teusaquillo, Bogotá',
-      precio: '$200,000',
-      fecha: '17 Dic',
-      categoria: 'Organización',
-      descripcion: 'Organización completa de closet principal',
-      urgencia: 'Baja'
-    }
-  ];
+  if (loading) {
+    return (
+      <Layout title="Dashboard" currentPage="dashboard">
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="Dashboard" currentPage="dashboard">
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">
+            {error}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Dashboard" currentPage="dashboard">
@@ -85,7 +110,7 @@ export default function WorkerDashboard() {
         <div className={`bg-gradient-to-r from-orange-300 to-orange-400 rounded-2xl mb-6 text-white relative overflow-hidden h-48 md:h-56 lg:h-64`}>
           <div className="flex flex-col md:flex-row items-center justify-between p-6 md:p-8 lg:p-10 h-full relative z-10">
             <div className="flex-1 mb-6 md:mb-0">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">¡Hola, Profesional!</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">¡Hola, {userName}!</h2>
               <p className="text-orange-100 mb-4 text-sm md:text-base lg:text-lg">¿Listo para encontrar tu próximo trabajo?</p>
               <button 
                 onClick={handleVerTrabajos}
@@ -113,54 +138,88 @@ export default function WorkerDashboard() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            {/* Trabajos Disponibles */}
+            {/* Mis Aplicaciones */}
             <div className="bg-white rounded-2xl shadow-sm border p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Trabajos Disponibles</h3>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Mis Aplicaciones</h3>
+                  <p className="text-sm text-gray-600 mt-1">Gestiona tus postulaciones a trabajos</p>
+                </div>
                 <button
                   onClick={handleVerTrabajos}
-                  className="text-orange-500 hover:text-orange-600 font-medium text-sm"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:opacity-90 transition-all text-sm font-medium flex items-center space-x-2"
                 >
-                  Ver todos →
+                  <Plus size={16} />
+                  <span>Buscar Trabajos</span>
                 </button>
               </div>
               <div className="space-y-4">
-                {trabajosDisponibles.length > 0 ? (
-                  trabajosDisponibles.slice(0, 3).map((trabajo) => (
-                    <div key={trabajo.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
+                {applications.length > 0 ? (
+                  applications.map((app) => (
+                    <div key={app.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                                                     <div className="flex items-center space-x-2 mb-2">
-                             <h4 className="font-semibold text-gray-800">{trabajo.titulo}</h4>
-                           </div>
-                          <p className="text-sm text-gray-600 mb-2">{trabajo.descripcion}</p>
-                                                     <div className="flex items-center space-x-4 text-xs text-gray-500">
-                             <div className="flex items-center space-x-1">
-                               <MapPin size={14} />
-                               <span>{trabajo.ubicacion}</span>
-                             </div>
-                             <div className="flex items-center space-x-1">
-                               <Calendar size={14} />
-                               <span>{trabajo.fecha}</span>
-                             </div>
-                           </div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-semibold text-gray-800">{app.service?.title || 'Servicio'}</h4>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(app.status)}`}>
+                              {getStatusText(app.status)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-1">{app.service?.description || 'Sin descripción'}</p>
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <div className="flex items-center space-x-1">
+                              <MapPin size={12} />
+                              <span>{app.service?.location || 'No especificado'}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Calendar size={12} />
+                              <span>Aplicado: {formatDate(app.created_at)}</span>
+                            </div>
+                            {app.proposed_price && (
+                              <div className="flex items-center space-x-1">
+                                <DollarSign size={12} />
+                                <span className="font-semibold text-orange-600">{formatPrice(app.proposed_price)}</span>
+                              </div>
+                            )}
+                            {app.estimated_duration && (
+                              <div className="flex items-center space-x-1">
+                                <Clock size={12} />
+                                <span>{app.estimated_duration}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                                                 <button
-                           onClick={() => router.push(`/worker/trabajos/${trabajo.id}`)}
-                           className="ml-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-                         >
-                           Ver Oferta
-                         </button>
+                        {app.status === 'pending' && (
+                          <button
+                            onClick={() => handleWithdrawApplication(app.id)}
+                            className="ml-4 text-red-600 hover:text-red-700 transition-colors flex items-center space-x-1"
+                            title="Retirar aplicación"
+                          >
+                            <XCircle size={18} />
+                            <span className="text-xs font-medium">Retirar</span>
+                          </button>
+                        )}
                       </div>
+                      {app.cover_letter && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 line-clamp-2"><strong>Nota:</strong> {app.cover_letter}</p>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-12">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Plus size={24} className="text-gray-400" />
+                      <Briefcase size={24} className="text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No hay trabajos disponibles</h3>
-                    <p className="text-gray-600 mb-4">Revisa más tarde para nuevas oportunidades</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No has aplicado a trabajos aún</h3>
+                    <p className="text-gray-600 mb-4">Busca trabajos disponibles y comienza a postularte</p>
+                    <button
+                      onClick={handleVerTrabajos}
+                      className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:opacity-90 transition-all font-medium"
+                    >
+                      Explorar Trabajos
+                    </button>
                   </div>
                 )}
               </div>

@@ -12,20 +12,25 @@ import {
   User,
   Edit3,
   Save,
-  X
+  X,
+  Star
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useProfile } from '@/hooks/useProfile';
 import { ProfileHeader } from '@/components/ui/ProfileHeader';
 import { ProfileTabs } from '@/components/ui/ProfileTabs';
+import { supabase } from '@/lib/supabase';
 
 export default function PerfilPage() {
+  const router = useRouter();
   const {
     usuario,
     formData,
     isEditing,
     activeTab,
     serviciosRecientes,
+    loading,
     setIsEditing,
     setActiveTab,
     handleSave,
@@ -33,6 +38,47 @@ export default function PerfilPage() {
     handleInputChange,
     formatPrice
   } = useProfile();
+
+  const handleLogout = async () => {
+    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+      try {
+        await supabase.auth.signOut();
+        router.push('/login');
+      } catch (error) {
+        alert('Error al cerrar sesión');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout 
+        title="Mi Perfil" 
+        currentPage="perfil"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!usuario) {
+    return (
+      <Layout 
+        title="Mi Perfil" 
+        currentPage="perfil"
+      >
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">
+            Error al cargar el perfil. Por favor, intenta de nuevo.
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
@@ -63,11 +109,8 @@ export default function PerfilPage() {
         {/* Header con información del usuario */}
         <ProfileHeader
           usuario={usuario}
-          isEditing={isEditing}
-          onEdit={() => setIsEditing(true)}
-          onSave={handleSave}
-          onCancel={handleCancel}
           formatPrice={formatPrice}
+          createdAt={usuario?.fechaRegistro}
         />
 
         {/* Tabs de navegación */}
@@ -90,85 +133,40 @@ export default function PerfilPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.nombre}
-                          onChange={(e) => handleInputChange('nombre', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3">
-                          <p className="text-gray-800 font-medium">{usuario.nombre}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3">
+                        <p className="text-gray-800 font-medium">{usuario.nombre}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.apellido}
-                          onChange={(e) => handleInputChange('apellido', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3">
-                          <p className="text-gray-800 font-medium">{usuario.apellido}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3">
+                        <p className="text-gray-800 font-medium">{usuario.apellido}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <Mail size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.email}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <Mail size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.email}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={formData.telefono}
-                          onChange={(e) => handleInputChange('telefono', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <Phone size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.telefono}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <Phone size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.telefono}</p>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={formData.ubicacion}
-                          onChange={(e) => handleInputChange('ubicacion', e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200/60 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none bg-white/80 backdrop-blur-sm transition-all duration-300"
-                        />
-                      ) : (
-                        <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
-                          <MapPin size={16} className="text-gray-400" />
-                          <p className="text-gray-800 font-medium">{usuario.ubicacion}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/80 rounded-xl p-3 flex items-center space-x-3">
+                        <MapPin size={16} className="text-gray-400" />
+                        <p className="text-gray-800 font-medium">{usuario.ubicacion}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -209,6 +207,22 @@ export default function PerfilPage() {
                         <CheckCircle size={20} className="text-green-500" />
                       </div>
                     </div>
+
+                    {/* Botón de cerrar sesión */}
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full bg-gradient-to-r from-gray-50/80 to-red-50/80 rounded-xl p-4 border border-red-200/30 hover:border-red-300/50 transition-all duration-300 group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-lg flex items-center justify-center group-hover:from-red-500 group-hover:to-red-600 transition-all duration-300">
+                          <LogOut size={16} className="text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-gray-700 group-hover:text-red-600 transition-colors">Cerrar Sesión</p>
+                          <p className="text-xs text-gray-600">Salir de tu cuenta</p>
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -225,104 +239,60 @@ export default function PerfilPage() {
               </div>
               
               <div className="space-y-4">
-                {serviciosRecientes.map((servicio) => (
-                  <div key={servicio.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(116,63,198,0.12)] transition-all duration-300">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800 text-base md:text-lg">{servicio.titulo}</h4>
-                      <div className={`inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium border ${getEstadoColor(servicio.estado)}`}>
-                        {servicio.estado === 'completado' ? 'Completado' : 
-                         servicio.estado === 'en_proceso' ? 'En Proceso' : 
-                         servicio.estado === 'activo' ? 'Activo' : 'Cancelado'}
+                {serviciosRecientes && serviciosRecientes.length > 0 ? (
+                  serviciosRecientes.map((booking) => (
+                    <div key={booking.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 hover:shadow-[0_8px_30px_rgba(116,63,198,0.12)] transition-all duration-300">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-gray-800 text-base md:text-lg">
+                          {booking.service?.title || 'Servicio'}
+                        </h4>
+                        <div className={`inline-flex items-center px-3 py-2 rounded-xl text-xs font-medium border ${getEstadoColor(booking.status)}`}>
+                          {booking.status === 'completed' ? 'Completado' : 
+                           booking.status === 'in_progress' ? 'En Progreso' : 
+                           booking.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600 space-y-2 md:space-y-0">
+                        <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+                          <span className="font-medium">Trabajador: {booking.worker?.name || 'N/A'}</span>
+                          <span className="font-medium">Fecha: {booking.start_date}</span>
+                        </div>
+                        <span className="font-bold text-purple-600 text-lg">{formatPrice(Number(booking.total_price))}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-gray-600 space-y-2 md:space-y-0">
-                      <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
-                        <span className="font-medium">Profesional: {servicio.profesional}</span>
-                        <span className="font-medium">Fecha: {servicio.fecha}</span>
-                      </div>
-                      <span className="font-bold text-purple-600 text-lg">{formatPrice(servicio.precio)}</span>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Settings size={24} className="text-gray-400" />
                     </div>
+                    <p className="text-gray-600 text-sm">No tienes servicios contratados aún</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
 
-          {activeTab === 'preferencias' && (
-            <div className="space-y-6 mt-6">
+          {activeTab === 'reseñas' && (
+            <div className="space-y-4 mt-6">
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Settings size={20} className="text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Star size={20} className="text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Configuración de Preferencias</h3>
+                <h3 className="text-xl font-bold text-gray-800">Reseñas Realizadas</h3>
               </div>
               
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-gray-50/80 to-blue-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-lg flex items-center justify-center">
-                        <Bell size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Notificaciones Push</p>
-                        <p className="text-xs text-gray-600">Recibe notificaciones sobre tus servicios</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.notificaciones} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
-                    </label>
-                  </div>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Star size={24} className="text-gray-400" />
                 </div>
-
-                <div className="bg-gradient-to-r from-gray-50/80 to-green-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-400 rounded-lg flex items-center justify-center">
-                        <Mail size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Email Marketing</p>
-                        <p className="text-xs text-gray-600">Recibe ofertas y promociones por email</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.emailMarketing} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-gray-50/80 to-purple-50/80 rounded-xl p-4 border border-gray-200/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
-                        <Shield size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Privacidad</p>
-                        <p className="text-xs text-gray-600">Mantén tu información privada</p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" checked={usuario.preferencias.privacidad} className="sr-only peer" />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botón de cerrar sesión */}
-              <div className="pt-6 border-t border-gray-200/60">
-                <button className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50/80 rounded-xl transition-all duration-300 font-medium">
-                  <LogOut size={16} />
-                  <span>Cerrar Sesión</span>
-                </button>
+                <p className="text-gray-600 text-sm">Aún no has dejado reseñas</p>
+                <p className="text-gray-500 text-xs mt-1">Completa un servicio para dejar una calificación</p>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </Layout>

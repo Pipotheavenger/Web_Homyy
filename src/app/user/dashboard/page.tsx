@@ -10,39 +10,19 @@ import { TopProfessionals } from '@/components/ui/TopProfessionals';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { services, categories, loading, error, handleDeleteService } = useDashboard();
+  const { services, categories, topWorkers, userName, loading, error, handleDeleteService } = useDashboard();
 
   const handleCrearServicio = () => {
     router.push('/user/crear-servicio');
   };
 
   const handleVerDetalles = (serviceId: string) => {
+    if (!serviceId) {
+      alert('Error: ID de servicio no válido');
+      return;
+    }
     router.push(`/user/detalles-postulantes?id=${serviceId}`);
   };
-
-  const topProfessionals = [
-    {
-      id: 1,
-      name: "Juan Pérez",
-      profession: "Plomero",
-      rating: 4.8,
-      avatar: "👨‍🔧"
-    },
-    {
-      id: 2,
-      name: "María García",
-      profession: "Maestra",
-      rating: 4.9,
-      avatar: "👩‍🏫"
-    },
-    {
-      id: 3,
-      name: "Carlos López",
-      profession: "Electricista",
-      rating: 4.7,
-      avatar: "👨‍🔌"
-    }
-  ];
 
   if (loading) {
     return (
@@ -71,7 +51,7 @@ export default function Dashboard() {
   return (
     <Layout title="Dashboard" currentPage="dashboard">
       <div className="p-6">
-        <WelcomeBanner userName="María" onCreateService={handleCrearServicio} />
+        <WelcomeBanner userName={userName} onCreateService={handleCrearServicio} />
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -111,7 +91,7 @@ export default function Dashboard() {
           </div>
 
           <div className="lg:col-span-1">
-            <TopProfessionals professionals={topProfessionals} />
+            <TopProfessionals professionals={topWorkers} />
           </div>
         </div>
       </div>

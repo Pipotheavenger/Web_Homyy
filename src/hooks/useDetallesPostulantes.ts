@@ -1,227 +1,200 @@
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-
-interface Postulante {
-  id: string;
-  nombre: string;
-  apellido: string;
-  especialidad: string;
-  experiencia: number;
-  calificacion: number;
-  serviciosCompletados: number;
-  ubicacion: string;
-  disponibilidad: string;
-  foto: string;
-  estado: 'pendiente' | 'aprobado' | 'rechazado';
-  fechaPostulacion: string;
-  telefono: string;
-  email: string;
-  precio: number;
-}
-
-interface Servicio {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  categoria: string;
-  ubicacion: string;
-  fechaPublicacion: string;
-  fechaLimite: string;
-  estado: 'activo' | 'en_proceso' | 'completado';
-  postulantes: number;
-  progreso: number;
-  etapa: string;
-  horariosDisponibilidad: string[];
-}
-
-interface Pregunta {
-  id: string;
-  pregunta: string;
-  respuesta: string;
-  fecha: string;
-  autor: string;
-}
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { serviceService, applicationsService, bookingsService, questionsService } from '@/lib/services';
+import { formatDate, formatPrice } from '@/lib/utils/empty-state-helpers';
 
 export const useDetallesPostulantes = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get('id');
+
+  const [servicio, setServicio] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [preguntas, setPreguntas] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [selectedSort, setSelectedSort] = useState('reciente');
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [candidateToConfirm, setCandidateToConfirm] = useState<Postulante | null>(null);
+  const [candidateToConfirm, setCandidateToConfirm] = useState<any>(null);
   const [showCancelServiceModal, setShowCancelServiceModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Datos de ejemplo del servicio
-  const servicio: Servicio = {
-    id: '1',
-    titulo: 'Limpieza Residencial Completa',
-    descripcion: 'Necesito servicios de limpieza profesional para mi casa de 3 habitaciones. Incluye cocina, baños, dormitorios y áreas comunes. Preferiblemente con productos eco-friendly.',
-    categoria: 'Limpieza Profesional',
-    ubicacion: 'Chapinero, Bogotá',
-    fechaPublicacion: '15 Oct 2024',
-    fechaLimite: '25 Oct 2024',
-    estado: 'activo',
-    postulantes: 8,
-    progreso: 75,
-    etapa: 'Contratando',
-    horariosDisponibilidad: [
-      'Lunes - Viernes: 9:00 AM - 5:00 PM',
-      'Sábados: 9:00 AM - 2:00 PM',
-      'Domingos: No disponible'
-    ]
+  useEffect(() => {
+    if (serviceId) {
+      loadServiceDetails();
+      loadApplications();
+      loadPreguntas();
+    } else {
+      setLoading(false);
+    }
+  }, [serviceId]);
+
+  const loadServiceDetails = async () => {
+    if (!serviceId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Query directa simple sin relaciones
+      const { data: serviceData, error: serviceError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', serviceId)
+        .single();
+
+      if (serviceError) {
+        throw serviceError;
+      }
+
+      // Cargar categoría separadamente si existe
+      if (serviceData.category_id) {
+        const { data: categoryData } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('id', serviceData.category_id)
+          .single();
+        
+        serviceData.category = categoryData;
+      }
+
+      // Cargar schedules separadamente
+      const { data: schedules } = await supabase
+        .from('service_schedules')
+        .select('*')
+        .eq('service_id', serviceId);
+      
+      serviceData.schedules = schedules || [];
+
+      setServicio(serviceData);
+
+    } catch (error: any) {
+      alert('Error al cargar servicio: ' + (error?.message || 'Error desconocido'));
+      setServicio(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Datos de ejemplo de postulantes
-  const postulantes: Postulante[] = [
-    {
-      id: '1',
-      nombre: 'María',
-      apellido: 'González',
-      especialidad: 'Limpieza Profesional',
-      experiencia: 5,
-      calificacion: 4.8,
-      serviciosCompletados: 127,
-      ubicacion: 'Chapinero, Bogotá',
-      disponibilidad: 'Inmediata',
-      foto: '/api/placeholder/200/200',
-      estado: 'pendiente',
-      fechaPostulacion: 'Hace 2 días',
-      telefono: '+57 300 123 4567',
-      email: 'maria.gonzalez@email.com',
-      precio: 120000
-    },
-    {
-      id: '2',
-      nombre: 'Carlos',
-      apellido: 'Rodríguez',
-      especialidad: 'Limpieza Residencial',
-      experiencia: 3,
-      calificacion: 4.6,
-      serviciosCompletados: 89,
-      ubicacion: 'Usaquén, Bogotá',
-      disponibilidad: 'Esta semana',
-      foto: '/api/placeholder/200/200',
-      estado: 'aprobado',
-      fechaPostulacion: 'Hace 1 día',
-      telefono: '+57 310 987 6543',
-      email: 'carlos.rodriguez@email.com',
-      precio: 95000
-    },
-    {
-      id: '3',
-      nombre: 'Ana',
-      apellido: 'Martínez',
-      especialidad: 'Limpieza Profesional',
-      experiencia: 7,
-      calificacion: 4.9,
-      serviciosCompletados: 203,
-      ubicacion: 'Teusaquillo, Bogotá',
-      disponibilidad: 'Inmediata',
-      foto: '/api/placeholder/200/200',
-      estado: 'pendiente',
-      fechaPostulacion: 'Hace 3 días',
-      telefono: '+57 315 456 7890',
-      email: 'ana.martinez@email.com',
-      precio: 140000
-    },
-    {
-      id: '4',
-      nombre: 'Luis',
-      apellido: 'Sánchez',
-      especialidad: 'Limpieza Ecológica',
-      experiencia: 4,
-      calificacion: 4.7,
-      serviciosCompletados: 156,
-      ubicacion: 'La Soledad, Bogotá',
-      disponibilidad: 'Próxima semana',
-      foto: '/api/placeholder/200/200',
-      estado: 'rechazado',
-      fechaPostulacion: 'Hace 4 días',
-      telefono: '+57 320 111 2222',
-      email: 'luis.sanchez@email.com',
-      precio: 110000
-    }
-  ];
+  const loadApplications = async () => {
+    if (!serviceId) return;
 
-  // Datos de ejemplo de preguntas públicas (versión corta)
-  const preguntas: Pregunta[] = [
-    {
-      id: '1',
-      pregunta: '¿Qué productos de limpieza utilizan?',
-      respuesta: 'Utilizamos productos eco-friendly certificados, libres de químicos dañinos.',
-      fecha: 'Hace 1 día',
-      autor: 'María González'
-    },
-    {
-      id: '2',
-      pregunta: '¿Incluyen organización de espacios?',
-      respuesta: 'Sí, nuestro servicio incluye organización básica de espacios.',
-      fecha: 'Hace 2 días',
-      autor: 'Carlos Rodríguez'
-    },
-    {
-      id: '3',
-      pregunta: '¿Trabajan los fines de semana?',
-      respuesta: 'Trabajamos de lunes a sábado. Los domingos no prestamos servicios.',
-      fecha: 'Hace 3 días',
-      autor: 'Ana Martínez'
+    try {
+      const response = await applicationsService.getByService(serviceId);
+      if (response.success && response.data) {
+        setApplications(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading applications:', error);
     }
-  ];
+  };
 
-  // Filtrar postulantes
+  const loadPreguntas = async () => {
+    if (!serviceId) return;
+
+    try {
+      const response = await questionsService.getByService(serviceId);
+      if (response.success && response.data) {
+        setPreguntas(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading questions:', error);
+    }
+  };
+
+  // Filtrar y ordenar postulantes
   const filteredPostulantes = useMemo(() => {
-    let filtered = postulantes.filter(postulante => {
+    if (!applications) return [];
+
+    let filtered = applications.filter(app => {
       if (selectedFilter === 'todos') return true;
-      return postulante.estado === selectedFilter;
+      if (selectedFilter === 'pendiente') return app.status === 'pending';
+      if (selectedFilter === 'aprobado') return app.status === 'accepted';
+      if (selectedFilter === 'rechazado') return app.status === 'rejected';
+      return true;
     });
 
-    // Si hay un candidato seleccionado, mostrar solo ese candidato
+    // Si hay candidato seleccionado, mostrar solo ese
     if (selectedCandidate) {
-      filtered = filtered.filter(postulante => postulante.id === selectedCandidate);
+      filtered = filtered.filter(app => app.id === selectedCandidate);
     }
 
-    // Ordenar postulantes
+    // Ordenar
     switch (selectedSort) {
       case 'reciente':
-        filtered.sort((a, b) => {
-          const daysA = parseInt(a.fechaPostulacion.match(/\d+/)?.[0] || '0');
-          const daysB = parseInt(b.fechaPostulacion.match(/\d+/)?.[0] || '0');
-          return daysA - daysB;
-        });
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
       case 'experiencia':
-        filtered.sort((a, b) => b.experiencia - a.experiencia);
+        filtered.sort((a, b) => (b.worker_profile?.experience_years || 0) - (a.worker_profile?.experience_years || 0));
         break;
       case 'calificacion':
-        filtered.sort((a, b) => b.calificacion - a.calificacion);
+        filtered.sort((a, b) => Number(b.worker_profile?.rating || 0) - Number(a.worker_profile?.rating || 0));
         break;
     }
 
-    return filtered;
-  }, [selectedFilter, selectedSort, selectedCandidate]);
+    // Mapear a formato esperado por el componente
+    return filtered.map(app => ({
+      id: app.id,
+      workerId: app.worker_id, // ID del trabajador para ver perfil
+      nombre: app.worker?.name?.split(' ')[0] || 'Trabajador',
+      apellido: app.worker?.name?.split(' ').slice(1).join(' ') || '',
+      especialidad: app.worker_profile?.profession || 'No especificado',
+      experiencia: app.worker_profile?.experience_years || 0,
+      calificacion: Number(app.worker_profile?.rating || 0),
+      serviciosCompletados: app.worker_profile?.total_services || 0,
+      ubicacion: app.worker_profile?.location || 'No especificado',
+      disponibilidad: app.worker_profile?.is_available ? 'Disponible' : 'No disponible',
+      foto: app.worker?.profile_picture_url || '',
+      estado: app.status === 'pending' ? 'pendiente' : app.status === 'accepted' ? 'aprobado' : 'rechazado',
+      fechaPostulacion: formatDate(app.created_at),
+      telefono: app.worker?.phone || '',
+      email: app.worker?.email || '',
+      precio: Number(app.proposed_price || 0),
+      coverLetter: app.cover_letter,
+      estimatedDuration: app.estimated_duration
+    }));
+  }, [applications, selectedFilter, selectedSort, selectedCandidate]);
 
   const handleVerPerfil = (profesionalId: string) => {
-    router.push(`/perfil-profesional?id=${profesionalId}`);
+    router.push(`/user/perfil-profesional?id=${profesionalId}`);
   };
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleSelectCandidate = (candidateId: string) => {
-    const candidate = postulantes.find(p => p.id === candidateId);
+  const handleSelectCandidate = async (candidateId: string) => {
+    const candidate = filteredPostulantes.find(p => p.id === candidateId);
     if (candidate) {
       setCandidateToConfirm(candidate);
       setShowConfirmationModal(true);
     }
   };
 
-  const handleConfirmSelection = () => {
-    if (candidateToConfirm) {
-      setSelectedCandidate(candidateToConfirm.id);
-      setShowConfirmationModal(false);
-      setCandidateToConfirm(null);
-      console.log('Candidato confirmado:', candidateToConfirm.id);
+  const handleConfirmSelection = async () => {
+    if (!candidateToConfirm || !serviceId) return;
+
+    try {
+      // Actualizar estado de la aplicación a "accepted"
+      const response = await applicationsService.updateStatus(candidateToConfirm.id, 'accepted');
+      
+      if (response.success) {
+        setSelectedCandidate(candidateToConfirm.id);
+        setShowConfirmationModal(false);
+        setCandidateToConfirm(null);
+        
+        // Recargar aplicaciones
+        await loadServiceDetails();
+        
+        alert('Candidato seleccionado exitosamente');
+      } else {
+        alert('Error al seleccionar candidato: ' + response.error);
+      }
+    } catch (error) {
+      alert('Error al confirmar selección');
     }
   };
 
@@ -238,18 +211,65 @@ export const useDetallesPostulantes = () => {
     setShowCancelServiceModal(true);
   };
 
-  const handleConfirmCancelService = () => {
-    setShowCancelServiceModal(false);
-    console.log('Servicio cancelado:', servicio.id);
-    // Aquí se podría agregar la lógica para cancelar el servicio
+  const handleConfirmCancelService = async () => {
+    if (!serviceId) return;
+
+    try {
+      const response = await serviceService.update(serviceId, { status: 'cancelled' });
+      if (response.success) {
+        setShowCancelServiceModal(false);
+        alert('Servicio cancelado exitosamente');
+        router.push('/user/dashboard');
+      } else {
+        alert('Error al cancelar servicio');
+      }
+    } catch (error) {
+      alert('Error al cancelar el servicio');
+    }
   };
 
   const handleCloseCancelModal = () => {
     setShowCancelServiceModal(false);
   };
 
+  const handleAnswerQuestion = async (questionId: string, answer: string): Promise<boolean> => {
+    try {
+      const response = await questionsService.answer(questionId, answer);
+      if (response.success) {
+        await loadPreguntas(); // Recargar preguntas
+        return true;
+      } else {
+        alert('Error al responder pregunta: ' + response.error);
+        return false;
+      }
+    } catch (error) {
+      alert('Error al responder la pregunta');
+      return false;
+    }
+  };
+
+  // Preparar datos del servicio en formato esperado
+  const servicioFormatted = servicio ? {
+    id: servicio.id,
+    titulo: servicio.title,
+    descripcion: servicio.description || 'Sin descripción',
+    categoria: servicio.category?.name || 'Sin categoría',
+    ubicacion: servicio.location || 'No especificado',
+    fechaPublicacion: formatDate(servicio.created_at),
+    fechaLimite: 'No especificado',
+    estado: servicio.status,
+    postulantes: applications.length,
+    progreso: 0,
+    etapa: servicio.status === 'active' ? 'Contratando' : 
+           servicio.status === 'hired' ? 'Contratado' : 
+           servicio.status === 'completed' ? 'Completado' : 'Activo',
+    horariosDisponibilidad: servicio.schedules?.map((s: any) => 
+      `${s.date_available}: ${s.start_time} - ${s.end_time}`
+    ) || []
+  } : null;
+
   return {
-    servicio,
+    servicio: servicioFormatted,
     postulantes: filteredPostulantes,
     preguntas,
     selectedFilter,
@@ -258,6 +278,7 @@ export const useDetallesPostulantes = () => {
     showConfirmationModal,
     candidateToConfirm,
     showCancelServiceModal,
+    loading,
     setSelectedFilter,
     setSelectedSort,
     handleVerPerfil,
@@ -268,6 +289,8 @@ export const useDetallesPostulantes = () => {
     handleDeselectCandidate,
     handleCancelService,
     handleConfirmCancelService,
-    handleCloseCancelModal
+    handleCloseCancelModal,
+    loadPreguntas,
+    handleAnswerQuestion
   };
-}; 
+};

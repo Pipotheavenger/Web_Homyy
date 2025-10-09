@@ -1,110 +1,109 @@
-import { useState } from 'react';
-
-interface Usuario {
-  id: string;
-  nombre: string;
-  apellido: string;
-  email: string;
-  telefono: string;
-  ubicacion: string;
-  fechaRegistro: string;
-  foto: string;
-  calificacion: number;
-  serviciosCompletados: number;
-  serviciosActivos: number;
-  balance: number;
-  preferencias: {
-    notificaciones: boolean;
-    emailMarketing: boolean;
-    privacidad: boolean;
-  };
-}
-
-interface ServicioReciente {
-  id: string;
-  titulo: string;
-  estado: 'activo' | 'en_proceso' | 'completado' | 'cancelado';
-  fecha: string;
-  profesional: string;
-  precio: number;
-}
+import { useState, useEffect } from 'react';
+import { profileService, bookingsService, reviewsService } from '@/lib/services';
+import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
 
 export const useProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('informacion');
-
-  // Datos de ejemplo del usuario
-  const [usuario, setUsuario] = useState<Usuario>({
-    id: '1',
-    nombre: 'María',
-    apellido: 'García',
-    email: 'maria.garcia@email.com',
-    telefono: '+57 300 123 4567',
-    ubicacion: 'Bogotá, Colombia',
-    fechaRegistro: '15 de Octubre, 2024',
-    foto: '/api/placeholder/200/200',
-    calificacion: 4.8,
-    serviciosCompletados: 12,
-    serviciosActivos: 2,
-    balance: 250000,
-    preferencias: {
-      notificaciones: true,
-      emailMarketing: false,
-      privacidad: true
-    }
-  });
-
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  
   const [formData, setFormData] = useState({
-    nombre: usuario.nombre,
-    apellido: usuario.apellido,
-    email: usuario.email,
-    telefono: usuario.telefono,
-    ubicacion: usuario.ubicacion
+    nombre: '',
+    apellido: '',
+    email: '',
+    telefono: '',
+    ubicacion: ''
   });
 
-  const serviciosRecientes: ServicioReciente[] = [
-    {
-      id: '1',
-      titulo: 'Limpieza Residencial Completa',
-      estado: 'completado',
-      fecha: 'Hace 2 días',
-      profesional: 'Ana Martínez',
-      precio: 120000
-    },
-    {
-      id: '2',
-      titulo: 'Reparación de Grifo',
-      estado: 'en_proceso',
-      fecha: 'Hace 1 semana',
-      profesional: 'Carlos López',
-      precio: 85000
-    },
-    {
-      id: '3',
-      titulo: 'Organización de Closet',
-      estado: 'activo',
-      fecha: 'Hace 3 días',
-      profesional: 'Laura Rodríguez',
-      precio: 95000
-    }
-  ];
+  useEffect(() => {
+    loadProfileData();
+  }, []);
 
-  const handleSave = () => {
-    setUsuario(prev => ({
-      ...prev,
-      ...formData
-    }));
-    setIsEditing(false);
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      
+      // Cargar perfil
+      const profileResponse = await profileService.getProfile();
+      if (profileResponse.success && profileResponse.data) {
+        const data = profileResponse.data;
+        const nameParts = (data.name || '').split(' ');
+        
+        setProfile({
+          id: data.id,
+          nombre: nameParts[0] || '',
+          apellido: nameParts.slice(1).join(' ') || '',
+          email: data.email || '',
+          telefono: data.phone || '',
+          ubicacion: 'Bogotá, Colombia',
+          fechaRegistro: data.created_at,
+          foto: data.profile_picture_url || '',
+          calificacion: 0,
+          serviciosCompletados: 0,
+          serviciosActivos: 0,
+          balance: 0,
+          preferencias: {
+            notificaciones: true,
+            emailMarketing: false,
+            privacidad: true
+          }
+        });
+        
+        setFormData({
+          nombre: nameParts[0] || '',
+          apellido: nameParts.slice(1).join(' ') || '',
+          email: data.email || '',
+          telefono: data.phone || '',
+          ubicacion: 'Bogotá, Colombia'
+        });
+      }
+
+      // Cargar bookings recientes
+      const bookingsResponse = await bookingsService.getMyBookingsAsClient();
+      if (bookingsResponse.success && bookingsResponse.data) {
+        setBookings(bookingsResponse.data.slice(0, 5));
+        
+        // Cargar reviews dadas por el usuario
+        // TODO: Implementar cuando tengamos una función para obtener reviews del usuario como reviewer
+      }
+
+    } catch (error) {
+      // Silent error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const fullName = `${formData.nombre} ${formData.apellido}`.trim();
+      const response = await profileService.updateProfile({
+        name: fullName,
+        phone: formData.telefono
+      });
+      if (response.success) {
+        await loadProfileData();
+        setIsEditing(false);
+        alert('Perfil actualizado exitosamente');
+      }
+    } catch (error) {
+      alert('Error al actualizar el perfil');
+    }
   };
 
   const handleCancel = () => {
-    setFormData({
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      email: usuario.email,
-      telefono: usuario.telefono,
-      ubicacion: usuario.ubicacion
-    });
+    if (profile) {
+      setFormData({
+        nombre: profile.nombre || '',
+        apellido: profile.apellido || '',
+        email: profile.email || '',
+        telefono: profile.telefono || '',
+        ubicacion: profile.ubicacion || ''
+      });
+    }
     setIsEditing(false);
   };
 
@@ -112,25 +111,20 @@ export const useProfile = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
   return {
-    usuario,
+    usuario: profile,
     formData,
     isEditing,
     activeTab,
-    serviciosRecientes,
+    serviciosRecientes: bookings || [],
+    reviews: reviews || [],
+    loading,
     setIsEditing,
     setActiveTab,
     handleSave,
     handleCancel,
     handleInputChange,
-    formatPrice
+    formatPrice,
+    formatDate
   };
-}; 
+};

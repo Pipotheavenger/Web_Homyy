@@ -102,16 +102,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                            (currentPage === 'dashboard' && itemPath === 'dashboard') ||
                            (currentPage === 'pagos' && itemPath === 'pagos') ||
                            (currentPage === 'perfil' && itemPath === 'perfil') ||
-                           (currentPage === 'historial' && itemPath === 'historial') ||
-                           (currentPage === 'aplicaciones' && itemPath === 'aplicaciones');
+                           (currentPage === 'trabajos' && itemPath === 'trabajos');
             
             return (
               <button
                 key={item.href}
                 onClick={() => handleNavigation(item.href)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                className={`w-full flex items-center transition-all duration-300 ${
+                  collapsed 
+                    ? 'justify-center px-3 py-3' 
+                    : 'space-x-3 px-4 py-3'
+                } rounded-xl ${
                   isActive
-                    ? `${currentColors.activeBackground} ${currentColors.activeText} shadow-lg`
+                    ? collapsed
+                      ? `${currentColors.text} bg-white/20`
+                      : `${currentColors.activeBackground} ${currentColors.activeText} shadow-lg`
                     : `${currentColors.text} ${currentColors.hover}`
                 }`}
                 title={collapsed ? item.label : undefined}

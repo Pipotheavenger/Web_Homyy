@@ -9,15 +9,18 @@ interface Tab {
 interface ProfileTabsProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  userType?: 'user' | 'worker';
 }
 
-export const ProfileTabs = ({ activeTab, onTabChange }: ProfileTabsProps) => {
-  const tabs: Tab[] = [
+export const ProfileTabs = ({ activeTab, onTabChange, userType = 'user' }: ProfileTabsProps) => {
+  const baseTabs: Tab[] = [
     { id: 'informacion', label: 'Información Personal', icon: User },
-    { id: 'servicios', label: 'Mis Servicios', icon: Award },
-    { id: 'reseñas', label: 'Mis Reseñas', icon: Star },
-    { id: 'preferencias', label: 'Preferencias', icon: Settings }
+    { id: 'servicios', label: userType === 'worker' ? 'Mis Trabajos' : 'Mis Servicios', icon: Award },
+    { id: 'reseñas', label: 'Mis Reseñas', icon: Star }
   ];
+
+  // No mostrar preferencias para nadie por ahora
+  const tabs = baseTabs;
 
   return (
     <div className="flex space-x-1 mb-6">

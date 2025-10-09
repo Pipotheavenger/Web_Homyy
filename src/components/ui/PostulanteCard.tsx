@@ -5,11 +5,14 @@ import {
   Eye, 
   CheckCircle,
   UserCheck,
-  DollarSign
+  DollarSign,
+  Clock,
+  MessageSquare
 } from 'lucide-react';
 
 interface Postulante {
   id: string;
+  workerId: string; // ID del trabajador (user_id)
   nombre: string;
   apellido: string;
   especialidad: string;
@@ -24,6 +27,8 @@ interface Postulante {
   telefono: string;
   email: string;
   precio: number;
+  coverLetter?: string;
+  estimatedDuration?: string;
 }
 
 interface PostulanteCardProps {
@@ -125,12 +130,31 @@ export const PostulanteCard = ({
               </div>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-2">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-3">
               <div className="flex items-center space-x-1 bg-blue-50/60 px-2 py-1 rounded-lg">
                 <Users size={12} className="text-blue-500" />
                 <span className="font-medium">{postulante.serviciosCompletados} servicios</span>
               </div>
+              {postulante.estimatedDuration && (
+                <div className="flex items-center space-x-1 bg-orange-50/60 px-2 py-1 rounded-lg">
+                  <Clock size={12} className="text-orange-500" />
+                  <span className="font-medium">{postulante.estimatedDuration}</span>
+                </div>
+              )}
             </div>
+
+            {/* Cover Letter */}
+            {postulante.coverLetter && (
+              <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl p-3 mb-3 border border-purple-200/30">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare size={14} className="text-purple-600" />
+                  <span className="text-sm font-semibold text-purple-700">Mensaje del profesional</span>
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                  {postulante.coverLetter}
+                </p>
+              </div>
+            )}
 
             {/* Calificación más compacta */}
             <div className="flex items-center space-x-2 mb-3">
@@ -150,7 +174,7 @@ export const PostulanteCard = ({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onVerPerfil(postulante.id)}
+                onClick={() => onVerPerfil(postulante.workerId)}
                 className="flex items-center space-x-1.5 px-3 py-2 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-300 border-2 border-purple-200 hover:border-purple-300 hover:shadow-lg"
               >
                 <Eye size={14} />
