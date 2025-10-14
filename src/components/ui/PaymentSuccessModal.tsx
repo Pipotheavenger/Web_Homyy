@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 
 interface PaymentSuccessModalProps {
   isOpen: boolean;
@@ -77,9 +77,9 @@ export const PaymentSuccessModal = ({
               <div className="relative">
                 {/* Animated ring */}
                 <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-75"></div>
-                {/* Checkmark container */}
+                {/* Clock container */}
                 <div className="relative w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl">
-                  <CheckCircle size={48} className="text-green-500" strokeWidth={2.5} />
+                  <Clock size={48} className="text-blue-500" strokeWidth={2.5} />
                 </div>
               </div>
             </div>
@@ -89,8 +89,8 @@ export const PaymentSuccessModal = ({
           <div className={`text-center transition-all duration-700 delay-300 ${
             showCheck ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
-            <h2 className="text-2xl font-bold mb-2">¡Pago Confirmado!</h2>
-            <p className="text-white/90 text-sm">Tu transacción ha sido procesada</p>
+            <h2 className="text-2xl font-bold mb-2">¡Transacción Procesada!</h2>
+            <p className="text-white/90 text-sm">Tu solicitud está siendo verificada</p>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export const PaymentSuccessModal = ({
               <span className="text-sm text-gray-600">Estado</span>
               <span className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-semibold">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                <span>Pendiente de verificación</span>
+                <span>Pendiente</span>
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -143,10 +143,10 @@ export const PaymentSuccessModal = ({
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-800 mb-1">
-                  Tu recarga está siendo procesada
+                  Tu transacción está siendo procesada
                 </p>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  El dinero estará disponible en tu cuenta en los próximos 5-10 minutos. 
+                  En 5-10 minutos se verificará y se actualizará el saldo en la app. 
                   Te notificaremos cuando esté listo.
                 </p>
               </div>

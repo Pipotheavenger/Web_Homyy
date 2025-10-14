@@ -42,7 +42,7 @@ export default function TrabajosDisponiblesPage() {
       <Layout title="Trabajos Disponibles" currentPage="trabajos">
         <div className="p-6">
           <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
           </div>
         </div>
       </Layout>
@@ -55,7 +55,7 @@ export default function TrabajosDisponiblesPage() {
         {/* Botón de regreso */}
         <button
           onClick={() => router.push('/worker/dashboard')}
-          className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 transition-colors group"
+          className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors group"
         >
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium">Volver al Dashboard</span>
@@ -89,7 +89,7 @@ export default function TrabajosDisponiblesPage() {
                 placeholder="Buscar trabajos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
 
@@ -97,7 +97,7 @@ export default function TrabajosDisponiblesPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+              className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             >
               {categorias.map(categoria => (
                 <option key={categoria} value={categoria}>
@@ -133,15 +133,15 @@ export default function TrabajosDisponiblesPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
                       <div className="flex items-center space-x-2 bg-gray-50/80 rounded-lg p-2">
-                        <MapPin size={14} className="text-orange-400" />
+                        <MapPin size={14} className="text-emerald-400" />
                         <span className="text-gray-700 font-medium">{trabajo.location || 'No especificado'}</span>
                       </div>
                       <div className="flex items-center space-x-2 bg-gray-50/80 rounded-lg p-2">
-                        <Calendar size={14} className="text-orange-400" />
+                        <Calendar size={14} className="text-emerald-400" />
                         <span className="text-gray-700 font-medium">{formatDate(trabajo.created_at)}</span>
                       </div>
                       <div className="flex items-center space-x-2 bg-gray-50/80 rounded-lg p-2">
-                        <Briefcase size={14} className="text-orange-400" />
+                        <Briefcase size={14} className="text-emerald-400" />
                         <span className="text-gray-700 font-medium">{trabajo.category?.name || 'General'}</span>
                       </div>
                       {trabajo.client?.name && (
@@ -168,7 +168,7 @@ export default function TrabajosDisponiblesPage() {
                   <div className="mt-4 lg:mt-0 lg:ml-6 flex flex-col items-end justify-center">
                     <button 
                       onClick={() => router.push(`/worker/trabajos/${trabajo.id}`)}
-                      className="px-8 py-3 text-white bg-gradient-to-r from-orange-500 to-red-500 hover:opacity-90 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
+                      className="px-8 py-3 text-white bg-gradient-to-r from-emerald-600 to-green-600 hover:opacity-90 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
                     >
                       Ver Detalles
                     </button>

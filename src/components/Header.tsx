@@ -30,10 +30,10 @@ export const Header: React.FC<HeaderProps> = ({
             {showBackButton && (
               <button
                 onClick={onBackClick}
-                className={`p-2 rounded-lg ${colors.gradient} text-white hover:opacity-80 transition-all duration-300`}
+                className={`p-2 rounded-full ${userType === 'worker' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-purple-500 hover:bg-purple-600'} text-white transition-all duration-300 shadow-sm hover:shadow-md`}
                 title="Regresar"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} />
               </button>
             )}
             

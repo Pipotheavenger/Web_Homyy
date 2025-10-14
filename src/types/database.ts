@@ -53,6 +53,11 @@ export interface Service {
   status: string; // varchar(50) según el esquema
   created_at: string;
   updated_at: string;
+  // Campos para el sistema de escrow y PIN
+  completion_pin?: string;
+  pin_generated_at?: string;
+  escrow_amount?: number;
+  worker_final_amount?: number;
   // Relaciones
   category?: Category;
   schedules?: ServiceSchedule[];
@@ -150,7 +155,7 @@ export interface CreateServiceData {
 }
 
 export interface UpdateServiceData extends Partial<CreateServiceData> {
-  status?: 'contratando' | 'eligiendo' | 'contratado' | 'completado';
+  status?: 'contratando' | 'eligiendo' | 'contratado' | 'completed' | 'cancelled';
 }
 
 export interface CreateProfessionalData {
@@ -175,7 +180,7 @@ export interface CreateReviewData {
 
 export interface ServiceFilters {
   category_id?: string;
-  status?: 'contratando' | 'eligiendo' | 'contratado' | 'completado';
+  status?: 'contratando' | 'eligiendo' | 'contratado' | 'completed' | 'cancelled';
   location?: string;
   price_min?: number;
   price_max?: number;
@@ -220,6 +225,16 @@ export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
   success: boolean;
+  count?: number;
+}
+
+// =====================================================
+// TIPOS PARA COMPONENTES UI
+// =====================================================
+
+export interface RegisterStep {
+  id: string;
+  title: string;
 }
 
 export interface PaginatedResponse<T> {

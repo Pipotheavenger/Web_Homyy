@@ -20,6 +20,7 @@ export interface CreateTransactionData {
   payment_method: string;
   transaction_reference?: string;
   description?: string;
+  status?: 'pendiente' | 'completado' | 'rechazado';
 }
 
 export const transactionsService = {
@@ -168,11 +169,7 @@ export const transactionsService = {
 
       let balance = 0;
       transactions?.forEach(t => {
-        if (t.type === 'recarga') {
-          balance += Number(t.amount);
-        } else if (t.type === 'retiro') {
-          balance -= Number(t.amount);
-        }
+        balance += Number(t.amount);
       });
 
       return {
@@ -212,8 +209,8 @@ export const transactionsService = {
         rechazadas: transactions?.filter(t => t.status === 'rechazado').length || 0,
         totalRecargas: transactions?.filter(t => t.type === 'recarga' && t.status === 'completado')
           .reduce((sum, t) => sum + Number(t.amount), 0) || 0,
-        totalRetiros: transactions?.filter(t => t.type === 'retiro' && t.status === 'completado')
-          .reduce((sum, t) => sum + Number(t.amount), 0) || 0
+        totalRetiros: Math.abs(transactions?.filter(t => t.type === 'retiro' && t.status === 'completado')
+          .reduce((sum, t) => sum + Number(t.amount), 0) || 0)
       };
 
       return {

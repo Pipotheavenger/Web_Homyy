@@ -31,6 +31,7 @@ interface MetodoPago {
 export default function PagosWorkerPage() {
   const router = useRouter();
   const [showRecargar, setShowRecargar] = useState(false);
+  const [showRetirar, setShowRetirar] = useState(false);
   const [selectedMetodo, setSelectedMetodo] = useState<string | null>(null);
   const [monto, setMonto] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -143,6 +144,34 @@ export default function PagosWorkerPage() {
     setSelectedMetodo(null);
   };
 
+  const handleConfirmarRetiro = async () => {
+    if (!selectedMetodo || !monto || parseInt(monto) > balance) {
+      alert('Monto inválido o insuficiente');
+      return;
+    }
+
+    const transactionRef = `RET-${Date.now()}`;
+    const response = await transactionsService.create({
+      type: 'retiro',
+      amount: -parseFloat(monto), // Negativo para retiro
+      payment_method: selectedMetodo,
+      transaction_reference: transactionRef,
+      description: `Retiro ${selectedMetodo?.toUpperCase()}`,
+      status: 'pendiente'
+    });
+
+    if (response.success) {
+      setCurrentTransactionRef(transactionRef);
+      setShowRetirar(false);
+      setShowSuccessModal(true);
+      
+      // Recargar datos
+      await loadData();
+    } else {
+      alert('Error al procesar el retiro: ' + response.error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completado':
@@ -216,12 +245,12 @@ export default function PagosWorkerPage() {
       onBackClick={handleVolver}
       currentPage="pagos"
     >
-      <div className="p-4 sm:p-6 bg-gradient-to-br from-orange-50/30 via-red-50/30 to-yellow-50/30 min-h-screen">
+      <div className="p-4 sm:p-6 bg-gradient-to-br from-emerald-50/30 via-green-50/30 to-teal-50/30 min-h-screen">
         {/* Balance Card */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(251,146,60,0.08)] border border-white/30 p-6 mb-6">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(34,197,94,0.08)] border border-white/30 p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
                 <Wallet size={24} className="text-white" />
               </div>
               <div>
@@ -237,7 +266,7 @@ export default function PagosWorkerPage() {
                 </div>
               ) : (
                 <>
-                  <div className="text-3xl font-bold text-orange-600">{formatPrice(balance)}</div>
+                  <div className="text-3xl font-bold text-emerald-600">{formatPrice(balance)}</div>
                   <div className="text-gray-600 text-sm">COP</div>
                 </>
               )}
@@ -247,16 +276,24 @@ export default function PagosWorkerPage() {
           <div className="flex gap-4">
             <button
               onClick={handleRecargar}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
               <TrendingUp size={20} />
               Recargar Cuenta
+            </button>
+            <button
+              onClick={() => setShowRetirar(true)}
+              disabled={balance <= 0}
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <TrendingDown size={20} />
+              Retirar Dinero
             </button>
           </div>
         </div>
 
         {/* Transaction History */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(251,146,60,0.08)] border border-white/30 p-6">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(34,197,94,0.08)] border border-white/30 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Historial de Transacciones</h3>
           
           {loading ? (
@@ -309,7 +346,7 @@ export default function PagosWorkerPage() {
               <p className="text-gray-600 mb-4">Aún no has realizado ninguna transacción</p>
               <button
                 onClick={handleRecargar}
-                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-300"
+                className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-green-600 transition-all duration-300"
               >
                 Hacer mi primera recarga
               </button>
@@ -321,12 +358,12 @@ export default function PagosWorkerPage() {
       {/* Modal de Métodos de Pago */}
       {showRecargar && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(251,146,60,0.15)] border border-white/40">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(34,197,94,0.15)] border border-white/40">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-red-100 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingUp size={24} className="text-orange-500" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center shadow-lg">
+                    <TrendingUp size={24} className="text-emerald-500" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">Recargar Cuenta</h3>
@@ -353,7 +390,7 @@ export default function PagosWorkerPage() {
                     value={monto}
                     onChange={(e) => setMonto(e.target.value)}
                     placeholder="50,000"
-                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">Monto mínimo: $10,000 COP</p>
@@ -370,8 +407,8 @@ export default function PagosWorkerPage() {
                       disabled={!metodo.disponible}
                       className={`p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
                         selectedMetodo === metodo.id
-                          ? 'border-orange-500 bg-orange-50/80 shadow-md'
-                          : 'border-gray-200 hover:border-orange-300 bg-white/60 hover:shadow-sm'
+                          ? 'border-emerald-500 bg-emerald-50/80 shadow-md'
+                          : 'border-gray-200 hover:border-emerald-300 bg-white/60 hover:shadow-sm'
                       } ${!metodo.disponible ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <div className={`w-12 h-12 ${metodo.color} rounded-xl flex items-center justify-center text-white shadow-lg`}>
@@ -382,7 +419,7 @@ export default function PagosWorkerPage() {
                         <p className="text-xs text-gray-600">{metodo.descripcion}</p>
                       </div>
                       {selectedMetodo === metodo.id && (
-                        <CheckCircle2 size={20} className="text-orange-500" />
+                        <CheckCircle2 size={20} className="text-emerald-500" />
                       )}
                     </button>
                   ))}
@@ -393,9 +430,102 @@ export default function PagosWorkerPage() {
               <button
                 onClick={handleConfirmarTransaccion}
                 disabled={!selectedMetodo || !monto || parseInt(monto) < 10000}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-orange-500 disabled:hover:to-red-500"
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-green-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-emerald-500 disabled:hover:to-green-500"
               >
                 Continuar con el pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Retiro */}
+      {showRetirar && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(34,197,94,0.15)] border border-white/40">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center shadow-lg">
+                    <TrendingDown size={24} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">Retirar Dinero</h3>
+                    <p className="text-xs text-gray-500 font-medium">Elige tu método de retiro</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRetirar(false)}
+                  className="w-8 h-8 bg-gray-100/60 hover:bg-gray-200/60 rounded-lg flex items-center justify-center transition-all duration-300"
+                >
+                  <X size={16} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Balance disponible */}
+              <div className="mb-6 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Balance disponible:</span>
+                  <span className="text-lg font-bold text-emerald-600">{formatPrice(balance)}</span>
+                </div>
+              </div>
+
+              {/* Monto */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Monto a retirar
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
+                  <input
+                    type="number"
+                    value={monto}
+                    onChange={(e) => setMonto(e.target.value)}
+                    placeholder="50,000"
+                    max={balance}
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Monto mínimo: $10,000 COP</p>
+              </div>
+
+              {/* Métodos de Retiro */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Método de Retiro</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {metodosRecarga.map((metodo) => (
+                    <button
+                      key={metodo.id}
+                      onClick={() => handleMetodoSeleccionado(metodo.id)}
+                      disabled={!metodo.disponible}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
+                        selectedMetodo === metodo.id
+                          ? 'border-emerald-500 bg-emerald-50/80 shadow-md'
+                          : 'border-gray-200 hover:border-emerald-300 bg-white/60 hover:shadow-sm'
+                      } ${!metodo.disponible ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className={`w-12 h-12 ${metodo.color} rounded-xl flex items-center justify-center text-white shadow-lg`}>
+                        {metodo.icono}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h5 className="font-semibold text-gray-800">{metodo.nombre}</h5>
+                        <p className="text-xs text-gray-600">{metodo.descripcion}</p>
+                      </div>
+                      {selectedMetodo === metodo.id && (
+                        <CheckCircle2 size={20} className="text-emerald-500" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botón Confirmar */}
+              <button
+                onClick={handleConfirmarRetiro}
+                disabled={!selectedMetodo || !monto || parseInt(monto) < 10000 || parseInt(monto) > balance}
+                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-emerald-600 disabled:hover:to-green-600"
+              >
+                Confirmar Retiro
               </button>
             </div>
           </div>

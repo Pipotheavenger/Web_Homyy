@@ -10,9 +10,12 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Verificar si ya está autenticado
+    // Verificar si ya está autenticado (tanto sessionStorage como cookies)
     const isAdminAuthenticated = sessionStorage.getItem('admin_authenticated');
-    if (isAdminAuthenticated === 'true') {
+    const isAdminAuthenticatedCookie = document.cookie.includes('admin_authenticated=true');
+    
+    if (isAdminAuthenticated === 'true' && isAdminAuthenticatedCookie) {
+      console.log('🔐 Admin already authenticated, redirecting to dashboard');
       router.push('/admin/dashboard');
     }
   }, [router]);
@@ -22,15 +25,36 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    // Código de acceso admin (en producción esto debe estar en variables de entorno)
-    const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || '123456';
+    try {
+      // Código de acceso admin (en producción esto debe estar en variables de entorno)
+      const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || '123456';
+      
+      console.log('🔍 Código ingresado:', code);
+      console.log('🔍 Código esperado:', ADMIN_CODE);
+      console.log('🔍 Son iguales:', code === ADMIN_CODE);
 
-    if (code === ADMIN_CODE) {
+      if (code !== ADMIN_CODE) {
+        console.log('❌ Código incorrecto');
+        setError('Código incorrecto. Acceso denegado.');
+        setCode('');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ Código correcto, procediendo...');
+
+      // Solo validar el código, sin verificar autenticación de usuario
+      // Establecer la autenticación de admin
       sessionStorage.setItem('admin_authenticated', 'true');
+      
+      // También establecer una cookie para el middleware
+      document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict'; // 1 hora
+      
+      console.log('🔐 Admin authentication successful');
       router.push('/admin/dashboard');
-    } else {
-      setError('Código incorrecto. Acceso denegado.');
-      setCode('');
+    } catch (error) {
+      console.error('Error en autenticación de admin:', error);
+      setError('Error de autenticación. Inténtalo de nuevo.');
       setLoading(false);
     }
   };
@@ -76,7 +100,8 @@ export default function AdminLoginPage() {
                 autoFocus
               />
               <p className="text-xs text-gray-400 mt-2 text-center">
-                Ingresa el código de 6 dígitos
+                Ingresa el código de 6 dígitos<br/>
+                <span className="text-yellow-400 font-semibold">Acceso restringido solo para administradores</span>
               </p>
             </div>
 

@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getUserType, redirectToUserDashboard } from '@/lib/auth-utils';
 import Image from 'next/image';
 
-export default function AuthCallback() {
+// Deshabilitar prerenderizado para esta página
+export const dynamic = 'force-dynamic';
+
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -206,5 +209,25 @@ export default function AuthCallback() {
         }
       `}</style>
     </main>
+  );
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-md w-full text-center animate-fade-in-up">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Cargando...</h1>
+          <p className="text-gray-600">Verificando tu cuenta...</p>
+        </div>
+      </main>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 } 

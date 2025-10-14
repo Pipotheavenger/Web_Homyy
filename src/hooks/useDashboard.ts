@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { serviceService, statsService, categoryService, workerService, profileService } from '@/lib/services';
+import { serviceService, statsService, categoryService, workerService, profileService, applicationsService } from '@/lib/services';
 import type { Service, Category } from '@/types/database';
 
 export const useDashboard = () => {
@@ -8,6 +8,7 @@ export const useDashboard = () => {
   const [stats, setStats] = useState<any>(null);
   const [topWorkers, setTopWorkers] = useState<any[]>([]);
   const [userName, setUserName] = useState<string>('');
+  const [applicationsCount, setApplicationsCount] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,20 @@ export const useDashboard = () => {
         const servicesResponse = await serviceService.getUserServices();
         if (servicesResponse.success && servicesResponse.data) {
           setServices(servicesResponse.data);
+          
+          // Cargar conteos de aplicaciones para cada servicio
+          const counts: Record<string, number> = {};
+          await Promise.all(
+            servicesResponse.data.map(async (service) => {
+              const countResponse = await applicationsService.countByService(service.id);
+              if (countResponse.success && countResponse.data !== null) {
+                counts[service.id] = countResponse.data;
+              } else {
+                counts[service.id] = 0;
+              }
+            })
+          );
+          setApplicationsCount(counts);
         }
 
         // Cargar categorías
@@ -87,6 +102,7 @@ export const useDashboard = () => {
     stats,
     topWorkers,
     userName,
+    applicationsCount,
     loading,
     error,
     handleDeleteService

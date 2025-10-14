@@ -76,8 +76,10 @@ export default function PhoneInput({
           } ${isFocused ? 'ring-2 ring-purple-500 border-transparent' : ''} ${className}`}
         />
         
-        {error && (
+        {error ? (
           <p className="mt-1 text-sm text-red-600">{error}</p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-500">Número de 10 dígitos (ej: 300 123 4567)</p>
         )}
       </div>
     </div>

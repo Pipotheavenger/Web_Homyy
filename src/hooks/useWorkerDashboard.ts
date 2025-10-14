@@ -32,7 +32,34 @@ export const useWorkerDashboard = () => {
       // Cargar mis aplicaciones
       const applicationsResponse = await applicationsService.getMyApplications();
       if (applicationsResponse.success && applicationsResponse.data) {
-        setApplications(applicationsResponse.data);
+        // Cargar datos de servicios para cada aplicación
+        const applicationsWithServices = await Promise.all(
+          applicationsResponse.data.map(async (app: any) => {
+            try {
+              const { supabase } = await import('@/lib/supabase');
+              const { data: service } = await supabase
+                .from('services')
+                .select('id, title, description, location, status, created_at')
+                .eq('id', app.service_id)
+                .single();
+              
+              return {
+                ...app,
+                service: service
+              };
+            } catch (error) {
+              console.error('Error loading service for application:', app.id, error);
+              return {
+                ...app,
+                service: null
+              };
+            }
+          })
+        );
+        
+        setApplications(applicationsWithServices);
+      } else {
+        setApplications([]);
       }
 
       // Cargar mis bookings como trabajador
@@ -59,7 +86,7 @@ export const useWorkerDashboard = () => {
   };
 
   const withdrawApplication = async (applicationId: string) => {
-    const response = await applicationsService.withdrawApplication(applicationId);
+    const response = await applicationsService.withdraw(applicationId);
     if (response.success) {
       // Recargar aplicaciones
       loadDashboardData();

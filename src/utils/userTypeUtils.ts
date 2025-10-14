@@ -1,9 +1,17 @@
 import { UserType } from '@/contexts/UserTypeContext';
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  DollarSign, 
+  User, 
+  MessageCircle,
+  Home
+} from 'lucide-react';
 
 export interface NavigationItem {
   label: string;
   href: string;
-  icon: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   description: string;
 }
 
@@ -19,25 +27,25 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
       {
         label: 'Dashboard',
         href: '/worker/dashboard',
-        icon: '📊',
+        icon: LayoutDashboard,
         description: 'Panel principal del trabajador'
       },
       {
         label: 'Trabajos',
         href: '/worker/trabajos',
-        icon: '💼',
+        icon: Briefcase,
         description: 'Buscar trabajos disponibles'
       },
       {
         label: 'Pagos',
         href: '/worker/pagos',
-        icon: '💰',
+        icon: DollarSign,
         description: 'Gestionar pagos y balance'
       },
       {
         label: 'Perfil',
         href: '/worker/perfil',
-        icon: '👤',
+        icon: User,
         description: 'Mi perfil profesional'
       }
     ];
@@ -46,25 +54,25 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
       {
         label: 'Mis Servicios',
         href: '/user/dashboard',
-        icon: '📊',
+        icon: LayoutDashboard,
         description: 'Panel principal'
       },
       {
         label: 'Chats',
         href: '/chats',
-        icon: '💬',
+        icon: MessageCircle,
         description: 'Mensajes y conversaciones'
       },
       {
         label: 'Pagos',
         href: '/user/pagos',
-        icon: '💰',
+        icon: DollarSign,
         description: 'Gestionar pagos'
       },
       {
         label: 'Perfil',
         href: '/user/perfil',
-        icon: '👤',
+        icon: User,
         description: 'Mi perfil'
       }
     ];

@@ -68,6 +68,7 @@ export interface UpdateBookingData {
   payment_status?: 'pending' | 'paid' | 'refunded';
   notes?: string;
   cancellation_reason?: string;
+  completed_at?: string;
 }
 
 // =====================================================

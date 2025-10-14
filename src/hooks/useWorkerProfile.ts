@@ -28,14 +28,26 @@ export const useWorkerProfile = (workerId: string) => {
       setLoading(true);
       setError(null);
 
-      console.log('🔍 Buscando usuario con ID:', workerId);
+      console.log('🔍 Buscando trabajador con ID:', workerId);
 
-      // Cargar datos básicos del usuario desde user_profiles
-      const { data: userProfile, error: userError } = await supabase
+      // Primero intentar buscar por ID directo en user_profiles
+      let { data: userProfile, error: userError } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', workerId)
+        .eq('id', workerId)
         .maybeSingle();
+
+      // Si no se encuentra por ID, intentar por user_id
+      if (!userProfile) {
+        const { data: userProfileByUserId, error: userErrorByUserId } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', workerId)
+          .maybeSingle();
+        
+        userProfile = userProfileByUserId;
+        userError = userErrorByUserId;
+      }
 
       console.log('📊 Resultado de user_profiles:', { userProfile, userError });
 
@@ -52,33 +64,38 @@ export const useWorkerProfile = (workerId: string) => {
       console.log('✅ Usuario encontrado:', userProfile.name);
       setWorker(userProfile);
 
-      // Intentar cargar perfil de trabajador (opcional)
+      // Cargar perfil de trabajador usando el user_id correcto
       const { data: workerData } = await supabase
         .from('worker_profiles')
         .select('*')
-        .eq('user_id', workerId)
+        .eq('user_id', userProfile.user_id)
         .maybeSingle();
 
       if (workerData) {
+        console.log('✅ Perfil de trabajador encontrado:', workerData);
         setWorkerProfile(workerData);
+      } else {
+        console.log('⚠️ No se encontró perfil de trabajador para:', userProfile.user_id);
       }
 
-      // Cargar reseñas
+      // Cargar reseñas usando el user_id correcto
       const { data: reviewsData } = await supabase
         .from('reviews')
         .select(`
           *,
-          client:user_profiles!reviews_client_id_fkey(name),
+          client:user_profiles!reviews_reviewer_id_fkey(name),
           service:services(title)
         `)
-        .eq('professional_id', workerId)
+        .eq('professional_id', userProfile.user_id)
         .order('created_at', { ascending: false });
 
       if (reviewsData) {
+        console.log('✅ Reseñas encontradas:', reviewsData.length);
         setReviews(reviewsData);
       }
 
     } catch (err: any) {
+      console.error('❌ Error completo:', err);
       setError(err.message || 'Error al cargar el perfil');
     } finally {
       setLoading(false);

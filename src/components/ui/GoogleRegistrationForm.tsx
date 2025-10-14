@@ -24,6 +24,7 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
     birthDate: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleRoleSelect = (role: 'user' | 'worker') => {
     setSelectedRole(role);
@@ -42,6 +43,14 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
         [field]: ''
       }));
     }
+  };
+
+  const handleFocus = (field: string) => {
+    setFocusedField(field);
+  };
+
+  const handleBlur = (field: string) => {
+    setFocusedField(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -170,6 +179,9 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
             placeholder="Tu nombre completo"
             value={formData.name}
             onChange={(value) => handleInputChange('name', value)}
+            onFocus={() => handleFocus('name')}
+            onBlur={() => handleBlur('name')}
+            isFocused={focusedField === 'name'}
             error={errors.name}
             icon={userIcon}
             autoComplete="name"
@@ -180,6 +192,9 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
             placeholder="Teléfono"
             value={formData.phone}
             onChange={(value) => handleInputChange('phone', value)}
+            onFocus={() => handleFocus('phone')}
+            onBlur={() => handleBlur('phone')}
+            isFocused={focusedField === 'phone'}
             error={errors.phone}
             icon={phoneIcon}
             autoComplete="tel"
@@ -190,6 +205,9 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
             placeholder="Fecha de nacimiento"
             value={formData.birthDate}
             onChange={(value) => handleInputChange('birthDate', value)}
+            onFocus={() => handleFocus('birthDate')}
+            onBlur={() => handleBlur('birthDate')}
+            isFocused={focusedField === 'birthDate'}
             error={errors.birthDate}
             icon={calendarIcon}
             autoComplete="bday"

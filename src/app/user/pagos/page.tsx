@@ -31,6 +31,7 @@ interface MetodoPago {
 export default function PagosPage() {
   const router = useRouter();
   const [showRecargar, setShowRecargar] = useState(false);
+  const [showRetirar, setShowRetirar] = useState(false);
   const [selectedMetodo, setSelectedMetodo] = useState<string | null>(null);
   const [monto, setMonto] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -122,7 +123,8 @@ export default function PagosPage() {
       amount: parseFloat(monto),
       payment_method: selectedMetodo || 'nequi',
       transaction_reference: transactionRef,
-      description: `Recarga ${selectedMetodo?.toUpperCase()}`
+      description: `Recarga ${selectedMetodo?.toUpperCase()}`,
+      status: 'pendiente'
     });
 
     if (response.success) {
@@ -141,6 +143,34 @@ export default function PagosPage() {
     setShowSuccessModal(false);
     setMonto('');
     setSelectedMetodo(null);
+  };
+
+  const handleConfirmarRetiro = async () => {
+    if (!selectedMetodo || !monto || parseInt(monto) > balance) {
+      alert('Monto inválido o insuficiente');
+      return;
+    }
+
+    const transactionRef = `RET-${Date.now()}`;
+    const response = await transactionsService.create({
+      type: 'retiro',
+      amount: -parseFloat(monto), // Negative for withdrawal
+      payment_method: selectedMetodo,
+      transaction_reference: transactionRef,
+      description: `Retiro ${selectedMetodo?.toUpperCase()}`,
+      status: 'pendiente'
+    });
+
+    if (response.success) {
+      setCurrentTransactionRef(transactionRef);
+      setShowRetirar(false);
+      setShowSuccessModal(true);
+      
+      // Recargar datos
+      await loadData();
+    } else {
+      alert('Error al procesar el retiro: ' + response.error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -251,6 +281,14 @@ export default function PagosPage() {
             >
               <TrendingUp size={20} />
               Recargar Cuenta
+            </button>
+            <button
+              onClick={() => setShowRetirar(true)}
+              disabled={balance <= 0}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <TrendingDown size={20} />
+              Retirar Dinero
             </button>
           </div>
         </div>
@@ -396,6 +434,99 @@ export default function PagosPage() {
                 className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-500 disabled:hover:to-pink-500"
               >
                 Continuar con el pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Retiro */}
+      {showRetirar && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(116,63,198,0.15)] border border-white/40">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center shadow-lg">
+                    <TrendingDown size={24} className="text-purple-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">Retirar Dinero</h3>
+                    <p className="text-xs text-gray-500 font-medium">Elige tu método de retiro</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowRetirar(false)}
+                  className="w-8 h-8 bg-gray-100/60 hover:bg-gray-200/60 rounded-lg flex items-center justify-center transition-all duration-300"
+                >
+                  <X size={16} className="text-gray-500" />
+                </button>
+              </div>
+
+              {/* Balance disponible */}
+              <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Balance disponible:</span>
+                  <span className="text-lg font-bold text-purple-600">{formatPrice(balance)}</span>
+                </div>
+              </div>
+
+              {/* Monto */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Monto a retirar
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
+                  <input
+                    type="number"
+                    value={monto}
+                    onChange={(e) => setMonto(e.target.value)}
+                    placeholder="50,000"
+                    max={balance}
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Monto mínimo: $10,000 COP</p>
+              </div>
+
+              {/* Métodos de Retiro */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Método de Retiro</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {metodosRecarga.map((metodo) => (
+                    <button
+                      key={metodo.id}
+                      onClick={() => handleMetodoSeleccionado(metodo.id)}
+                      disabled={!metodo.disponible}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 flex items-center gap-3 ${
+                        selectedMetodo === metodo.id
+                          ? 'border-purple-500 bg-purple-50/80 shadow-md'
+                          : 'border-gray-200 hover:border-purple-300 bg-white/60 hover:shadow-sm'
+                      } ${!metodo.disponible ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className={`w-12 h-12 ${metodo.color} rounded-xl flex items-center justify-center text-white shadow-lg`}>
+                        {metodo.icono}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h5 className="font-semibold text-gray-800">{metodo.nombre}</h5>
+                        <p className="text-xs text-gray-600">{metodo.descripcion}</p>
+                      </div>
+                      {selectedMetodo === metodo.id && (
+                        <CheckCircle2 size={20} className="text-purple-500" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botón Confirmar */}
+              <button
+                onClick={handleConfirmarRetiro}
+                disabled={!selectedMetodo || !monto || parseInt(monto) < 10000 || parseInt(monto) > balance}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-600 disabled:hover:to-pink-600"
+              >
+                Confirmar Retiro
               </button>
             </div>
           </div>

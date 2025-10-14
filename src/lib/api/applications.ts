@@ -213,10 +213,7 @@ export const applicationsService = {
 
       const { data, error } = await supabase
         .from('applications')
-        .select(`
-          *,
-          service:services(id, title, description, location, status, created_at)
-        `)
+        .select('*')
         .eq('worker_id', user.id)
         .order('created_at', { ascending: false });
 

@@ -1,45 +1,69 @@
-import { Calendar, MapPin, User, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, User, Trash2, Wrench, Sparkles, Palette, Code, Zap, Hammer, Heart, Plus, Monitor, Leaf, Package, Star, Key } from 'lucide-react';
 import type { Service, Category, ServiceSchedule } from '@/types/database';
+import { PinDisplay } from './PinDisplay';
 
 interface ServiceCardProps {
   service: Service;
   categories: Category[];
+  applicationsCount?: number;
   onViewDetails: (serviceId: string) => void;
   onDelete: (serviceId: string) => void;
+  onLeaveReview?: (service: Service) => void;
 }
 
-export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: ServiceCardProps) => {
+export const ServiceCard = ({ service, categories, applicationsCount = 0, onViewDetails, onDelete, onLeaveReview }: ServiceCardProps) => {
   const getCategoryIcon = (categoryName: string) => {
     const category = categories.find(cat => cat.name === categoryName);
-    if (category?.icon) {
-      if (category.icon.startsWith('🔧') || category.icon.startsWith('🧹') || category.icon.startsWith('🎨')) {
-        return category.icon;
-      }
-      switch (category.icon.toLowerCase()) {
-        case 'wrench':
-        case 'plomeria':
-        case 'plumbing':
-          return '🔧';
-        case 'cleaning':
-        case 'limpieza':
-          return '🧹';
-        case 'design':
-        case 'diseño':
-          return '🎨';
-        case 'development':
-        case 'desarrollo':
-          return '💻';
-        case 'electricity':
-        case 'electricidad':
-          return '⚡';
-        case 'carpentry':
-        case 'carpinteria':
-          return '🔨';
-        default:
-          return '📋';
-      }
+    
+    // Si no encontramos la categoría, usar icono por defecto
+    if (!category) {
+      return <Wrench size={20} className="text-white" />;
     }
-    return '📋';
+
+    // Mapear por nombre de categoría (más confiable que el campo icon)
+    switch (categoryName.toLowerCase()) {
+      case 'plomería':
+        return <Wrench size={20} className="text-white" />;
+      case 'limpieza':
+        return <Sparkles size={20} className="text-white" />;
+      case 'diseño':
+        return <Palette size={20} className="text-white" />;
+      case 'tecnología':
+        return <Monitor size={20} className="text-white" />;
+      case 'electricidad':
+        return <Zap size={20} className="text-white" />;
+      case 'carpintería':
+        return <Hammer size={20} className="text-white" />;
+      case 'mascotas':
+        return <Heart size={20} className="text-white" />;
+      case 'pintura':
+        return <Palette size={20} className="text-white" />;
+      case 'jardinería':
+        return <Leaf size={20} className="text-white" />;
+      case 'organización':
+        return <Package size={20} className="text-white" />;
+      case 'otros':
+        return <Plus size={20} className="text-white" />;
+      default:
+        // Si el campo icon contiene un nombre de icono de Lucide, usarlo
+        if (category.icon && !category.icon.match(/[\u{1F300}-\u{1F9FF}]/u)) {
+          switch (category.icon.toLowerCase()) {
+            case 'hammer':
+              return <Hammer size={20} className="text-white" />;
+            case 'heart':
+              return <Heart size={20} className="text-white" />;
+            case 'plus':
+              return <Plus size={20} className="text-white" />;
+            case 'palette':
+              return <Palette size={20} className="text-white" />;
+            case 'computer':
+              return <Monitor size={20} className="text-white" />;
+            default:
+              return <Wrench size={20} className="text-white" />;
+          }
+        }
+        return <Wrench size={20} className="text-white" />;
+    }
   };
 
   const getCategoryColor = (categoryName: string) => {
@@ -85,7 +109,8 @@ export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: Se
       case 'contratando': return 25;
       case 'eligiendo': return 50;
       case 'contratado': return 75;
-      case 'completado': return 100;
+      case 'in_progress': return 85;
+      case 'completed': return 100;
       default: return 25;
     }
   };
@@ -95,39 +120,41 @@ export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: Se
       case 'contratando': return 'Contratando';
       case 'eligiendo': return 'Eligiendo';
       case 'contratado': return 'Contratado';
-      case 'completado': return 'Completado';
+      case 'in_progress': return 'En Progreso';
+      case 'completed': return 'Completado';
       default: return 'Contratando';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'contratando': return 'text-blue-600 border-blue-400';
-      case 'eligiendo': return 'text-orange-600 border-orange-400';
-      case 'contratado': return 'text-purple-600 border-purple-400';
-      case 'completado': return 'text-green-600 border-green-400';
-      default: return 'text-blue-600 border-blue-400';
+      case 'contratando': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'eligiendo': return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'contratado': return 'text-purple-600 bg-purple-50 border-purple-200';
+      case 'in_progress': return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+      case 'completed': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-blue-600 bg-blue-50 border-blue-200';
     }
   };
 
   return (
-    <div className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-all duration-200 bg-gradient-to-r from-gray-50 to-white relative">
+    <div className="border border-gray-100 rounded-xl p-5 hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-gray-50 to-white relative">
       <button
         onClick={() => onDelete(service.id)}
-        disabled={service.status !== 'completado'}
+        disabled={service.status !== 'completed'}
         className={`absolute top-2 right-2 p-1 transition-colors ${
-          service.status === 'completado'
+          service.status === 'completed'
             ? 'text-gray-400 hover:text-red-500 cursor-pointer'
             : 'text-gray-200 cursor-not-allowed'
         }`}
-        title={service.status === 'completado' ? 'Eliminar servicio' : 'Solo se puede eliminar cuando esté completado'}
+        title={service.status === 'completed' ? 'Eliminar servicio' : 'Solo se puede eliminar cuando esté completado'}
       >
         <Trash2 size={16} />
       </button>
       
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center text-2xl">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#743fc6] to-[#8a5fd1] rounded-xl flex items-center justify-center">
             {getCategoryIcon(service.category?.name || 'Otros')}
           </div>
           <div className="flex-1">
@@ -161,7 +188,7 @@ export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: Se
           <div className="flex items-center space-x-1 mb-2">
             <User size={14} className="text-[#743fc6]" />
             <span className="text-sm font-medium text-gray-700">
-              0 postulantes
+              {applicationsCount} postulante{applicationsCount !== 1 ? 's' : ''}
             </span>
           </div>
           
@@ -194,25 +221,65 @@ export const ServiceCard = ({ service, categories, onViewDetails, onDelete }: Se
               </span>
             </div>
           </div>
-          <p className={`text-xs font-medium mt-1 border-b-2 pb-1 ${getStatusColor(service.status)}`}>
-            {getStatusText(service.status)}
-          </p>
+          <div className="text-center mt-2">
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${getStatusColor(service.status)}`}>
+              {getStatusText(service.status)}
+            </span>
+          </div>
+          
+          {/* Mostrar PIN cuando el servicio esté en progreso */}
+          {service.status === 'in_progress' && service.completion_pin && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200 shadow-sm">
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-2 mb-3">
+                  <div className="p-1.5 bg-indigo-100 rounded-lg">
+                    <Key size={16} className="text-indigo-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-indigo-800">PIN de Finalización</span>
+                </div>
+                
+                <div className="mb-3">
+                  <PinDisplay pin={service.completion_pin} />
+                </div>
+                
+                <p className="text-xs text-indigo-600 leading-relaxed max-w-xs mx-auto">
+                  Comparte este PIN con el trabajador para finalizar el servicio
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (service?.id) {
-            onViewDetails(service.id);
-          } else {
-            alert('Error: El servicio no tiene ID');
-          }
-        }}
-        className="mt-3 w-full bg-[#743fc6] text-white py-2 rounded-lg hover:bg-[#6a37b8] transition-colors text-sm font-medium"
-      >
-        Ver Detalles
-      </button>
+      <div className="mt-4 flex space-x-3">
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (service?.id) {
+              onViewDetails(service.id);
+            } else {
+              alert('Error: El servicio no tiene ID');
+            }
+          }}
+          className="flex-1 bg-[#743fc6] text-white py-2.5 rounded-lg hover:bg-[#6a37b8] transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
+        >
+          Ver Detalles
+        </button>
+        
+        {service.status === 'completed' && onLeaveReview && (
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onLeaveReview(service);
+            }}
+            className="px-3 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 flex items-center space-x-1"
+          >
+            <Star size={16} />
+            <span className="text-sm font-medium">Reseñar</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }; 

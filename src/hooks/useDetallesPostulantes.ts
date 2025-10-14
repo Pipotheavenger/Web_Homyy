@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { serviceService, applicationsService, bookingsService, questionsService } from '@/lib/services';
+import { serviceService, applicationsService, bookingsService, questionsService, escrowService } from '@/lib/services';
 import { formatDate, formatPrice } from '@/lib/utils/empty-state-helpers';
 
 export const useDetallesPostulantes = () => {
@@ -83,12 +83,18 @@ export const useDetallesPostulantes = () => {
     if (!serviceId) return;
 
     try {
+      console.log('🔄 Cargando aplicaciones para servicio:', serviceId);
       const response = await applicationsService.getByService(serviceId);
+      console.log('📥 Respuesta del servicio:', response);
+      
       if (response.success && response.data) {
+        console.log('✅ Aplicaciones cargadas:', response.data);
         setApplications(response.data);
+      } else {
+        console.error('❌ Error en la respuesta:', response.error);
       }
     } catch (error) {
-      console.error('Error loading applications:', error);
+      console.error('❌ Error loading applications:', error);
     }
   };
 
@@ -136,26 +142,41 @@ export const useDetallesPostulantes = () => {
     }
 
     // Mapear a formato esperado por el componente
-    return filtered.map(app => ({
-      id: app.id,
-      workerId: app.worker_id, // ID del trabajador para ver perfil
-      nombre: app.worker?.name?.split(' ')[0] || 'Trabajador',
-      apellido: app.worker?.name?.split(' ').slice(1).join(' ') || '',
-      especialidad: app.worker_profile?.profession || 'No especificado',
-      experiencia: app.worker_profile?.experience_years || 0,
-      calificacion: Number(app.worker_profile?.rating || 0),
-      serviciosCompletados: app.worker_profile?.total_services || 0,
-      ubicacion: app.worker_profile?.location || 'No especificado',
-      disponibilidad: app.worker_profile?.is_available ? 'Disponible' : 'No disponible',
-      foto: app.worker?.profile_picture_url || '',
-      estado: app.status === 'pending' ? 'pendiente' : app.status === 'accepted' ? 'aprobado' : 'rechazado',
-      fechaPostulacion: formatDate(app.created_at),
-      telefono: app.worker?.phone || '',
-      email: app.worker?.email || '',
-      precio: Number(app.proposed_price || 0),
-      coverLetter: app.cover_letter,
-      estimatedDuration: app.estimated_duration
-    }));
+    return filtered.map(app => {
+      console.log('📊 Mapeando aplicación:', {
+        id: app.id,
+        proposed_price: app.proposed_price,
+        worker: app.worker,
+        worker_profile: app.worker_profile
+      });
+      
+      return {
+        id: app.id,
+        workerId: app.worker_id, // ID del trabajador para ver perfil
+        nombre: app.worker?.name?.split(' ')[0] || 'Trabajador',
+        apellido: app.worker?.name?.split(' ').slice(1).join(' ') || '',
+        especialidad: app.worker_profile?.profession || 'No especificado',
+        experiencia: app.worker_profile?.experience_years || 0,
+        calificacion: Number(app.worker_profile?.rating || 0),
+        serviciosCompletados: app.worker_profile?.total_services || 0,
+        ubicacion: app.worker_profile?.location || 'No especificado',
+        disponibilidad: app.worker_profile?.is_available ? 'Disponible' : 'No disponible',
+        foto: app.worker?.profile_picture_url || '',
+        estado: (() => {
+          switch (app.status) {
+            case 'pending': return 'pendiente' as const;
+            case 'accepted': return 'aprobado' as const;
+            default: return 'rechazado' as const;
+          }
+        })(),
+        fechaPostulacion: formatDate(app.created_at),
+        telefono: app.worker?.phone || '',
+        email: app.worker?.email || '',
+        precio: Number(app.proposed_price || 0),
+        coverLetter: app.cover_letter,
+        estimatedDuration: app.estimated_duration
+      };
+    });
   }, [applications, selectedFilter, selectedSort, selectedCandidate]);
 
   const handleVerPerfil = (profesionalId: string) => {
@@ -167,10 +188,17 @@ export const useDetallesPostulantes = () => {
   };
 
   const handleSelectCandidate = async (candidateId: string) => {
+    console.log('🔍 Buscando candidato con ID:', candidateId);
+    console.log('📋 Postulantes disponibles:', filteredPostulantes);
+    
     const candidate = filteredPostulantes.find(p => p.id === candidateId);
+    console.log('✅ Candidato encontrado:', candidate);
+    
     if (candidate) {
       setCandidateToConfirm(candidate);
       setShowConfirmationModal(true);
+    } else {
+      console.error('❌ No se encontró el candidato con ID:', candidateId);
     }
   };
 
@@ -178,18 +206,24 @@ export const useDetallesPostulantes = () => {
     if (!candidateToConfirm || !serviceId) return;
 
     try {
-      // Actualizar estado de la aplicación a "accepted"
-      const response = await applicationsService.updateStatus(candidateToConfirm.id, 'accepted');
+      // Usar el servicio de escrow para seleccionar trabajador
+      const response = await escrowService.selectWorker(
+        serviceId,
+        candidateToConfirm.workerId,
+        candidateToConfirm.id,
+        candidateToConfirm.precio
+      );
       
       if (response.success) {
         setSelectedCandidate(candidateToConfirm.id);
         setShowConfirmationModal(false);
         setCandidateToConfirm(null);
         
-        // Recargar aplicaciones
+        // Recargar datos
         await loadServiceDetails();
+        await loadApplications();
         
-        alert('Candidato seleccionado exitosamente');
+        alert(`Trabajador seleccionado exitosamente. PIN de finalización: ${response.data?.pin}`);
       } else {
         alert('Error al seleccionar candidato: ' + response.error);
       }
@@ -234,7 +268,7 @@ export const useDetallesPostulantes = () => {
 
   const handleAnswerQuestion = async (questionId: string, answer: string): Promise<boolean> => {
     try {
-      const response = await questionsService.answer(questionId, answer);
+      const response = await questionsService.answer(questionId, { answer });
       if (response.success) {
         await loadPreguntas(); // Recargar preguntas
         return true;

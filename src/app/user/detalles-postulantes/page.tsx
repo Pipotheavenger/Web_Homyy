@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Layout from '@/components/Layout';
 import { useDetallesPostulantes } from '@/hooks/useDetallesPostulantes';
 import { ServiceDetails } from '@/components/ui/ServiceDetails';
 import { PostulanteCard } from '@/components/ui/PostulanteCard';
 import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
-import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { CancelServiceModal } from '@/components/ui/CancelServiceModal';
+import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
 import { ChevronDown, ChevronUp, MessageCircle, Users } from 'lucide-react';
 
-export default function DetallesPostulantesPage() {
-  const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(true); // Expandido por defecto
+function DetallesPostulantesContent() {
+  const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false); // Colapsado por defecto
   const [isPostulantesExpanded, setIsPostulantesExpanded] = useState(false); // Colapsado por defecto
 
   const {
@@ -91,7 +91,7 @@ export default function DetallesPostulantesPage() {
           onCancelService={handleCancelService}
         />
 
-        {/* Panel de preguntas públicas - Expandido por defecto */}
+        {/* Panel de preguntas públicas - Colapsado por defecto */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30">
           <button
             onClick={() => setIsQuestionsExpanded(!isQuestionsExpanded)}
@@ -206,14 +206,13 @@ export default function DetallesPostulantesPage() {
         </div>
       </div>
 
-      {/* Modal de confirmación */}
-      <ConfirmationModal
+      {/* Modal de selección de trabajador */}
+      <WorkerSelectionModal
         isOpen={showConfirmationModal}
         onClose={handleCloseModal}
         onConfirm={handleConfirmSelection}
-        candidateName={candidateToConfirm ? `${candidateToConfirm.nombre} ${candidateToConfirm.apellido}` : ''}
-        candidateSpecialty={candidateToConfirm?.especialidad || ''}
-        candidatePrice={candidateToConfirm?.precio || 0}
+        postulante={candidateToConfirm}
+        serviceTitle={servicio?.titulo || ''}
       />
 
       {/* Modal de cancelación de servicio */}
@@ -224,5 +223,26 @@ export default function DetallesPostulantesPage() {
         serviceTitle={servicio.titulo}
       />
     </Layout>
+  );
+}
+
+export default function DetallesPostulantesPage() {
+  return (
+    <Suspense fallback={
+      <Layout 
+        title="Detalles de Postulantes" 
+        showBackButton={true}
+        onBackClick={() => window.history.back()}
+      >
+        <div className="p-6">
+          <div className="flex flex-col items-center justify-center h-64">
+            <div className="w-8 h-8 border-2 border-[#743fc6]/30 border-t-[#743fc6] rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 text-sm">Cargando detalles del servicio...</p>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <DetallesPostulantesContent />
+    </Suspense>
   );
 } 

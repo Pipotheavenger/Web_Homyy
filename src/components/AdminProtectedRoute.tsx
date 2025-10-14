@@ -13,14 +13,20 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       const adminAuth = sessionStorage.getItem('admin_authenticated');
       
       if (adminAuth !== 'true') {
+        console.log('🔐 No admin auth found, redirecting to /admin');
         router.push('/admin');
-      } else {
-        setIsAuthenticated(true);
+        setIsLoading(false);
+        return;
       }
+
+      // Solo verificar que la sesión de admin esté activa
+      console.log('🔐 Admin authentication verified');
+      setIsAuthenticated(true);
+      
       setIsLoading(false);
     };
 

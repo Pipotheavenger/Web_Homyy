@@ -15,11 +15,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Edit
+  Edit,
+  Settings
 } from 'lucide-react';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute';
 import { adminService } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
+import { CommissionSettings } from '@/components/ui/CommissionSettings';
+import { useCommission } from '@/hooks/useCommission';
 
 export default function AdminDashboardPage() {
   return (
@@ -32,6 +35,8 @@ export default function AdminDashboardPage() {
 function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'transactions' | 'services'>('stats');
+  const [showCommissionSettings, setShowCommissionSettings] = useState(false);
+  const { commissionPercentage } = useCommission();
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -43,6 +48,27 @@ function AdminDashboard() {
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
+  // Verificar autenticación y permisos de admin
+  useEffect(() => {
+    const checkAdminAuth = async () => {
+      try {
+        const statsResponse = await adminService.getStats();
+        
+        if (!statsResponse.success) {
+          alert('No tienes permisos de administrador. Serás redirigido.');
+          router.push('/admin');
+          return;
+        }
+      } catch (error) {
+        console.error('Error verificando autenticación:', error);
+        alert('Error de autenticación. Serás redirigido.');
+        router.push('/admin');
+      }
+    };
+
+    checkAdminAuth();
+  }, [router]);
+
   useEffect(() => {
     loadData();
   }, [activeTab, currentPage, searchTerm, statusFilter]);
@@ -50,48 +76,58 @@ function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
 
-    if (activeTab === 'stats') {
-      const statsResponse = await adminService.getStats();
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
+    try {
+      if (activeTab === 'stats') {
+        const statsResponse = await adminService.getStats();
+        if (statsResponse.success) {
+          setStats(statsResponse.data);
+        }
+      } else if (activeTab === 'users') {
+        const usersResponse = await adminService.getUsers({
+          search: searchTerm || undefined,
+          limit: itemsPerPage,
+          offset: (currentPage - 1) * itemsPerPage
+        });
+        if (usersResponse.success) {
+          setUsers(usersResponse.data);
+          setTotalItems(usersResponse.count || 0);
+        }
+      } else if (activeTab === 'transactions') {
+        const transactionsResponse = await adminService.getTransactions({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          limit: itemsPerPage,
+          offset: (currentPage - 1) * itemsPerPage
+        });
+        if (transactionsResponse.success) {
+          setTransactions(transactionsResponse.data);
+          setTotalItems(transactionsResponse.count || 0);
+        }
+      } else if (activeTab === 'services') {
+        const servicesResponse = await adminService.getServices({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          limit: itemsPerPage,
+          offset: (currentPage - 1) * itemsPerPage
+        });
+        if (servicesResponse.success) {
+          setServices(servicesResponse.data);
+          setTotalItems(servicesResponse.count || 0);
+        }
       }
-    } else if (activeTab === 'users') {
-      const usersResponse = await adminService.getUsers({
-        search: searchTerm || undefined,
-        limit: itemsPerPage,
-        offset: (currentPage - 1) * itemsPerPage
-      });
-      if (usersResponse.success) {
-        setUsers(usersResponse.data);
-        setTotalItems(usersResponse.count);
-      }
-    } else if (activeTab === 'transactions') {
-      const transactionsResponse = await adminService.getTransactions({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        limit: itemsPerPage,
-        offset: (currentPage - 1) * itemsPerPage
-      });
-      if (transactionsResponse.success) {
-        setTransactions(transactionsResponse.data);
-        setTotalItems(transactionsResponse.count);
-      }
-    } else if (activeTab === 'services') {
-      const servicesResponse = await adminService.getServices({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        limit: itemsPerPage,
-        offset: (currentPage - 1) * itemsPerPage
-      });
-      if (servicesResponse.success) {
-        setServices(servicesResponse.data);
-        setTotalItems(servicesResponse.count);
-      }
+    } catch (error) {
+      console.error('Error general en loadData:', error);
     }
 
     setLoading(false);
   };
 
   const handleLogout = () => {
+    // Limpiar sessionStorage
     sessionStorage.removeItem('admin_authenticated');
+    
+    // Limpiar cookies
+    document.cookie = 'admin_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
+    console.log('🔐 Admin logout successful');
     router.push('/admin');
   };
 
@@ -222,7 +258,7 @@ function AdminDashboard() {
                       <Briefcase size={20} className="text-green-500" />
                     </div>
                     <p className="text-3xl font-bold text-gray-900">{stats.totalServices}</p>
-                    <p className="text-xs text-gray-500 mt-1">{stats.activeServices} activos</p>
+                    <p className="text-xs text-gray-500 mt-1">{stats.pendingServices} pendientes</p>
                   </div>
 
                   <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -240,7 +276,7 @@ function AdminDashboard() {
                       <DollarSign size={20} className="text-pink-500" />
                     </div>
                     <p className="text-3xl font-bold text-gray-900">{stats.totalTransactions}</p>
-                    <p className="text-xs text-gray-500 mt-1">{stats.pendingTransactions} pendientes</p>
+                    <p className="text-xs text-gray-500 mt-1">Transacciones totales</p>
                   </div>
 
                   <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 md:col-span-2 lg:col-span-3">
@@ -250,6 +286,21 @@ function AdminDashboard() {
                     </div>
                     <p className="text-3xl font-bold text-gray-900">{formatPrice(stats.totalVolume)}</p>
                     <p className="text-xs text-gray-500 mt-1">En transacciones completadas</p>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 md:col-span-2 lg:col-span-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium text-gray-600">Comisión de Servicios</span>
+                      <Settings size={20} className="text-purple-500" />
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{commissionPercentage}%</p>
+                    <p className="text-xs text-gray-500 mt-1">Porcentaje aplicado a precios</p>
+                    <button
+                      onClick={() => setShowCommissionSettings(true)}
+                      className="mt-3 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 font-semibold"
+                    >
+                      Configurar
+                    </button>
                   </div>
                 </div>
 
@@ -502,7 +553,13 @@ function AdminDashboard() {
             )}
           </div>
         )}
+
       </div>
+
+      {/* Modal de configuración de comisiones */}
+      {showCommissionSettings && (
+        <CommissionSettings onClose={() => setShowCommissionSettings(false)} />
+      )}
     </div>
   );
 }
@@ -581,6 +638,29 @@ function TransactionRow({
   onUpdateStatus: (id: string, status: 'pendiente' | 'completado' | 'rechazado') => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        if (transaction.user_id) {
+          const { supabase } = await import('@/lib/supabase');
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('name, email')
+            .eq('user_id', transaction.user_id)
+            .single();
+          setUserInfo(data);
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    loadUserInfo();
+  }, [transaction.user_id]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -621,8 +701,17 @@ function TransactionRow({
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900">{transaction.user?.name || 'N/A'}</div>
-        <div className="text-xs text-gray-500">{transaction.user?.email}</div>
+        {loadingUser ? (
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+            <div className="h-3 bg-gray-200 rounded w-32"></div>
+          </div>
+        ) : (
+          <>
+            <div className="text-sm font-medium text-gray-900">{userInfo?.name || 'N/A'}</div>
+            <div className="text-xs text-gray-500">{userInfo?.email || 'N/A'}</div>
+          </>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

@@ -1,10 +1,15 @@
 'use client';
+
+// Deshabilitar prerenderizado para esta página
+export const dynamic = 'force-dynamic';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Star, Users, MessageCircle, Calendar } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useWorkerProfile } from '@/hooks/useWorkerProfile';
+import { Suspense } from 'react';
 
-export default function PerfilProfesionalPage() {
+function PerfilProfesionalPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workerId = searchParams.get('id');
@@ -80,22 +85,22 @@ export default function PerfilProfesionalPage() {
           <div className="flex items-center space-x-6">
             {/* Foto de perfil */}
             <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-white/30 shadow-xl">
-              {workerProfile?.profile_picture_url ? (
+              {worker?.profile_picture_url ? (
                 <img
-                  src={workerProfile.profile_picture_url}
+                  src={worker.profile_picture_url}
                   alt={worker.name}
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
                 <span className="text-4xl font-bold text-purple-600">
-                  {worker.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                  {worker?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                 </span>
               )}
             </div>
 
             {/* Información básica */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{worker.name}</h1>
+              <h1 className="text-3xl font-bold mb-2">{worker?.name || 'Usuario'}</h1>
               <p className="text-lg opacity-90 mb-3">
                 {workerProfile?.profession || 'Profesional'}
               </p>
@@ -213,14 +218,14 @@ export default function PerfilProfesionalPage() {
                               style={{
                                 width: `${
                                   reviewStats.totalReviews > 0
-                                    ? (reviewStats.ratingDistribution[rating] / reviewStats.totalReviews) * 100
+                                    ? (reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution] / reviewStats.totalReviews) * 100
                                     : 0
                                 }%`
                               }}
                             ></div>
                           </div>
                           <span className="text-sm text-gray-600 w-8">
-                            {reviewStats.ratingDistribution[rating]}
+                            {reviewStats.ratingDistribution[rating as keyof typeof reviewStats.ratingDistribution]}
                           </span>
                         </div>
                       ))}
@@ -343,5 +348,25 @@ export default function PerfilProfesionalPage() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function PerfilProfesionalPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 max-w-md w-full text-center animate-fade-in-up">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Cargando perfil profesional...</h1>
+          <div className="w-8 h-8 border-2 border-[#743fc6]/30 border-t-[#743fc6] rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <PerfilProfesionalPageContent />
+    </Suspense>
   );
 }

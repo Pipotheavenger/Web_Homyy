@@ -14,7 +14,7 @@ export const WelcomeBanner = ({ userName, onCreateService }: WelcomeBannerProps)
           <p className="text-purple-100 mb-4 text-sm md:text-base lg:text-lg">Buscas servicios para tu hogar?</p>
           <button 
             onClick={onCreateService}
-            className="bg-[#fbbc6c] text-white px-4 md:px-6 py-2 md:py-3 rounded-xl font-medium hover:bg-[#f9b055] transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2 text-sm md:text-base"
+            className="bg-emerald-400 text-black px-4 md:px-6 py-2 md:py-3 rounded-xl font-medium hover:bg-emerald-500 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2 text-sm md:text-base"
           >
             <Plus size={18} className="md:w-5 md:h-5" />
             <span>Crear Nuevo Servicio</span>

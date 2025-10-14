@@ -30,7 +30,7 @@ export const ProfileTabs = ({ activeTab, onTabChange, userType = 'user' }: Profi
           onClick={() => onTabChange(tab.id)}
           className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
             activeTab === tab.id
-              ? 'bg-[#743fc6] text-white'
+              ? userType === 'worker' ? 'bg-green-600 text-white' : 'bg-[#743fc6] text-white'
               : 'text-gray-600 hover:bg-gray-100'
           }`}
         >

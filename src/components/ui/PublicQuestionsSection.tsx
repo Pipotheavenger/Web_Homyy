@@ -43,14 +43,18 @@ export const PublicQuestionsSection: React.FC<PublicQuestionsSectionProps> = ({
     if (!answerText.trim() || submittingAnswer) return;
 
     setSubmittingAnswer(true);
-    const success = await onAnswerQuestion(questionId, answerText);
-    
-    if (success) {
-      setAnswerText('');
-      setAnsweringQuestion(null);
+    try {
+      const success = await onAnswerQuestion(questionId, answerText);
+      
+      if (success) {
+        setAnswerText('');
+        setAnsweringQuestion(null);
+      }
+    } catch (error) {
+      console.error('Error al responder pregunta:', error);
+    } finally {
+      setSubmittingAnswer(false);
     }
-    
-    setSubmittingAnswer(false);
   };
 
   const startAnswering = (questionId: string) => {
@@ -140,7 +144,7 @@ export const PublicQuestionsSection: React.FC<PublicQuestionsSectionProps> = ({
                         <button
                           onClick={() => handleAnswerQuestion(pregunta.id)}
                           disabled={!answerText.trim() || submittingAnswer}
-                          className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-sm"
+                          className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-sm flex items-center justify-center"
                         >
                           {submittingAnswer ? (
                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

@@ -18,7 +18,7 @@ export default function VerPerfilButton({
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/perfil-profesional?id=${profesionalId}`);
+    router.push(`/user/perfil-profesional?id=${profesionalId}`);
   };
 
   return (

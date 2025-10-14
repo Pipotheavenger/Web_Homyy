@@ -28,10 +28,19 @@ export const ClientRegistrationForm = ({
     birthDate: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleFocus = (field: string) => {
+    setFocusedField(field);
+  };
+
+  const handleBlur = (field: string) => {
+    setFocusedField(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -80,6 +89,9 @@ export const ClientRegistrationForm = ({
             placeholder="Tu nombre completo"
             value={formData.name}
             onChange={(value) => handleInputChange('name', value)}
+            onFocus={() => handleFocus('name')}
+            onBlur={() => handleBlur('name')}
+            isFocused={focusedField === 'name'}
             error={errors.name}
             icon={icons.name}
             autoComplete="name"
@@ -90,6 +102,9 @@ export const ClientRegistrationForm = ({
             placeholder="Número de teléfono"
             value={formData.phone}
             onChange={(value) => handleInputChange('phone', value)}
+            onFocus={() => handleFocus('phone')}
+            onBlur={() => handleBlur('phone')}
+            isFocused={focusedField === 'phone'}
             error={errors.phone}
             icon={icons.phone}
             autoComplete="tel"
@@ -100,6 +115,9 @@ export const ClientRegistrationForm = ({
             placeholder="Fecha de nacimiento"
             value={formData.birthDate}
             onChange={(value) => handleInputChange('birthDate', value)}
+            onFocus={() => handleFocus('birthDate')}
+            onBlur={() => handleBlur('birthDate')}
+            isFocused={focusedField === 'birthDate'}
             error={errors.birthDate}
             icon={icons.calendar}
             autoComplete="bday"

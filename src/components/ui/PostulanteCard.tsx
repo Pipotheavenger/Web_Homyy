@@ -9,6 +9,7 @@ import {
   Clock,
   MessageSquare
 } from 'lucide-react';
+import { useCommission } from '@/hooks/useCommission';
 
 interface Postulante {
   id: string;
@@ -44,6 +45,8 @@ export const PostulanteCard = ({
   onSelectCandidate,
   isSelected 
 }: PostulanteCardProps) => {
+  const { calculateInflatedPrice, formatPrice: formatPriceWithCommission } = useCommission();
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -61,20 +64,19 @@ export const PostulanteCard = ({
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(price);
+    const inflatedPrice = calculateInflatedPrice(price);
+    return formatPriceWithCommission(inflatedPrice);
   };
 
   return (
-    <div className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-[0_8px_32px_rgba(116,63,198,0.06)] border border-white/30 p-4 hover:shadow-[0_12px_40px_rgba(116,63,198,0.12)] transition-all duration-500 ${
-      isSelected ? 'ring-2 ring-purple-300 bg-gradient-to-br from-purple-50/80 to-pink-50/80' : 'hover:border-purple-200/50'
+    <div className={`bg-white/90 backdrop-blur-sm rounded-xl shadow-[0_8px_32px_rgba(116,63,198,0.06)] border border-white/30 p-6 hover:shadow-[0_12px_40px_rgba(116,63,198,0.12)] transition-all duration-500 ${
+      isSelected ? 'ring-2 ring-emerald-300 bg-gradient-to-br from-emerald-50/80 to-green-50/80' : 'hover:border-emerald-200/50'
     }`}>
-      <div className="flex flex-col lg:flex-row lg:items-start space-y-3 lg:space-y-0 lg:space-x-4">
-        {/* Foto del postulante más compacta */}
-        <div className="flex-shrink-0">
+      
+      {/* Header con foto, info básica y precio */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-4">
+          {/* Foto del postulante */}
           <div className="relative">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 rounded-xl overflow-hidden flex items-center justify-center shadow-lg">
               {postulante.foto ? (
@@ -90,110 +92,111 @@ export const PostulanteCard = ({
               )}
             </div>
             {isSelected && (
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg animate-pulse">
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center shadow-lg animate-pulse">
                 <CheckCircle size={12} className="text-white" />
               </div>
             )}
-            {/* Badge de experiencia más compacto */}
+            {/* Badge de experiencia */}
             <div className="absolute -bottom-1 -left-1 bg-gradient-to-r from-orange-400 to-pink-400 text-white text-xs font-bold px-1.5 py-0.5 rounded-lg shadow-md">
               {postulante.experiencia} años
             </div>
           </div>
-        </div>
 
-        {/* Información del postulante más compacta */}
-        <div className="flex-1 min-w-0">
-          <div className="mb-3">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">
-                  {postulante.nombre} {postulante.apellido}
-                </h3>
-                <p className="text-sm text-purple-600 font-semibold">{postulante.especialidad}</p>
-              </div>
-              
-              {/* Precio en la esquina superior derecha */}
-              <div className="bg-gradient-to-r from-purple-100/80 via-pink-100/80 to-blue-100/80 rounded-lg p-2.5 border border-purple-200/30 ml-3 flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                    <DollarSign size={12} className="text-white" />
-                  </div>
-                  <div className="text-right">
-                    <span className="text-base font-bold text-purple-600 block">
-                      {formatPrice(postulante.precio)}
-                    </span>
-                    <span className="text-xs text-gray-600 font-medium">
-                      por servicio
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Información básica */}
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 mb-1">
+              {postulante.nombre} {postulante.apellido}
+            </h3>
+            <p className="text-sm text-purple-600 font-semibold mb-2">{postulante.especialidad}</p>
             
-            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-3">
-              <div className="flex items-center space-x-1 bg-blue-50/60 px-2 py-1 rounded-lg">
-                <Users size={12} className="text-blue-500" />
-                <span className="font-medium">{postulante.serviciosCompletados} servicios</span>
-              </div>
-              {postulante.estimatedDuration && (
-                <div className="flex items-center space-x-1 bg-orange-50/60 px-2 py-1 rounded-lg">
-                  <Clock size={12} className="text-orange-500" />
-                  <span className="font-medium">{postulante.estimatedDuration}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Cover Letter */}
-            {postulante.coverLetter && (
-              <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl p-3 mb-3 border border-purple-200/30">
-                <div className="flex items-center space-x-2 mb-2">
-                  <MessageSquare size={14} className="text-purple-600" />
-                  <span className="text-sm font-semibold text-purple-700">Mensaje del profesional</span>
-                </div>
-                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
-                  {postulante.coverLetter}
-                </p>
-              </div>
-            )}
-
-            {/* Calificación más compacta */}
-            <div className="flex items-center space-x-2 mb-3">
+            {/* Calificación */}
+            <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-1">
                 {renderStars(postulante.calificacion)}
               </div>
               <span className="text-sm font-bold text-gray-700">{postulante.calificacion}</span>
-              <span className="text-xs text-gray-500 bg-gray-100/60 px-1.5 py-0.5 rounded-lg">({postulante.serviciosCompletados} reseñas)</span>
+              <span className="text-xs text-gray-500 bg-gray-100/60 px-2 py-1 rounded-lg">
+                {postulante.serviciosCompletados} servicios
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Acciones más compactas */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="text-xs text-gray-500 bg-gray-100/60 px-2 py-1 rounded-lg">
-              Postulado {postulante.fechaPostulacion}
+        {/* Precio */}
+        <div className="text-right">
+          <div className="bg-gradient-to-r from-purple-100/80 via-pink-100/80 to-blue-100/80 rounded-lg p-3 border border-purple-200/30">
+            <div className="flex items-center space-x-2 mb-1">
+              <DollarSign size={16} className="text-purple-600" />
+              <span className="text-lg font-bold text-purple-600">
+                {formatPrice(postulante.precio)}
+              </span>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onVerPerfil(postulante.workerId)}
-                className="flex items-center space-x-1.5 px-3 py-2 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-300 border-2 border-purple-200 hover:border-purple-300 hover:shadow-lg"
-              >
-                <Eye size={14} />
-                <span>Ver Perfil</span>
-              </button>
-              
-              <button
-                onClick={() => onSelectCandidate(postulante.id)}
-                className={`flex items-center space-x-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 border-2 border-gray-200'
-                }`}
-              >
-                <UserCheck size={14} />
-                <span>{isSelected ? 'Seleccionado' : 'Seleccionar'}</span>
-              </button>
-            </div>
+            <span className="text-xs text-gray-600 font-medium">por servicio</span>
           </div>
+        </div>
+      </div>
+
+      {/* Información adicional */}
+      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 mb-4">
+        {postulante.estimatedDuration && (
+          <div className="flex items-center space-x-1 bg-orange-50/60 px-3 py-1.5 rounded-lg">
+            <Clock size={14} className="text-orange-500" />
+            <span className="font-medium">{postulante.estimatedDuration}</span>
+          </div>
+        )}
+        <div className="flex items-center space-x-1 bg-blue-50/60 px-3 py-1.5 rounded-lg">
+          <Users size={14} className="text-blue-500" />
+          <span className="font-medium">{postulante.serviciosCompletados} servicios completados</span>
+        </div>
+        <div className="flex items-center space-x-1 bg-gray-50/60 px-3 py-1.5 rounded-lg">
+          <span className="text-gray-500">Postulado {postulante.fechaPostulacion}</span>
+        </div>
+      </div>
+
+      {/* Cover Letter */}
+      {postulante.coverLetter && (
+        <div className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 rounded-xl p-4 mb-4 border border-purple-200/30">
+          <div className="flex items-center space-x-2 mb-2">
+            <MessageSquare size={16} className="text-purple-600" />
+            <span className="text-sm font-semibold text-purple-700">Mensaje del profesional</span>
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {postulante.coverLetter}
+          </p>
+        </div>
+      )}
+
+      {/* Botones de acción */}
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        <div className="text-xs text-gray-500">
+          {isSelected && (
+            <span className="inline-flex items-center space-x-1 text-emerald-600 font-medium">
+              <CheckCircle size={14} />
+              <span>Profesional seleccionado</span>
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onVerPerfil(postulante.workerId)}
+            className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-300 border border-purple-200 hover:border-purple-300 hover:shadow-md"
+          >
+            <Eye size={16} />
+            <span>Ver Perfil</span>
+          </button>
+          
+           <button
+             onClick={() => onSelectCandidate(postulante.id)}
+             className={`flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 ${
+               isSelected
+                 ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-black shadow-lg hover:shadow-xl shadow-emerald-500/25'
+                 : 'bg-gradient-to-r from-emerald-400 to-green-400 text-black hover:from-emerald-500 hover:to-green-500 hover:text-black shadow-lg hover:shadow-xl shadow-emerald-400/25'
+             }`}
+           >
+            <UserCheck size={16} />
+            <span>{isSelected ? 'Seleccionado' : 'Seleccionar'}</span>
+          </button>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
@@ -35,10 +36,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       hover: 'hover:bg-white/10'
     },
     worker: {
-      background: 'bg-gradient-to-b from-orange-300 to-orange-400',
+      background: 'bg-gradient-to-b from-emerald-300 to-emerald-400',
       activeBackground: 'bg-white',
-      text: 'text-white',
-      activeText: 'text-orange-400',
+      text: 'text-gray-800',
+      activeText: 'text-emerald-600',
       hover: 'hover:bg-white/10'
     }
   };
@@ -49,40 +50,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`${currentColors.background} shadow-lg transition-all duration-300 ${
       collapsed ? 'w-16' : 'w-64'
     } min-h-screen`}>
-      <div className="p-6">
+      <div className={`relative ${collapsed ? 'p-2' : 'p-6'}`}>
         {/* Logo/Brand */}
-        <div className="flex items-center justify-between mb-8">
-          {!collapsed && (
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">
-                  {userType === 'worker' ? 'W' : 'H'}
-                </span>
-              </div>
+        <div className={`flex items-center mb-6 ${collapsed ? 'flex-col space-y-2' : 'justify-between'}`}>
+          <div className={`flex items-center ${collapsed ? 'flex-col' : 'space-x-3'}`}>
+            <div className={`bg-white/20 rounded-xl flex items-center justify-center p-1 ${collapsed ? 'w-8 h-8' : 'w-10 h-10'}`}>
+              <Image
+                src="/logo.svg" 
+                alt="Logo Hommy" 
+                width={collapsed ? 24 : 32} 
+                height={collapsed ? 24 : 32}
+                className="filter brightness-0 invert"
+              />
+            </div>
+            {!collapsed && (
               <div>
-                                 <h2 className="text-lg font-bold text-white">
-                   {userType === 'worker' ? (
-                     <>
-                       <span className="text-orange-400">H</span>ommy
-                     </>
-                   ) : (
-                     <>
-                       <span className="text-orange-400">H</span>ommy
-                     </>
-                   )}
-                 </h2>
-                <p className="text-xs text-white/80">
+                <h2 className="text-lg font-bold text-white">
+                  {userType === 'worker' ? (
+                    <>
+                      <span className="text-emerald-400">H</span>ommy
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-emerald-400">H</span>ommy
+                    </>
+                  )}
+                </h2>
+                <p className="text-xs text-white">
                   {userType === 'worker' ? 'Profesional' : 'Cliente'}
                 </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300"
+            className={`text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300 ${collapsed ? 'p-1' : 'p-2'}`}
           >
             <svg
-              className={`w-4 h-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`}
+              className={`transition-transform duration-300 ${collapsed ? 'w-3 h-3 rotate-180' : 'w-4 h-4'}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -108,20 +113,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.href}
                 onClick={() => handleNavigation(item.href)}
-                className={`w-full flex items-center transition-all duration-300 ${
-                  collapsed 
-                    ? 'justify-center px-3 py-3' 
-                    : 'space-x-3 px-4 py-3'
-                } rounded-xl ${
-                  isActive
-                    ? collapsed
-                      ? `${currentColors.text} bg-white/20`
-                      : `${currentColors.activeBackground} ${currentColors.activeText} shadow-lg`
-                    : `${currentColors.text} ${currentColors.hover}`
-                }`}
+                 className={`w-full flex items-center transition-all duration-300 ${
+                   collapsed 
+                     ? 'justify-center px-2 py-2' 
+                     : 'space-x-3 px-4 py-3'
+                 } rounded-xl ${
+                   isActive
+                     ? collapsed
+                       ? 'bg-white/30 text-white'
+                       : `${currentColors.activeBackground} ${currentColors.activeText} shadow-lg`
+                     : `${currentColors.text} ${currentColors.hover}`
+                 }`}
                 title={collapsed ? item.label : undefined}
               >
-                <span className="text-lg">{item.icon}</span>
+                 <item.icon 
+                   size={collapsed ? 18 : 20} 
+                   className={
+                     isActive 
+                       ? collapsed
+                         ? 'text-white'
+                         : userType === 'worker' 
+                           ? 'text-emerald-600' 
+                           : 'text-[#743fc6]'
+                       : 'text-white'
+                   } 
+                 />
                 {!collapsed && (
                   <div className="flex-1 text-left">
                     <div className="font-medium">{item.label}</div>
@@ -133,26 +149,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* User Info */}
-        {!collapsed && (
-          <div className="mt-8 pt-6 border-t border-white/20">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">
-                  {userType === 'worker' ? 'T' : 'U'}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium text-white">
-                  {userType === 'worker' ? 'Trabajador' : 'Usuario'}
-                </p>
-                <p className="text-xs text-white/80">
-                  {userType === 'worker' ? 'Profesional' : 'Cliente'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </aside>
   );

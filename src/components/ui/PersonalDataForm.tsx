@@ -46,6 +46,26 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
         [field]: undefined
       }));
     }
+
+    // Validación en tiempo real para email y teléfono
+    if (field === 'email' && value.trim()) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setErrors(prev => ({
+          ...prev,
+          email: 'El correo electrónico no es válido'
+        }));
+      }
+    }
+
+    if (field === 'phone' && value.trim()) {
+      const phoneDigits = value.replace(/\s/g, '');
+      if (!/^\d{10}$/.test(phoneDigits)) {
+        setErrors(prev => ({
+          ...prev,
+          phone: 'El número debe tener exactamente 10 dígitos'
+        }));
+      }
+    }
   };
 
   const validateForm = (): boolean => {
@@ -57,14 +77,17 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
 
     if (!formData.email.trim()) {
       newErrors.email = 'El correo electrónico es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'El correo electrónico no es válido';
     }
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'El número de teléfono es requerido';
-    } else if (formData.phone.replace(/\s/g, '').length !== 10) {
-      newErrors.phone = 'El número debe tener 10 dígitos';
+    } else {
+      const phoneDigits = formData.phone.replace(/\s/g, '');
+      if (!/^\d{10}$/.test(phoneDigits)) {
+        newErrors.phone = 'El número debe tener exactamente 10 dígitos';
+      }
     }
 
     if (!formData.birthDate) {
@@ -202,8 +225,10 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
                   errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}
               />
-              {errors.email && (
+              {errors.email ? (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-500">Ingresa un correo electrónico válido</p>
               )}
             </div>
           </div>

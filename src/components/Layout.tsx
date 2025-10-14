@@ -45,19 +45,21 @@ export default function Layout({
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <Header
-            title={finalTitle}
-            description={finalDescription}
-            breadcrumbs={finalBreadcrumbs}
-            showBackButton={showBackButton}
-            onBackClick={onBackClick}
-            userType={userType}
-            colors={colors}
-          />
+          {/* Header - Solo se muestra cuando hay botón de regreso */}
+          {showBackButton && (
+            <Header
+              title={finalTitle}
+              description={finalDescription}
+              breadcrumbs={finalBreadcrumbs}
+              showBackButton={showBackButton}
+              onBackClick={onBackClick}
+              userType={userType}
+              colors={colors}
+            />
+          )}
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto">
+          <main className={`flex-1 overflow-y-auto ${!showBackButton ? 'pt-6' : ''}`}>
             {children}
           </main>
         </div>

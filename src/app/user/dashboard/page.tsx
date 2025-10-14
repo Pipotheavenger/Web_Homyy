@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -7,10 +8,16 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { WelcomeBanner } from '@/components/ui/WelcomeBanner';
 import { ServiceCard } from '@/components/ui/ServiceCard';
 import { TopProfessionals } from '@/components/ui/TopProfessionals';
+import { ReviewModal } from '@/components/ui/ReviewModal';
+import { reviewsService } from '@/lib/services';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { services, categories, topWorkers, userName, loading, error, handleDeleteService } = useDashboard();
+  const { services, categories, topWorkers, userName, applicationsCount, loading, error, handleDeleteService } = useDashboard();
+  
+  // Estado para el modal de reseñas
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedServiceForReview, setSelectedServiceForReview] = useState<any>(null);
 
   const handleCrearServicio = () => {
     router.push('/user/crear-servicio');
@@ -22,6 +29,47 @@ export default function Dashboard() {
       return;
     }
     router.push(`/user/detalles-postulantes?id=${serviceId}`);
+  };
+
+  const handleLeaveReview = (service: any) => {
+    setSelectedServiceForReview(service);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (rating: number, comment: string): Promise<boolean> => {
+    if (!selectedServiceForReview) return false;
+    
+    try {
+      // Obtener el trabajador asignado al servicio
+      const workerId = selectedServiceForReview.worker_id || selectedServiceForReview.selectedWorkerId;
+      if (!workerId) {
+        alert('No se pudo identificar al trabajador');
+        return false;
+      }
+
+      const response = await reviewsService.create({
+        service_id: selectedServiceForReview.id,
+        professional_id: workerId,
+        rating,
+        comment: comment.trim() || undefined
+      });
+
+      if (response.success) {
+        return true;
+      } else {
+        alert('Error al enviar la reseña: ' + response.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Error al enviar la reseña');
+      return false;
+    }
+  };
+
+  const handleCloseReviewModal = () => {
+    setShowReviewModal(false);
+    setSelectedServiceForReview(null);
   };
 
   if (loading) {
@@ -67,8 +115,10 @@ export default function Dashboard() {
                       key={service.id}
                       service={service}
                       categories={categories}
+                      applicationsCount={applicationsCount[service.id] || 0}
                       onViewDetails={handleVerDetalles}
                       onDelete={handleDeleteService}
+                      onLeaveReview={handleLeaveReview}
                     />
                   ))
                 ) : (
@@ -80,7 +130,7 @@ export default function Dashboard() {
                     <p className="text-gray-600 mb-4">Crea tu primer servicio para comenzar</p>
                     <button 
                       onClick={handleCrearServicio}
-                      className="bg-[#743fc6] text-white px-4 py-2 rounded-lg hover:bg-[#6a37b8] transition-colors"
+                      className="bg-emerald-400 text-black px-4 py-2 rounded-lg hover:bg-emerald-500 transition-colors"
                     >
                       Crear Servicio
                     </button>
@@ -95,6 +145,15 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal de reseñas */}
+      <ReviewModal
+        isOpen={showReviewModal}
+        onClose={handleCloseReviewModal}
+        onSubmit={handleSubmitReview}
+        professionalName={selectedServiceForReview?.workerName || 'Trabajador'}
+        serviceTitle={selectedServiceForReview?.title || ''}
+      />
     </Layout>
   );
 }
