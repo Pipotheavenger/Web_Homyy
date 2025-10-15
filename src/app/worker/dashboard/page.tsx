@@ -113,23 +113,23 @@ export default function WorkerDashboard() {
   // Estadísticas con datos reales
   const estadisticas = [
     {
-      titulo: 'Total Ganancias',
-      valor: formatPrice(stats.totalEarnings),
-      cambio: stats.completedBookings > 0 ? `+${stats.completedBookings}` : '0',
+      titulo: 'Balance Actual',
+      valor: formatPrice(stats.balance),
+      cambio: stats.completedServices > 0 ? `+${stats.completedServices}` : '0',
       icono: <DollarSign className="w-6 h-6 text-emerald-600" />,
       color: 'from-green-500 to-emerald-500'
     },
     {
       titulo: 'Trabajos Completados',
-      valor: stats.completedBookings.toString(),
-      cambio: '+0',
+      valor: stats.completedServices.toString(),
+      cambio: stats.activeServices > 0 ? `${stats.activeServices} activos` : '0',
       icono: <TrendingUp className="w-6 h-6 text-emerald-600" />,
       color: 'from-blue-500 to-cyan-500'
     },
     {
       titulo: 'Calificación Promedio',
       valor: stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0',
-      cambio: '—',
+      cambio: stats.pendingApplications > 0 ? `${stats.pendingApplications} pendientes` : '—',
       icono: <Star className="w-6 h-6 text-emerald-600" />,
       color: 'from-yellow-500 to-orange-500'
     }
@@ -281,7 +281,7 @@ export default function WorkerDashboard() {
                               {app.status === 'accepted' && (
                                 <button
                                   onClick={() => handleCompleteWork({
-                                    serviceId: app.service_id || app.service?.id,
+                                    serviceId: app.service?.id || app.service_id,
                                     serviceTitle: app.service?.title || 'Servicio',
                                     applicationId: app.id
                                   })}

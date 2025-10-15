@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { profileService, bookingsService, applicationsService } from '@/lib/services';
+import { profileService, applicationsService, workerStatsService } from '@/lib/services';
 import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
 
 export const useWorkerDashboard = () => {
@@ -7,9 +7,12 @@ export const useWorkerDashboard = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [myBookings, setMyBookings] = useState<any[]>([]);
   const [stats, setStats] = useState({
+    balance: 0,
+    completedServices: 0,
+    averageRating: 0,
     totalEarnings: 0,
-    completedBookings: 0,
-    averageRating: 0
+    pendingApplications: 0,
+    activeServices: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,66 +25,81 @@ export const useWorkerDashboard = () => {
     try {
       setLoading(true);
 
-      // Cargar perfil del usuario
-      const profileResponse = await profileService.getProfile();
+      // Cargar datos en paralelo
+      const [profileResponse, applicationsResponse, statsResponse] = await Promise.all([
+        profileService.getProfile(),
+        applicationsService.getMyApplications(),
+        workerStatsService.getWorkerStats()
+      ]);
+
+      // Procesar perfil del usuario
       if (profileResponse.success && profileResponse.data) {
         const firstName = profileResponse.data.name?.split(' ')[0] || 'Profesional';
         setUserName(firstName);
       }
 
-      // Cargar mis aplicaciones
-      const applicationsResponse = await applicationsService.getMyApplications();
+      // Procesar aplicaciones de forma optimizada
       if (applicationsResponse.success && applicationsResponse.data) {
-        // Cargar datos de servicios para cada aplicación
-        const applicationsWithServices = await Promise.all(
-          applicationsResponse.data.map(async (app: any) => {
-            try {
-              const { supabase } = await import('@/lib/supabase');
-              const { data: service } = await supabase
-                .from('services')
-                .select('id, title, description, location, status, created_at')
-                .eq('id', app.service_id)
-                .single();
-              
-              return {
-                ...app,
-                service: service
-              };
-            } catch (error) {
-              console.error('Error loading service for application:', app.id, error);
-              return {
-                ...app,
-                service: null
-              };
-            }
-          })
-        );
-        
-        setApplications(applicationsWithServices);
+        await loadApplicationsWithServices(applicationsResponse.data);
       } else {
         setApplications([]);
       }
 
-      // Cargar mis bookings como trabajador
-      const bookingsResponse = await bookingsService.getMyBookingsAsWorker();
-      if (bookingsResponse.success && bookingsResponse.data) {
-        setMyBookings(bookingsResponse.data);
-
-        // Calcular estadísticas
-        const completed = bookingsResponse.data.filter((b: any) => b.status === 'completed');
-        const totalEarnings = completed.reduce((sum: number, b: any) => sum + Number(b.total_price || 0), 0);
-        
+      // Procesar estadísticas reales
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      } else {
+        // Valores por defecto si hay error
         setStats({
-          totalEarnings,
-          completedBookings: completed.length,
-          averageRating: 0 // Se puede calcular desde reviews más adelante
+          balance: 0,
+          completedServices: 0,
+          averageRating: 0,
+          totalEarnings: 0,
+          pendingApplications: 0,
+          activeServices: 0
         });
       }
 
     } catch (err) {
+      console.error('Error loading dashboard data:', err);
       setError('Error al cargar los datos del dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadApplicationsWithServices = async (applications: any[]) => {
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      
+      // Obtener todos los IDs de servicios de las aplicaciones
+      const serviceIds = applications.map(app => app.service_id);
+      
+      // Cargar todos los servicios en una sola consulta
+      const { data: services } = await supabase
+        .from('services')
+        .select('id, title, description, location, status, created_at')
+        .in('id', serviceIds);
+
+      // Combinar aplicaciones con servicios
+      const applicationsWithServices = applications.map(app => {
+        const service = services?.find(s => s.id === app.service_id);
+        return {
+          ...app,
+          service: service || null
+        };
+      });
+      
+      // Filtrar solo aplicaciones de servicios que no estén completados
+      const activeApplications = applicationsWithServices.filter(app => 
+        app.service && app.service.status !== 'completed'
+      );
+      
+      setApplications(activeApplications);
+
+    } catch (error) {
+      console.error('Error loading applications with services:', error);
+      setApplications([]);
     }
   };
 

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import type { ApiResponse } from '@/types/database';
+import { BalanceService } from './balance';
 
 // =====================================================
 // TIPOS PARA ESCROW
@@ -11,7 +12,7 @@ export interface EscrowTransaction {
   worker_id: string;
   client_id: string;
   amount: number;
-  status: 'pending' | 'completed' | 'refunded';
+  status: 'pending' | 'completada' | 'refunded';
   created_at: string;
   completed_at?: string;
   transaction_reference?: string;
@@ -146,77 +147,28 @@ export const escrowService = {
         throw new Error('Saldo insuficiente para realizar esta transacción');
       }
 
-      // Generar PIN único
-      const pin = await this.generateUniquePinForService(serviceId);
+      // Usar función RPC para seleccionar trabajador
+      const { data: result, error: rpcError } = await supabase.rpc('escrow_service_select_worker', {
+        service_uuid: serviceId,
+        worker_uuid: workerId,
+        application_uuid: applicationId,
+        final_price: finalPrice
+      });
 
-      // Crear transacción de escrow
-      const { data: escrowTransaction, error: escrowError } = await supabase
-        .from('escrow_transactions')
-        .insert({
-          service_id: serviceId,
-          worker_id: workerId,
-          client_id: user.id,
-          amount: finalPrice,
-          status: 'pending',
-          transaction_reference: `ESCROW-${Date.now()}`
-        })
-        .select()
-        .single();
-
-      if (escrowError) throw new Error('Error al crear transacción de escrow');
-
-      // Crear transacción de débito para el usuario
-      const { error: debitError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'retiro',
-          amount: finalPrice, // Usar valor positivo, el trigger lo manejará
-          payment_method: 'platform',
-          transaction_reference: `DEBIT-${Date.now()}`,
-          description: `Escrow para servicio ${serviceId}`,
-          status: 'completed'
-        });
-
-      if (debitError) {
-        throw new Error('Error al procesar el pago: ' + debitError.message);
+      if (rpcError) {
+        console.error('Error en RPC selectWorker:', rpcError);
+        throw new Error('Error al seleccionar trabajador: ' + rpcError.message);
       }
 
-      // Actualizar aplicación a aceptada
-      const { error: updateAppError } = await supabase
-        .from('applications')
-        .update({ status: 'accepted' })
-        .eq('id', applicationId);
-
-      if (updateAppError) {
-        throw new Error('Error al actualizar aplicación: ' + updateAppError.message);
+      if (!result?.success) {
+        throw new Error('Error al seleccionar trabajador');
       }
-
-      // Rechazar otras aplicaciones
-      const { error: rejectOthersError } = await supabase
-        .from('applications')
-        .update({ status: 'rejected' })
-        .eq('service_id', serviceId)
-        .neq('id', applicationId);
-
-      if (rejectOthersError) throw new Error('Error al rechazar otras aplicaciones');
-
-      // Actualizar servicio con PIN y estado
-      const { error: updateServiceError } = await supabase
-        .from('services')
-        .update({
-          status: 'in_progress',
-          completion_pin: pin,
-          pin_generated_at: new Date().toISOString(),
-          escrow_amount: finalPrice,
-          worker_final_amount: originalPrice
-        })
-        .eq('id', serviceId);
-
-      if (updateServiceError) throw new Error('Error al actualizar servicio');
 
       return {
-        data: { pin, escrowId: escrowTransaction.id },
+        data: { 
+          pin: result.pin, 
+          escrowId: result.escrow_transaction_id 
+        },
         error: null,
         success: true
       };
@@ -240,77 +192,21 @@ export const escrowService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Verificar PIN y obtener datos del servicio
-      const { data: service, error: serviceError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', serviceId)
-        .single();
+      // Usar función RPC para completar servicio con PIN
+      const { data: result, error: rpcError } = await supabase.rpc('complete_service_with_pin', {
+        service_uuid: serviceId,
+        worker_uuid: user.id,
+        pin_code: pin
+      });
 
-      if (serviceError) {
-        console.error('Error fetching service:', serviceError);
-        throw new Error('Servicio no encontrado');
-      }
-      
-      if (service.completion_pin?.trim() !== pin.trim()) {
-        throw new Error('PIN incorrecto');
-      }
-      if (service.status !== 'in_progress') {
-        throw new Error('Este servicio no está en progreso');
+      if (rpcError) {
+        console.error('Error en RPC completeWorkWithPin:', rpcError);
+        throw new Error('Error al completar servicio: ' + rpcError.message);
       }
 
-      // Verificar que el usuario es el trabajador asignado
-      const { data: escrowTransaction, error: escrowError } = await supabase
-        .from('escrow_transactions')
-        .select('worker_id, amount, status')
-        .eq('service_id', serviceId)
-        .eq('status', 'pending')
-        .single();
-
-      if (escrowError) throw new Error('Transacción de escrow no encontrada');
-      if (escrowTransaction.worker_id !== user.id) {
-        throw new Error('No tienes permiso para completar este trabajo');
+      if (!result?.success) {
+        throw new Error('Error al completar servicio');
       }
-
-      // Crear transacción de pago al trabajador
-      const { error: paymentError } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'recarga',
-          amount: service.worker_final_amount,
-          payment_method: 'platform',
-          transaction_reference: `PAYOUT-${Date.now()}`,
-          description: `Pago por completar servicio ${serviceId}`,
-          status: 'completed'
-        });
-
-      if (paymentError) throw new Error('Error al procesar el pago al trabajador');
-
-      // Actualizar transacción de escrow como completada
-      const { error: updateEscrowError } = await supabase
-        .from('escrow_transactions')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('service_id', serviceId)
-        .eq('status', 'pending');
-
-      if (updateEscrowError) throw new Error('Error al actualizar escrow');
-
-      // Marcar servicio como completado y habilitar reseñas
-      const { error: updateServiceError } = await supabase
-        .from('services')
-        .update({
-          status: 'completed'
-        })
-        .eq('id', serviceId);
-
-      if (updateServiceError) throw new Error('Error al actualizar servicio');
-
-      // Notificar al cliente que puede dejar una reseña
-      // Esto se puede implementar con notificaciones en tiempo real o emails
 
       return {
         data: null,

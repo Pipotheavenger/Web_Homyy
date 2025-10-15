@@ -123,9 +123,15 @@ export const useDetallesPostulantes = () => {
       return true;
     });
 
-    // Si hay candidato seleccionado, mostrar solo ese
+    // Si hay candidato seleccionado o un trabajador aceptado, mostrar solo ese
     if (selectedCandidate) {
       filtered = filtered.filter(app => app.id === selectedCandidate);
+    } else {
+      // Si no hay candidato seleccionado pero hay uno aceptado, mostrarlo
+      const acceptedApplication = filtered.find(app => app.status === 'accepted');
+      if (acceptedApplication) {
+        filtered = [acceptedApplication];
+      }
     }
 
     // Ordenar
@@ -202,8 +208,8 @@ export const useDetallesPostulantes = () => {
     }
   };
 
-  const handleConfirmSelection = async () => {
-    if (!candidateToConfirm || !serviceId) return;
+  const handleConfirmSelection = async (): Promise<boolean> => {
+    if (!candidateToConfirm || !serviceId) return false;
 
     try {
       // Usar el servicio de escrow para seleccionar trabajador
@@ -224,11 +230,20 @@ export const useDetallesPostulantes = () => {
         await loadApplications();
         
         alert(`Trabajador seleccionado exitosamente. PIN de finalización: ${response.data?.pin}`);
+        
+        // Redirigir automáticamente al dashboard después de 2 segundos
+        setTimeout(() => {
+          router.push('/user/dashboard');
+        }, 2000);
+        
+        return true; // Indicar éxito
       } else {
         alert('Error al seleccionar candidato: ' + response.error);
+        return false; // Indicar fallo
       }
     } catch (error) {
       alert('Error al confirmar selección');
+      return false; // Indicar fallo
     }
   };
 

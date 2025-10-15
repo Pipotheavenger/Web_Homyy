@@ -21,7 +21,7 @@ interface Postulante {
 interface WorkerSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<boolean>; // Cambiar para que retorne boolean indicando éxito
   postulante: Postulante | null;
   serviceTitle: string;
 }
@@ -40,12 +40,17 @@ export const WorkerSelectionModal = ({
   const handleConfirm = async () => {
     setIsConfirming(true);
     try {
-      await onConfirm();
-      setIsSuccess(true);
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-      }, 2000);
+      const success = await onConfirm();
+      if (success) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          setIsSuccess(false);
+          onClose();
+        }, 2000);
+      } else {
+        setIsConfirming(false);
+        // El error se maneja en el componente padre
+      }
     } catch (error) {
       setIsConfirming(false);
       // El error se maneja en el componente padre

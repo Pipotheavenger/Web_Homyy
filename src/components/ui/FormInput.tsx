@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { capitalizeText, capitalizeFirstLetter, capitalizeProperName } from '@/lib/utils';
 
 interface FormInputProps {
   type: string;
@@ -12,6 +13,7 @@ interface FormInputProps {
   icon: ReactNode;
   autoComplete?: string;
   rightElement?: ReactNode;
+  capitalizeType?: 'all' | 'first' | 'proper' | 'none';
 }
 
 export const FormInput = ({
@@ -25,8 +27,31 @@ export const FormInput = ({
   isFocused,
   icon,
   autoComplete,
-  rightElement
+  rightElement,
+  capitalizeType = 'none'
 }: FormInputProps) => {
+  const handleInputChange = (inputValue: string) => {
+    let processedValue = inputValue;
+
+    // Aplicar capitalización según el tipo
+    if (capitalizeType !== 'none') {
+      switch (capitalizeType) {
+        case 'all':
+          processedValue = capitalizeText(inputValue);
+          break;
+        case 'first':
+          processedValue = capitalizeFirstLetter(inputValue);
+          break;
+        case 'proper':
+          processedValue = capitalizeProperName(inputValue);
+          break;
+        default:
+          processedValue = inputValue;
+      }
+    }
+
+    onChange(processedValue);
+  };
   return (
     <div className="space-y-1">
       <label className="block relative group">
@@ -41,7 +66,7 @@ export const FormInput = ({
           placeholder={placeholder}
           autoComplete={autoComplete}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => handleInputChange(e.target.value)}
           onFocus={onFocus}
           onBlur={onBlur}
           className={`w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all duration-300 bg-white/70 backdrop-blur-sm placeholder-gray-400 font-medium text-sm sm:text-base ${

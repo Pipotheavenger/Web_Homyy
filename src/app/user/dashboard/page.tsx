@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -9,11 +9,12 @@ import { WelcomeBanner } from '@/components/ui/WelcomeBanner';
 import { ServiceCard } from '@/components/ui/ServiceCard';
 import { TopProfessionals } from '@/components/ui/TopProfessionals';
 import { ReviewModal } from '@/components/ui/ReviewModal';
+import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { reviewsService } from '@/lib/services';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { services, categories, topWorkers, userName, applicationsCount, loading, error, handleDeleteService } = useDashboard();
+  const { services, categories, topWorkers, userName, reviewedServices, loading, error, initialLoadComplete, handleDeleteService } = useDashboard();
   
   // Estado para el modal de reseñas
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -31,25 +32,93 @@ export default function Dashboard() {
     router.push(`/user/detalles-postulantes?id=${serviceId}`);
   };
 
-  const handleLeaveReview = (service: any) => {
-    setSelectedServiceForReview(service);
-    setShowReviewModal(true);
+  const handleLeaveReview = async (service: any) => {
+    try {
+      // Obtener información del trabajador asignado
+      const { applicationsService } = await import('@/lib/services');
+      const applicationsResponse = await applicationsService.getByService(service.id);
+      
+      if (applicationsResponse.success && applicationsResponse.data) {
+        const acceptedApplication = applicationsResponse.data.find(
+          (app: any) => app.status === 'accepted'
+        );
+        
+        if (acceptedApplication && acceptedApplication.worker) {
+          // Agregar información del trabajador al servicio
+          const serviceWithWorker = {
+            ...service,
+            workerName: acceptedApplication.worker.name,
+            workerId: acceptedApplication.worker_id
+          };
+          setSelectedServiceForReview(serviceWithWorker);
+        } else {
+          setSelectedServiceForReview(service);
+        }
+      } else {
+        setSelectedServiceForReview(service);
+      }
+      setShowReviewModal(true);
+    } catch (error) {
+      console.error('Error loading worker info:', error);
+      setSelectedServiceForReview(service);
+      setShowReviewModal(true);
+    }
   };
 
   const handleSubmitReview = async (rating: number, comment: string): Promise<boolean> => {
     if (!selectedServiceForReview) return false;
     
     try {
-      // Obtener el trabajador asignado al servicio
-      const workerId = selectedServiceForReview.worker_id || selectedServiceForReview.selectedWorkerId;
-      if (!workerId) {
-        alert('No se pudo identificar al trabajador');
+      // Usar el workerId que ya se cargó en handleLeaveReview
+      const workerUserId = selectedServiceForReview.workerId;
+      
+      if (!workerUserId) {
+        alert('No se pudo identificar al trabajador asignado');
+        return false;
+      }
+
+      // Obtener el professional_id desde la tabla professionals usando el user_id
+      const { supabase } = await import('@/lib/supabase');
+      const { data: professional, error: profError } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', workerUserId)
+        .maybeSingle();
+
+      if (profError) {
+        console.error('Error fetching professional:', profError);
+        alert('Error al buscar el perfil profesional: ' + profError.message);
+        return false;
+      }
+
+      if (!professional) {
+        alert('El trabajador no tiene un perfil profesional registrado');
+        return false;
+      }
+
+      // Verificar si ya existe una reseña para este servicio y profesional
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Usuario no autenticado');
+        return false;
+      }
+
+      const { data: existingReview } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('service_id', selectedServiceForReview.id)
+        .eq('professional_id', professional.id)
+        .eq('reviewer_id', user.id)
+        .maybeSingle();
+
+      if (existingReview) {
+        alert('Ya has enviado una reseña para este servicio');
         return false;
       }
 
       const response = await reviewsService.create({
         service_id: selectedServiceForReview.id,
-        professional_id: workerId,
+        professional_id: professional.id,
         rating,
         comment: comment.trim() || undefined
       });
@@ -109,13 +178,15 @@ export default function Dashboard() {
               </div>
               
               <div className="space-y-4">
-                {services.length > 0 ? (
+                {!initialLoadComplete ? (
+                  <SkeletonLoader type="service-card" count={3} />
+                ) : services.length > 0 ? (
                   services.slice(0, 3).map((service) => (
                     <ServiceCard
                       key={service.id}
                       service={service}
                       categories={categories}
-                      applicationsCount={applicationsCount[service.id] || 0}
+                      hasReviewed={reviewedServices[service.id] || false}
                       onViewDetails={handleVerDetalles}
                       onDelete={handleDeleteService}
                       onLeaveReview={handleLeaveReview}
@@ -141,7 +212,13 @@ export default function Dashboard() {
           </div>
 
           <div className="lg:col-span-1">
-            <TopProfessionals professionals={topWorkers} />
+            {!initialLoadComplete ? (
+              <div className="bg-white rounded-2xl shadow-sm border p-6">
+                <SkeletonLoader type="text" />
+              </div>
+            ) : (
+              <TopProfessionals professionals={topWorkers} />
+            )}
           </div>
         </div>
       </div>

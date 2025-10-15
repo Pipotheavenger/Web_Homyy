@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FormInput } from './FormInput';
 import { LoginHeader } from './LoginHeader';
 import BgWave from '../../app/login/BgWave';
+import { capitalizeProperName } from '@/lib/utils';
 
 interface GoogleRegistrationFormProps {
   userEmail: string;
@@ -32,9 +33,16 @@ export const GoogleRegistrationForm = ({ userEmail, onComplete, isLoading = fals
   };
 
   const handleInputChange = (field: string, value: string) => {
+    let processedValue = value;
+
+    // Aplicar capitalización para nombres
+    if (field === 'name') {
+      processedValue = capitalizeProperName(value);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
 
     if (errors[field]) {

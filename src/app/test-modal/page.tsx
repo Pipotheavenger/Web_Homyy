@@ -19,11 +19,12 @@ export default function TestModalPage() {
     foto: ''
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (): Promise<boolean> => {
     console.log('Confirmando selección...');
     // Simular delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     console.log('Selección confirmada');
+    return true; // Simular éxito
   };
 
   return (

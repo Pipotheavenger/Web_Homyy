@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { serviceService, categoryService } from '@/lib/services';
 import type { Category } from '@/types/database';
+import { capitalizeText, capitalizeProperName, capitalizeFirstLetter } from '@/lib/utils';
 
 interface Horario {
   id: string;
@@ -54,7 +55,24 @@ export const useCreateService = () => {
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+
+    // Aplicar capitalización según el campo
+    switch (field) {
+      case 'titulo':
+        processedValue = capitalizeText(value); // Capitalizar todas las palabras
+        break;
+      case 'descripcion':
+        processedValue = capitalizeFirstLetter(value); // Solo primera letra
+        break;
+      case 'barrio':
+        processedValue = capitalizeProperName(value); // Capitalización de nombres propios
+        break;
+      default:
+        processedValue = value;
+    }
+
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

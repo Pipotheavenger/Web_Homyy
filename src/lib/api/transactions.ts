@@ -163,13 +163,17 @@ export const transactionsService = {
         .from('transactions')
         .select('type, amount')
         .eq('user_id', user.id)
-        .eq('status', 'completado');
+        .in('status', ['completado', 'completada']);
 
       if (error) throw error;
 
       let balance = 0;
       transactions?.forEach(t => {
-        balance += Number(t.amount);
+        if (t.type === 'recarga') {
+          balance += Math.abs(Number(t.amount));
+        } else if (t.type === 'retiro') {
+          balance -= Math.abs(Number(t.amount));
+        }
       });
 
       return {

@@ -279,6 +279,40 @@ export const serviceService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Primero eliminar todas las aplicaciones relacionadas al servicio
+      const { error: applicationsError } = await supabase
+        .from('applications')
+        .delete()
+        .eq('service_id', id);
+
+      if (applicationsError) {
+        console.warn('Error eliminando aplicaciones relacionadas:', applicationsError);
+        // No fallar si hay error eliminando aplicaciones, continuar con el servicio
+      }
+
+      // Eliminar schedules relacionados
+      const { error: schedulesError } = await supabase
+        .from('service_schedules')
+        .delete()
+        .eq('service_id', id);
+
+      if (schedulesError) {
+        console.warn('Error eliminando horarios relacionados:', schedulesError);
+        // No fallar si hay error eliminando schedules, continuar con el servicio
+      }
+
+      // Eliminar preguntas relacionadas
+      const { error: questionsError } = await supabase
+        .from('service_questions')
+        .delete()
+        .eq('service_id', id);
+
+      if (questionsError) {
+        console.warn('Error eliminando preguntas relacionadas:', questionsError);
+        // No fallar si hay error eliminando preguntas, continuar con el servicio
+      }
+
+      // Finalmente eliminar el servicio
       const { error } = await supabase
         .from('services')
         .delete()
@@ -573,4 +607,5 @@ export * from './api/reviews';
 export * from './api/questions';
 export * from './api/transactions';
 export * from './api/admin';
-export * from './api/escrow'; 
+export * from './api/escrow';
+export * from './api/workerStats'; 

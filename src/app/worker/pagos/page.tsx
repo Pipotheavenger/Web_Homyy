@@ -175,6 +175,7 @@ export default function PagosWorkerPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completado':
+      case 'completada':
         return 'from-green-50/80 to-blue-50/80 border-green-200/30';
       case 'pendiente':
         return 'from-yellow-50/80 to-orange-50/80 border-yellow-200/30';
@@ -188,6 +189,7 @@ export default function PagosWorkerPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completado':
+      case 'completada':
         return <CheckCircle size={20} className="text-green-600" />;
       case 'pendiente':
         return <Clock size={20} className="text-yellow-600" />;
@@ -201,6 +203,7 @@ export default function PagosWorkerPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'completado':
+      case 'completada':
         return 'Completada';
       case 'pendiente':
         return 'Pendiente';

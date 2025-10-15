@@ -38,4 +38,84 @@ export const getEstadoText = (estado: string) => {
     default:
       return 'Pendiente';
   }
+};
+
+// =====================================================
+// FUNCIONES DE CAPITALIZACIÓN
+// =====================================================
+
+/**
+ * Capitaliza la primera letra de cada palabra en un texto
+ * @param text - Texto a capitalizar
+ * @returns Texto con la primera letra de cada palabra en mayúscula
+ */
+export const capitalizeText = (text: string): string => {
+  if (!text || typeof text !== 'string') return text;
+  
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+/**
+ * Capitaliza solo la primera letra del texto
+ * @param text - Texto a capitalizar
+ * @returns Texto con solo la primera letra en mayúscula
+ */
+export const capitalizeFirstLetter = (text: string): string => {
+  if (!text || typeof text !== 'string') return text;
+  
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
+
+/**
+ * Capitaliza nombres propios (mantiene algunas palabras en minúsculas)
+ * @param text - Texto a capitalizar
+ * @returns Texto capitalizado respetando artículos y preposiciones
+ */
+export const capitalizeProperName = (text: string): string => {
+  if (!text || typeof text !== 'string') return text;
+  
+  const articles = ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'en', 'con', 'por', 'para', 'y', 'o'];
+  
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map((word, index) => {
+      // La primera palabra siempre se capitaliza
+      if (index === 0) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+      
+      // Las palabras que están en la lista de artículos se mantienen en minúsculas
+      if (articles.includes(word)) {
+        return word;
+      }
+      
+      // El resto se capitaliza
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+};
+
+/**
+ * Hook para capitalizar automáticamente inputs
+ * @param value - Valor del input
+ * @param type - Tipo de capitalización ('all', 'first', 'proper')
+ * @returns Valor capitalizado
+ */
+export const useCapitalize = (value: string, type: 'all' | 'first' | 'proper' = 'all'): string => {
+  if (!value) return value;
+  
+  switch (type) {
+    case 'first':
+      return capitalizeFirstLetter(value);
+    case 'proper':
+      return capitalizeProperName(value);
+    case 'all':
+    default:
+      return capitalizeText(value);
+  }
 }; 

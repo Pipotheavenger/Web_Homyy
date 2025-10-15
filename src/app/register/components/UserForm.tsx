@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { capitalizeProperName } from '@/lib/utils';
 
 interface UserFormProps {
   onSuccess: () => void;
@@ -86,9 +87,16 @@ export default function UserForm({ onSuccess }: UserFormProps) {
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string) => {
+    let processedValue = value;
+
+    // Aplicar capitalización para nombres
+    if (field === 'fullName') {
+      processedValue = capitalizeProperName(value);
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
   };
 

@@ -1,285 +1,228 @@
-import { Calendar, MapPin, User, Trash2, Wrench, Sparkles, Palette, Code, Zap, Hammer, Heart, Plus, Monitor, Leaf, Package, Star, Key } from 'lucide-react';
+// ServiceCardCompact.tsx
+import React, { memo, useMemo } from 'react';
+import { Calendar, MapPin, Trash2, Wrench, Sparkles, Palette, Monitor, Zap, Hammer, Heart, Plus, Leaf, Package, Star, Key } from 'lucide-react';
 import type { Service, Category, ServiceSchedule } from '@/types/database';
-import { PinDisplay } from './PinDisplay';
 
-interface ServiceCardProps {
+type Props = {
   service: Service;
   categories: Category[];
-  applicationsCount?: number;
+  hasReviewed?: boolean;
   onViewDetails: (serviceId: string) => void;
   onDelete: (serviceId: string) => void;
   onLeaveReview?: (service: Service) => void;
+};
+
+const NAME_ICON: Record<string, React.ReactElement> = {
+  'plomería': <Wrench size={18} className="text-white" />,
+  'limpieza': <Sparkles size={18} className="text-white" />,
+  'diseño': <Palette size={18} className="text-white" />,
+  'tecnología': <Monitor size={18} className="text-white" />,
+  'electricidad': <Zap size={18} className="text-white" />,
+  'carpintería': <Hammer size={18} className="text-white" />,
+  'mascotas': <Heart size={18} className="text-white" />,
+  'pintura': <Palette size={18} className="text-white" />,
+  'jardinería': <Leaf size={18} className="text-white" />,
+  'organización': <Package size={18} className="text-white" />,
+  'otros': <Plus size={18} className="text-white" />,
+};
+
+const STATUS: Record<NonNullable<Service['status']>, { pct: number; label: string; cls: string }> = {
+  active:      { pct: 25,  label: 'Contratando',  cls: 'text-blue-600 bg-blue-50 border-blue-200' },
+  in_progress: { pct: 75,  label: 'En Progreso',  cls: 'text-purple-600 bg-purple-50 border-purple-200' },
+  completed:   { pct: 100, label: 'Completado',   cls: 'text-green-600 bg-green-50 border-green-200' },
+};
+
+function formatRelative(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const ms = Math.abs(now.getTime() - date.getTime());
+  const days = Math.floor(ms / 86400000);
+  if (days === 0) return 'Hoy';
+  if (days === 1) return 'Ayer';
+  if (days < 7) return `Hace ${days} días`;
+  return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 }
 
-export const ServiceCard = ({ service, categories, applicationsCount = 0, onViewDetails, onDelete, onLeaveReview }: ServiceCardProps) => {
-  const getCategoryIcon = (categoryName: string) => {
-    const category = categories.find(cat => cat.name === categoryName);
-    
-    // Si no encontramos la categoría, usar icono por defecto
-    if (!category) {
-      return <Wrench size={20} className="text-white" />;
-    }
+function formatSchedules(schedules: ServiceSchedule[] | undefined) {
+  if (!schedules?.length) return null;
+  const sorted = [...schedules].sort((a, b) =>
+    new Date(a.date_available).getTime() - new Date(b.date_available).getTime()
+  );
+  return sorted.slice(0, 2).map(s => {
+    const d = new Date(s.date_available);
+    const dd = d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+    return `${dd} ${s.start_time}-${s.end_time}`;
+  }).join(', ');
+}
 
-    // Mapear por nombre de categoría (más confiable que el campo icon)
-    switch (categoryName.toLowerCase()) {
-      case 'plomería':
-        return <Wrench size={20} className="text-white" />;
-      case 'limpieza':
-        return <Sparkles size={20} className="text-white" />;
-      case 'diseño':
-        return <Palette size={20} className="text-white" />;
-      case 'tecnología':
-        return <Monitor size={20} className="text-white" />;
-      case 'electricidad':
-        return <Zap size={20} className="text-white" />;
-      case 'carpintería':
-        return <Hammer size={20} className="text-white" />;
-      case 'mascotas':
-        return <Heart size={20} className="text-white" />;
-      case 'pintura':
-        return <Palette size={20} className="text-white" />;
-      case 'jardinería':
-        return <Leaf size={20} className="text-white" />;
-      case 'organización':
-        return <Package size={20} className="text-white" />;
-      case 'otros':
-        return <Plus size={20} className="text-white" />;
-      default:
-        // Si el campo icon contiene un nombre de icono de Lucide, usarlo
-        if (category.icon && !category.icon.match(/[\u{1F300}-\u{1F9FF}]/u)) {
-          switch (category.icon.toLowerCase()) {
-            case 'hammer':
-              return <Hammer size={20} className="text-white" />;
-            case 'heart':
-              return <Heart size={20} className="text-white" />;
-            case 'plus':
-              return <Plus size={20} className="text-white" />;
-            case 'palette':
-              return <Palette size={20} className="text-white" />;
-            case 'computer':
-              return <Monitor size={20} className="text-white" />;
-            default:
-              return <Wrench size={20} className="text-white" />;
-          }
-        }
-        return <Wrench size={20} className="text-white" />;
-    }
-  };
+const ServiceCard = memo(function ServiceCard({
+  service,
+  categories,
+  hasReviewed = false,
+  onViewDetails,
+  onDelete,
+  onLeaveReview,
+}: Props) {
 
-  const getCategoryColor = (categoryName: string) => {
-    const category = categories.find(cat => cat.name === categoryName);
-    return category?.color || '#743fc6';
-  };
+  const categoryName = service.category?.name?.toLowerCase() || 'otros';
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7) return `Hace ${diffDays} días`;
-    
-    return date.toLocaleDateString('es-CO', { 
-      day: 'numeric', 
-      month: 'short' 
-    });
-  };
+  const categoryColor = useMemo(() => {
+    const c = categories.find(cat => cat.name.toLowerCase() === categoryName);
+    return c?.color || '#743fc6';
+  }, [categories, categoryName]);
 
-  const formatScheduleDisplay = (schedules: ServiceSchedule[]) => {
-    if (!schedules || schedules.length === 0) return 'Sin horarios';
-    
-    const sortedSchedules = [...schedules].sort((a, b) => 
-      new Date(a.date_available).getTime() - new Date(b.date_available).getTime()
-    );
-    
-    return sortedSchedules.slice(0, 2).map(schedule => {
-      const date = new Date(schedule.date_available);
-      const formattedDate = date.toLocaleDateString('es-CO', {
-        day: 'numeric',
-        month: 'short'
-      });
-      return `${formattedDate} ${schedule.start_time}-${schedule.end_time}`;
-    }).join(', ');
-  };
+  const icon = NAME_ICON[categoryName] ?? <Wrench size={18} className="text-white" />;
 
-  const getProgressPercentage = (status: string) => {
-    switch (status) {
-      case 'contratando': return 25;
-      case 'eligiendo': return 50;
-      case 'contratado': return 75;
-      case 'in_progress': return 85;
-      case 'completed': return 100;
-      default: return 25;
-    }
-  };
+  const statusInfo = STATUS[service.status ?? 'active'];
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'contratando': return 'Contratando';
-      case 'eligiendo': return 'Eligiendo';
-      case 'contratado': return 'Contratado';
-      case 'in_progress': return 'En Progreso';
-      case 'completed': return 'Completado';
-      default: return 'Contratando';
-    }
-  };
+  const scheduleText = formatSchedules(service.schedules) ?? formatRelative(service.created_at);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'contratando': return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'eligiendo': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'contratado': return 'text-purple-600 bg-purple-50 border-purple-200';
-      case 'in_progress': return 'text-indigo-600 bg-indigo-50 border-indigo-200';
-      case 'completed': return 'text-green-600 bg-green-50 border-green-200';
-      default: return 'text-blue-600 bg-blue-50 border-blue-200';
-    }
-  };
+  const canDelete = service.status === 'active' || service.status === 'completed';
+
+  const pct = statusInfo.pct; // 0–100 for the ring
 
   return (
-    <div className="border border-gray-100 rounded-xl p-5 hover:shadow-lg transition-all duration-200 bg-gradient-to-r from-gray-50 to-white relative">
-      <button
-        onClick={() => onDelete(service.id)}
-        disabled={service.status !== 'completed'}
-        className={`absolute top-2 right-2 p-1 transition-colors ${
-          service.status === 'completed'
-            ? 'text-gray-400 hover:text-red-500 cursor-pointer'
-            : 'text-gray-200 cursor-not-allowed'
-        }`}
-        title={service.status === 'completed' ? 'Eliminar servicio' : 'Solo se puede eliminar cuando esté completado'}
-      >
-        <Trash2 size={16} />
-      </button>
-      
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#743fc6] to-[#8a5fd1] rounded-xl flex items-center justify-center">
-            {getCategoryIcon(service.category?.name || 'Otros')}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-1">
-              <span 
-                className="px-2 py-1 rounded-full text-xs font-medium"
-                style={{ 
-                  backgroundColor: `${getCategoryColor(service.category?.name || 'Otros')}20`,
-                  color: getCategoryColor(service.category?.name || 'Otros')
-                }}
+    <div
+      role="article"
+      className={`bg-white border rounded-2xl transition-all duration-200 relative overflow-hidden ${
+        service.status === 'in_progress' ? 'border-purple-200 shadow-sm shadow-purple-100' : 'border-gray-200'
+      }`}
+    >
+      {service.status === 'in_progress' && <div className="h-0.5 bg-gradient-to-r from-purple-500 to-purple-600" />}
+
+
+      <div className="p-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+             <div
+               className="w-9 h-9 rounded-xl grid place-items-center bg-gradient-to-br from-purple-500 to-purple-600"
+               aria-hidden
+             >
+               {icon}
+             </div>
+            <div className="flex items-center gap-2">
+              <span
+                className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}
               >
                 {service.category?.name || 'Sin categoría'}
               </span>
-            </div>
-            <h4 className="font-semibold text-gray-800 mb-2">{service.title}</h4>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Calendar size={14} />
-                <span>{formatDate(service.created_at)}</span>
-              </div>
-              {service.location && (
-                <div className="flex items-center space-x-1">
-                  <MapPin size={14} />
-                  <span>{service.location}</span>
-                </div>
-              )}
+              {/* Delete button */}
+              <button
+                onClick={() => canDelete && onDelete(service.id)}
+                disabled={!canDelete}
+                aria-label="Eliminar servicio"
+                title={
+                  service.status === 'active' ? 'Eliminar servicio (contratando)' :
+                  service.status === 'completed' ? 'Eliminar servicio completado' :
+                  'No se puede eliminar en progreso'
+                }
+                className={`p-1 rounded-full ${
+                  canDelete ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' : 'text-gray-200 cursor-not-allowed'
+                }`}
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
           </div>
+
+           {/* Completion ring */}
+           <div className="relative w-16 h-16 shrink-0" aria-label={`Completado ${pct}%`} title={`Completado ${pct}%`}>
+             <svg className="w-16 h-16 -rotate-90" viewBox="0 0 36 36">
+               <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#E5E7EB" strokeWidth="3" />
+               <circle
+                 cx="18" cy="18" r="15.9155" fill="none"
+                 stroke="#6A31FF" strokeWidth="3" strokeLinecap="round"
+                 strokeDasharray={`${pct}, 100`}
+               />
+             </svg>
+             <div className="absolute inset-0 grid place-items-center">
+               <span className="text-xs font-bold text-purple-700">{pct}%</span>
+             </div>
+           </div>
         </div>
-        <div className="text-right pr-6">
-          <div className="flex items-center space-x-1 mb-2">
-            <User size={14} className="text-[#743fc6]" />
-            <span className="text-sm font-medium text-gray-700">
-              {applicationsCount} postulante{applicationsCount !== 1 ? 's' : ''}
-            </span>
+
+        {/* Title */}
+        <div className="mt-2 mb-2.5">
+          <h4 className="font-bold text-gray-900 text-base leading-tight truncate">{service.title}</h4>
+        </div>
+
+        {/* Meta */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 mb-3">
+          <div className="flex items-center gap-1.5">
+            <Calendar size={14} />
+            <span className="truncate">{scheduleText}</span>
           </div>
-          
-          {service.schedules && service.schedules.length > 0 && (
-            <div className="text-xs text-gray-600 mb-2">
-              {formatScheduleDisplay(service.schedules)}
-            </div>
-          )}
-          <div className="w-16 h-16 relative">
-            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
-              <path
-                className="text-gray-200"
-                stroke="currentColor"
-                strokeWidth="3"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className="text-[#743fc6]"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeDasharray={`${getProgressPercentage(service.status)}, 100`}
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs font-medium text-gray-700">
-                {getProgressPercentage(service.status)}%
-              </span>
-            </div>
-          </div>
-          <div className="text-center mt-2">
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${getStatusColor(service.status)}`}>
-              {getStatusText(service.status)}
-            </span>
-          </div>
-          
-          {/* Mostrar PIN cuando el servicio esté en progreso */}
-          {service.status === 'in_progress' && service.completion_pin && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200 shadow-sm">
-              <div className="text-center">
-                <div className="flex items-center justify-center space-x-2 mb-3">
-                  <div className="p-1.5 bg-indigo-100 rounded-lg">
-                    <Key size={16} className="text-indigo-600" />
-                  </div>
-                  <span className="text-sm font-semibold text-indigo-800">PIN de Finalización</span>
-                </div>
-                
-                <div className="mb-3">
-                  <PinDisplay pin={service.completion_pin} />
-                </div>
-                
-                <p className="text-xs text-indigo-600 leading-relaxed max-w-xs mx-auto">
-                  Comparte este PIN con el trabajador para finalizar el servicio
-                </p>
-              </div>
+          {service.location && (
+            <div className="flex items-center gap-1.5">
+              <MapPin size={14} />
+              <span className="truncate">{service.location}</span>
             </div>
           )}
         </div>
-      </div>
-      <div className="mt-4 flex space-x-3">
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (service?.id) {
-              onViewDetails(service.id);
-            } else {
-              alert('Error: El servicio no tiene ID');
-            }
-          }}
-          className="flex-1 bg-[#743fc6] text-white py-2.5 rounded-lg hover:bg-[#6a37b8] transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
-        >
-          Ver Detalles
-        </button>
-        
-        {service.status === 'completed' && onLeaveReview && (
-          <button 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onLeaveReview(service);
-            }}
-            className="px-3 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 flex items-center space-x-1"
+
+         {/* Status + PIN */}
+         <div className="mb-3">
+           <div className="flex items-center justify-between">
+             <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusInfo.cls}`}>
+               {statusInfo.label}
+             </span>
+           </div>
+
+           {service.status === 'in_progress' && service.completion_pin && (
+             <div className="mt-2 flex items-center gap-2">
+               <div className="flex gap-1.5">
+                 {service.completion_pin.split('').map((d, i) => (
+                   <div
+                     key={i}
+                     className="w-8 h-9 bg-white border border-purple-300 rounded-md grid place-items-center"
+                   >
+                     <span className="text-sm font-bold text-purple-800">{d}</span>
+                   </div>
+                 ))}
+               </div>
+               <div className="flex items-center gap-1">
+                 <Key size={12} className="text-purple-600" />
+                 <span className="text-xs font-semibold text-purple-800">PIN</span>
+               </div>
+             </div>
+           )}
+           
+         </div>
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onViewDetails(service.id); }}
+            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            aria-label="Ver detalles del servicio"
           >
-            <Star size={16} />
-            <span className="text-sm font-medium">Reseñar</span>
+            Ver Detalles
           </button>
-        )}
+
+          {service.status === 'completed' && onLeaveReview && !hasReviewed && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLeaveReview(service); }}
+              className="w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-white py-3 rounded-xl hover:from-emerald-500 hover:to-teal-600 transition-all duration-200 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              aria-label="Dejar reseña del servicio"
+            >
+              <Star size={16} />
+              Reseñar
+            </button>
+          )}
+          
+          {service.status === 'completed' && hasReviewed && (
+            <div className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+              <Star size={16} className="text-yellow-500" />
+              Reseña Enviada
+            </div>
+          )}
+        </div>
       </div>
+
     </div>
   );
-}; 
+});
+
+export { ServiceCard };
