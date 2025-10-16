@@ -87,7 +87,7 @@ export function useOptimizedCache<T>({
     } finally {
       setLoading(false);
     }
-  }, [key, fetcher, enabled, force, getCachedData, setCachedData, staleTime, onError]);
+  }, [key, fetcher, enabled, getCachedData, setCachedData, staleTime, onError]);
 
   const invalidate = useCallback(() => {
     cacheRef.current.delete(key);

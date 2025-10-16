@@ -1,18 +1,33 @@
 
+import React from 'react';
+
 interface LoginHeaderProps {
   showSlogan?: boolean;
 }
 
 export const LoginHeader = ({ showSlogan = true }: LoginHeaderProps) => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    // Si falla el PNG, intentar con SVG
+    if (target.src.includes('.png')) {
+      target.src = '/Logo.svg';
+    }
+    // Si también falla el SVG, mostrar un placeholder
+    else if (target.src.includes('.svg')) {
+      target.style.display = 'none';
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-4 mb-6 sm:mb-8 animate-fade-in-up">
       <div className="relative group">
         <img
-          src="/Logo.svg" 
+          src="/Logo.png" 
           alt="Logo Hommy" 
           width={80} 
           height={80} 
           className="transition-transform duration-300 group-hover:scale-105"
+          onError={handleImageError}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#743fc6] to-[#8a5fd1] rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
       </div>

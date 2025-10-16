@@ -121,7 +121,8 @@ export const useWorkerDashboard = () => {
     error,
     formatPrice,
     formatDate,
-    withdrawApplication
+    withdrawApplication,
+    loadDashboardData
   };
 };
 
