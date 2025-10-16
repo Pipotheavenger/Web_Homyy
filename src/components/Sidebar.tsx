@@ -20,10 +20,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [currentLogoSrc, setCurrentLogoSrc] = useState('/Logo.png');
   const router = useRouter();
 
   const handleNavigation = (href: string) => {
     router.push(href);
+  };
+
+  // Lista de URLs de fallback para el logo
+  const logoSources = [
+    '/Logo.png', // Local PNG
+    '/Logo.svg', // Local SVG
+    'https://raw.githubusercontent.com/Pipotheavenger/Web_Homyy/master/public/Logo.svg', // GitHub raw URL
+    'https://via.placeholder.com/32x32/743fc6/ffffff?text=H', // Placeholder público
+    'https://img.icons8.com/color/32/house.png', // Icono público genérico
+  ];
+
+  const handleImageError = () => {
+    const currentIndex = logoSources.indexOf(currentLogoSrc);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < logoSources.length) {
+      // Intentar con la siguiente URL
+      setCurrentLogoSrc(logoSources[nextIndex]);
+      setImageError(false);
+    } else {
+      // Si todas fallan, mostrar fallback
+      setImageError(true);
+    }
   };
 
   // Colores específicos para el sidebar
@@ -57,12 +81,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={`bg-white/20 rounded-xl flex items-center justify-center p-1 ${collapsed ? 'w-8 h-8' : 'w-10 h-10'}`}>
               {!imageError ? (
                 <img
-                  src="/Logo.png" 
+                  src={currentLogoSrc} 
                   alt="Logo Hommy" 
                   width={collapsed ? 24 : 32} 
                   height={collapsed ? 24 : 32}
                   className="filter brightness-0 invert"
-                  onError={() => setImageError(true)}
+                  onError={handleImageError}
                   onLoad={() => setImageError(false)}
                 />
               ) : (

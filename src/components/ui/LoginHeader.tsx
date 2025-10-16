@@ -7,18 +7,42 @@ interface LoginHeaderProps {
 
 export const LoginHeader = ({ showSlogan = true }: LoginHeaderProps) => {
   const [imageError, setImageError] = useState(false);
+  const [currentLogoSrc, setCurrentLogoSrc] = useState('/Logo.png');
+
+  // Lista de URLs de fallback para el logo
+  const logoSources = [
+    '/Logo.png', // Local PNG
+    '/Logo.svg', // Local SVG
+    'https://raw.githubusercontent.com/Pipotheavenger/Web_Homyy/master/public/Logo.svg', // GitHub raw URL
+    'https://via.placeholder.com/80x80/743fc6/ffffff?text=H', // Placeholder público
+    'https://img.icons8.com/color/80/house.png', // Icono público genérico
+  ];
+
+  const handleImageError = () => {
+    const currentIndex = logoSources.indexOf(currentLogoSrc);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < logoSources.length) {
+      // Intentar con la siguiente URL
+      setCurrentLogoSrc(logoSources[nextIndex]);
+      setImageError(false);
+    } else {
+      // Si todas fallan, mostrar fallback
+      setImageError(true);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4 mb-6 sm:mb-8 animate-fade-in-up">
       <div className="relative group">
         {!imageError ? (
           <img
-            src="/Logo.png" 
+            src={currentLogoSrc} 
             alt="Logo Hommy" 
             width={80} 
             height={80} 
             className="transition-transform duration-300 group-hover:scale-105"
-            onError={() => setImageError(true)}
+            onError={handleImageError}
             onLoad={() => setImageError(false)}
           />
         ) : (
