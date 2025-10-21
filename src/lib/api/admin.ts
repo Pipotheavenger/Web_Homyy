@@ -507,6 +507,35 @@ export const adminService = {
         return transaction.type === 'recarga' ? sum + transaction.amount : sum;
       }, 0) || 0;
 
+      // Calcular comisiones ganadas usando consulta SQL directa
+      const { data: commissionData } = await supabase
+        .from('escrow_transactions')
+        .select(`
+          amount,
+          applications!inner(proposed_price)
+        `)
+        .eq('status', 'completada')
+        .eq('applications.status', 'accepted');
+
+      let totalCommissionsEarned = 0;
+      let totalServicesWithCommission = 0;
+
+      if (commissionData) {
+        commissionData.forEach(escrow => {
+          const applications = escrow.applications as any[];
+          if (applications && applications.length > 0) {
+            const application = applications[0];
+            if (application && application.proposed_price) {
+              const commissionAmount = Number(escrow.amount) - Number(application.proposed_price);
+              if (commissionAmount > 0) {
+                totalCommissionsEarned += commissionAmount;
+                totalServicesWithCommission++;
+              }
+            }
+          }
+        });
+      }
+
       return {
         data: {
           totalUsers: totalUsers || 0,
@@ -517,7 +546,9 @@ export const adminService = {
           totalTransactions: totalTransactions || 0,
           completedServices: completedServices || 0,
           pendingServices: pendingServices || 0,
-          totalVolume: totalVolume
+          totalVolume: totalVolume,
+          totalCommissionsEarned: totalCommissionsEarned,
+          totalServicesWithCommission: totalServicesWithCommission
         },
         error: null,
         success: true

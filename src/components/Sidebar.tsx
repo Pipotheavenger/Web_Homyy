@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={`bg-white/20 rounded-xl flex items-center justify-center p-1 ${collapsed ? 'w-8 h-8' : 'w-10 h-10'}`}>
               {!imageError ? (
                 <img
-                  src="https://raw.githubusercontent.com/Pipotheavenger/Web_Homyy/master/public/Logo.svg" 
+                  src="/Logo.svg" 
                   alt="Logo Hommy" 
                   width={collapsed ? 24 : 32} 
                   height={collapsed ? 24 : 32}

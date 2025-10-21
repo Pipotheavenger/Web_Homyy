@@ -13,7 +13,7 @@ export const LoginHeader = ({ showSlogan = true }: LoginHeaderProps) => {
       <div className="relative group">
         {!imageError ? (
           <img
-            src="https://raw.githubusercontent.com/Pipotheavenger/Web_Homyy/master/public/Logo.svg" 
+            src="/Logo.svg" 
             alt="Logo Hommy" 
             width={80} 
             height={80} 

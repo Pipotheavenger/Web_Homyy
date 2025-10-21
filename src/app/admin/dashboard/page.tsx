@@ -288,7 +288,16 @@ function AdminDashboard() {
                     <p className="text-xs text-gray-500 mt-1">En transacciones completadas</p>
                   </div>
 
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 md:col-span-2 lg:col-span-3">
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium text-gray-600">Comisiones Ganadas</span>
+                      <DollarSign size={20} className="text-green-500" />
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{formatPrice(stats.totalCommissionsEarned || 0)}</p>
+                    <p className="text-xs text-gray-500 mt-1">{stats.totalServicesWithCommission || 0} servicios completados</p>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm font-medium text-gray-600">Comisión de Servicios</span>
                       <Settings size={20} className="text-purple-500" />
