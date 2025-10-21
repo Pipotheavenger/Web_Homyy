@@ -58,6 +58,8 @@ export interface Service {
   pin_generated_at?: string;
   escrow_amount?: number;
   worker_final_amount?: number;
+  // Campo para mostrar el monto en la UI
+  budget?: number;
   // Relaciones
   category?: Category;
   schedules?: ServiceSchedule[];

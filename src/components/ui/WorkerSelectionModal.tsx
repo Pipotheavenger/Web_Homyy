@@ -35,7 +35,7 @@ export const WorkerSelectionModal = ({
 }: WorkerSelectionModalProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { calculateInflatedPrice, calculateCommissionAmount, formatPrice } = useCommission();
+  const { calculateInflatedPrice, calculateCommissionAmount, formatPrice, commissionPercentage } = useCommission();
 
   const handleConfirm = async () => {
     setIsConfirming(true);
@@ -68,6 +68,7 @@ export const WorkerSelectionModal = ({
   const originalPrice = postulante.precio;
   const inflatedPrice = calculateInflatedPrice(originalPrice);
   const commissionAmount = calculateCommissionAmount(originalPrice);
+
 
   return (
     <AnimatePresence>

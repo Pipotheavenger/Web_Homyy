@@ -168,18 +168,28 @@ export const adminService = {
    */
   async getCommissionPercentage(): Promise<ApiResponse<number>> {
     try {
-      const response = await this.getSetting('commission_percentage');
-      if (response.success && response.data) {
+      // Acceso directo sin verificar sesión de admin
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'commission_percentage')
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
         // El valor viene como JSONB, puede ser string JSON o número directo
         let percentage: number;
-        if (typeof response.data.value === 'string') {
+        if (typeof data.value === 'string') {
           try {
-            percentage = JSON.parse(response.data.value);
+            percentage = JSON.parse(data.value);
           } catch {
-            percentage = parseFloat(response.data.value);
+            percentage = parseFloat(data.value);
           }
         } else {
-          percentage = response.data.value;
+          percentage = data.value;
         }
         
         return {
@@ -195,7 +205,6 @@ export const adminService = {
         success: true
       };
     } catch (error) {
-      console.error('Error getting commission percentage:', error);
       return {
         data: 10, // Porcentaje por defecto
         error: null,

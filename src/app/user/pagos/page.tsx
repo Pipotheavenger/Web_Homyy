@@ -40,6 +40,7 @@ export default function PagosPage() {
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentTransactionRef, setCurrentTransactionRef] = useState('');
+  const [modalAmount, setModalAmount] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -129,6 +130,7 @@ export default function PagosPage() {
 
     if (response.success) {
       setCurrentTransactionRef(transactionRef);
+      setModalAmount(parseFloat(monto));
       setShowQRModal(false);
       setShowSuccessModal(true);
       
@@ -216,15 +218,27 @@ export default function PagosPage() {
   };
 
   const getTypeIcon = (type: string) => {
-    return type === 'recarga' ? (
-      <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-        <TrendingUp size={20} className="text-white" />
-      </div>
-    ) : (
-      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-        <TrendingDown size={20} className="text-white" />
-      </div>
-    );
+    switch (type) {
+      case 'recarga':
+        return (
+          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+            <TrendingUp size={20} className="text-white" />
+          </div>
+        );
+      case 'debito':
+        return (
+          <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
+            <TrendingDown size={20} className="text-white" />
+          </div>
+        );
+      case 'retiro':
+      default:
+        return (
+          <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+            <TrendingDown size={20} className="text-white" />
+          </div>
+        );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -318,11 +332,15 @@ export default function PagosPage() {
                       {getTypeIcon(transaction.type)}
                       <div>
                         <h4 className="font-semibold text-gray-800">
-                          {transaction.type === 'recarga' ? 'Recarga' : 'Retiro'} {transaction.payment_method.toUpperCase()}
+                          {transaction.type === 'recarga' ? 'Recarga' : 
+                           transaction.type === 'debito' ? 'Pago de Servicio' : 'Retiro'} {transaction.payment_method.toUpperCase()}
                         </h4>
                         <p className="text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
                         {transaction.transaction_reference && (
                           <p className="text-xs text-gray-500 font-mono">{transaction.transaction_reference}</p>
+                        )}
+                        {transaction.description && (
+                          <p className="text-xs text-gray-500">{transaction.description}</p>
                         )}
                       </div>
                     </div>
@@ -549,7 +567,7 @@ export default function PagosPage() {
       <PaymentSuccessModal
         isOpen={showSuccessModal}
         onClose={handleCloseSuccessModal}
-        amount={parseFloat(monto) || 0}
+        amount={modalAmount}
         paymentMethod={selectedMetodo || ''}
         transactionRef={currentTransactionRef}
       />

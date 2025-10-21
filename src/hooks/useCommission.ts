@@ -16,8 +16,11 @@ export const useCommission = () => {
       setError(null);
       
       const response = await adminService.getCommissionPercentage();
+      
       if (response.success && response.data !== null) {
         setCommissionPercentage(response.data);
+      } else {
+        setCommissionPercentage(10);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error al cargar comisión');

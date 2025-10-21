@@ -16,6 +16,8 @@ export const useDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
+  // Debug logs removidos para producción
 
   // Función para obtener datos del caché
   const getCachedData = useCallback((key: string) => {
@@ -83,8 +85,9 @@ export const useDashboard = () => {
         // Procesar servicios
         if (servicesResponse.success && servicesResponse.data) {
           const activeServices = servicesResponse.data.filter(
-            (service: Service) => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed'
+            (service: Service) => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
           );
+          
           setServices(activeServices);
           
           // Marcar carga inicial como completa después de cargar servicios
@@ -138,10 +141,7 @@ export const useDashboard = () => {
           .select(`
             service_id,
             status,
-            worker_id,
-            worker:worker_id (
-              name
-            )
+            worker_id
           `)
           .in('service_id', serviceIds),
         
@@ -174,10 +174,26 @@ export const useDashboard = () => {
         ? reviewsResult.value.data 
         : [];
 
-      // Obtener professional_ids para trabajadores
+      // Obtener nombres de trabajadores por separado
       const workerIds = [...new Set(
         allApplications?.map(app => app.worker_id).filter(Boolean) || []
       )];
+
+      let workers = [];
+      if (workerIds.length > 0) {
+        const { data: workersData, error: workersError } = await supabase
+          .from('user_profiles')
+          .select('user_id, name')
+          .in('user_id', workerIds);
+
+        if (workersError) {
+          console.warn('Error obteniendo trabajadores:', workersError);
+        } else {
+          workers = workersData || [];
+        }
+      }
+
+      // Obtener professional_ids para trabajadores (ya obtenidos arriba)
 
       // Cargar profesionales si hay worker_ids
       const { data: professionals } = workerIds.length > 0 
@@ -260,7 +276,7 @@ export const useDashboard = () => {
   // Memoizar servicios filtrados para evitar re-renders innecesarios
   const filteredServices = useMemo(() => {
     return services.filter(
-      service => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed'
+      service => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
     );
   }, [services]);
 

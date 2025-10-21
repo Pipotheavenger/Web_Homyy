@@ -3,10 +3,10 @@ import { supabase } from '../supabase';
 export interface Transaction {
   id: string;
   user_id: string;
-  type: 'recarga' | 'retiro';
+  type: 'recarga' | 'retiro' | 'debito';
   amount: number;
-  payment_method: 'nequi' | 'daviplata' | 'pse' | 'bancolombia' | 'bancodebogota';
-  status: 'pendiente' | 'completado' | 'rechazado';
+  payment_method: 'nequi' | 'daviplata' | 'pse' | 'bancolombia' | 'bancodebogota' | 'platform';
+  status: 'pendiente' | 'completado' | 'rechazado' | 'completada';
   transaction_reference?: string;
   description?: string;
   created_at: string;
@@ -15,7 +15,7 @@ export interface Transaction {
 }
 
 export interface CreateTransactionData {
-  type: 'recarga' | 'retiro';
+  type: 'recarga' | 'retiro' | 'debito';
   amount: number;
   payment_method: string;
   transaction_reference?: string;
@@ -171,7 +171,7 @@ export const transactionsService = {
       transactions?.forEach(t => {
         if (t.type === 'recarga') {
           balance += Math.abs(Number(t.amount));
-        } else if (t.type === 'retiro') {
+        } else if (t.type === 'retiro' || t.type === 'debito') {
           balance -= Math.abs(Number(t.amount));
         }
       });

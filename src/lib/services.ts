@@ -61,18 +61,73 @@ export const serviceService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const { data, error } = await supabase
+      // Obtener servicios sin relaciones para evitar problemas con RLS
+      const { data: services, error: servicesError } = await supabase
         .from('services')
-        .select(`
-          *,
-          category:categories(*),
-          schedules:service_schedules(*)
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return { data: data || [], error: null, success: true };
+      if (servicesError) throw servicesError;
+
+      if (!services || services.length === 0) {
+        return { data: [], error: null, success: true };
+      }
+
+      // Obtener categorías por separado
+      const categoryIds = [...new Set(services.map(s => s.category_id).filter(Boolean))];
+      
+      let categories = [];
+      if (categoryIds.length > 0) {
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('categories')
+          .select('*')
+          .in('id', categoryIds);
+
+        if (categoriesError) {
+          console.warn('Error obteniendo categorías:', categoriesError);
+        } else {
+          categories = categoriesData || [];
+        }
+      }
+
+      // Obtener datos de escrow_transactions para servicios contratados
+      const serviceIds = services.map(s => s.id);
+      let escrowData: Array<{ service_id: string; completion_pin: string; amount: number }> = [];
+      if (serviceIds.length > 0) {
+        const { data: escrowDataResponse, error: escrowError } = await supabase
+          .from('escrow_transactions')
+          .select('service_id, completion_pin, amount')
+          .in('service_id', serviceIds);
+
+        if (escrowError) {
+          console.warn('Error obteniendo datos de escrow:', escrowError);
+        } else {
+          escrowData = escrowDataResponse || [];
+        }
+      }
+
+      // Combinar servicios con sus categorías y datos de escrow
+      const servicesWithCategories = services.map(service => {
+        const category = categories.find(c => c.id === service.category_id);
+        const escrow = escrowData.find(e => e.service_id === service.id);
+        return {
+          ...service,
+          category: category || null,
+          escrow_pin: escrow?.completion_pin || null,
+          budget: escrow?.amount || service.escrow_amount || 0
+        };
+      });
+
+      // Debug log para verificar PINs
+      console.log('🔧 getUserServices - Servicios con escrow:', servicesWithCategories.map(s => ({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+        escrow_pin: s.escrow_pin
+      })));
+
+      return { data: servicesWithCategories, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -116,6 +171,7 @@ export const serviceService = {
             .from('service_schedules')
             .select('*')
             .eq('service_id', service.id);
+
 
           // Obtener info del cliente
           let client = null;

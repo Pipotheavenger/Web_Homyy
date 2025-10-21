@@ -238,7 +238,23 @@ export const useDetallesPostulantes = () => {
         
         return true; // Indicar éxito
       } else {
-        alert('Error al seleccionar candidato: ' + response.error);
+        // Manejar error específico de saldo insuficiente
+        if (response.error?.includes('Saldo insuficiente')) {
+          const creativeMessage = `💰 ¡Ups! Tu saldo actual no es suficiente para contratar este servicio.
+
+💡 Te sugerimos:
+• Recargar tu saldo desde la sección de pagos
+• Verificar el monto total (incluye comisiones)
+• ¡No te preocupes! Tu trabajador ideal te esperará
+
+¿Te gustaría ir a recargar tu saldo ahora?`;
+          
+          if (confirm(creativeMessage)) {
+            router.push('/user/pagos');
+          }
+        } else {
+          alert('Error al seleccionar candidato: ' + response.error);
+        }
         return false; // Indicar fallo
       }
     } catch (error) {

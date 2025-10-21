@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useDashboard } from '@/hooks/useDashboard';
 import { WelcomeBanner } from '@/components/ui/WelcomeBanner';
-import { ServiceCard } from '@/components/ui/ServiceCard';
+import ServiceCard from '@/components/ui/ServiceCard';
 import { TopProfessionals } from '@/components/ui/TopProfessionals';
 import { ReviewModal } from '@/components/ui/ReviewModal';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
@@ -15,6 +15,8 @@ import { reviewsService } from '@/lib/services';
 export default function Dashboard() {
   const router = useRouter();
   const { services, categories, topWorkers, userName, reviewedServices, loading, error, initialLoadComplete, handleDeleteService } = useDashboard();
+  
+  // Debug logs (removidos para producción)
   
   // Estado para el modal de reseñas
   const [showReviewModal, setShowReviewModal] = useState(false);

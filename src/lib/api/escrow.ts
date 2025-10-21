@@ -201,11 +201,21 @@ export const escrowService = {
 
       if (rpcError) {
         console.error('Error en RPC completeWorkWithPin:', rpcError);
+        console.error('Detalles del error:', {
+          serviceId,
+          pin,
+          userId: user.id,
+          error: rpcError
+        });
         throw new Error('Error al completar servicio: ' + rpcError.message);
       }
 
-      if (!result?.success) {
-        throw new Error('Error al completar servicio');
+      console.log('Resultado de RPC:', result);
+
+      if (!result || !result.success) {
+        const errorMessage = result?.message || result?.error || 'Error al completar servicio';
+        console.error('Error en resultado de RPC:', result);
+        throw new Error(errorMessage);
       }
 
       return {

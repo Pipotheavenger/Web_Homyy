@@ -40,6 +40,7 @@ export default function PagosWorkerPage() {
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentTransactionRef, setCurrentTransactionRef] = useState('');
+  const [modalAmount, setModalAmount] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -128,6 +129,7 @@ export default function PagosWorkerPage() {
 
     if (response.success) {
       setCurrentTransactionRef(transactionRef);
+      setModalAmount(parseFloat(monto));
       setShowQRModal(false);
       setShowSuccessModal(true);
       
@@ -548,7 +550,7 @@ export default function PagosWorkerPage() {
       <PaymentSuccessModal
         isOpen={showSuccessModal}
         onClose={handleCloseSuccessModal}
-        amount={parseFloat(monto) || 0}
+        amount={modalAmount}
         paymentMethod={selectedMetodo || ''}
         transactionRef={currentTransactionRef}
       />
