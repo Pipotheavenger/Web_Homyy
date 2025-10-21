@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
@@ -20,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   colors
 }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const router = useRouter();
 
   const handleNavigation = (href: string) => {
@@ -55,13 +55,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`flex items-center mb-6 ${collapsed ? 'flex-col space-y-2' : 'justify-between'}`}>
           <div className={`flex items-center ${collapsed ? 'flex-col' : 'space-x-3'}`}>
             <div className={`bg-white/20 rounded-xl flex items-center justify-center p-1 ${collapsed ? 'w-8 h-8' : 'w-10 h-10'}`}>
-              <Image
-                src="/logo.svg" 
-                alt="Logo Hommy" 
-                width={collapsed ? 24 : 32} 
-                height={collapsed ? 24 : 32}
-                className="filter brightness-0 invert"
-              />
+              {!imageError ? (
+                <img
+                  src="https://raw.githubusercontent.com/Pipotheavenger/Web_Homyy/master/public/Logo.svg" 
+                  alt="Logo Hommy" 
+                  width={collapsed ? 24 : 32} 
+                  height={collapsed ? 24 : 32}
+                  className="filter brightness-0 invert"
+                  onError={() => setImageError(true)}
+                  onLoad={() => setImageError(false)}
+                />
+              ) : (
+                <span className={`text-white font-bold ${collapsed ? 'text-sm' : 'text-lg'}`}>H</span>
+              )}
             </div>
             {!collapsed && (
               <div>
