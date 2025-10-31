@@ -69,7 +69,7 @@ export const FormInput = ({
           onChange={(e) => handleInputChange(e.target.value)}
           onFocus={onFocus}
           onBlur={onBlur}
-          className={`w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all duration-300 bg-white/70 backdrop-blur-sm placeholder-gray-400 font-medium text-sm sm:text-base ${
+          className={`w-full pl-10 pr-12 py-3 rounded-xl border-2 transition-all duration-300 bg-white/70 backdrop-blur-sm text-gray-900 placeholder-gray-400 font-medium text-sm sm:text-base ${
             error 
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
               : isFocused

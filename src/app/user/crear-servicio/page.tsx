@@ -123,7 +123,7 @@ export default function CrearServicioPage() {
                       onChange={(e) => handleInputChange('titulo', e.target.value)}
                       onFocus={() => setFocusedField('titulo')}
                       onBlur={() => setFocusedField(null)}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white placeholder-gray-400 font-medium ${focusedField === 'titulo' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white text-gray-900 placeholder-gray-400 font-medium ${focusedField === 'titulo' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
                     />
                   </div>
                 </div>
@@ -144,7 +144,7 @@ export default function CrearServicioPage() {
                       onFocus={() => setFocusedField('descripcion')}
                       onBlur={() => setFocusedField(null)}
                       rows={4}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white placeholder-gray-400 font-medium resize-none ${focusedField === 'descripcion' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white text-gray-900 placeholder-gray-400 font-medium resize-none ${focusedField === 'descripcion' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
                     />
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function CrearServicioPage() {
                       onChange={(e) => handleInputChange('categoria', e.target.value)}
                       onFocus={() => setFocusedField('categoria')}
                       onBlur={() => setFocusedField(null)}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white font-medium ${focusedField === 'categoria' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white text-gray-900 font-medium ${focusedField === 'categoria' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
                     >
                       <option value="">Seleccionar categoría</option>
                       {categories.map((category) => (
@@ -213,7 +213,7 @@ export default function CrearServicioPage() {
                         onChange={(e) => handleInputChange('barrio', e.target.value)}
                         onFocus={() => setFocusedField('barrio')}
                         onBlur={() => setFocusedField(null)}
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white placeholder-gray-400 font-medium ${focusedField === 'barrio' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
+                        className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white text-gray-900 placeholder-gray-400 font-medium ${focusedField === 'barrio' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
                       />
                     </div>
                   </div>

@@ -27,7 +27,7 @@ export const RecoverPasswordModal = ({ isOpen, onClose }: RecoverPasswordModalPr
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: `${globalThis.location?.origin || 'http://localhost:3000'}/auth/callback?type=recovery`
       });
 
       if (resetError) throw resetError;

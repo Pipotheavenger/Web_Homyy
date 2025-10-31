@@ -1,14 +1,7 @@
 {
   "mcpServers": {
     "supabase": {
-      "command": "supabase-mcp-server",
-      "args": [],
-      "env": {
-        "SUPABASE_PROJECT_REF": "tu_proyecto_ref_aqui",
-        "SUPABASE_DB_PASSWORD": "tu_password_db_aqui",
-        "SUPABASE_REGION": "us-east-1",
-        "SUPABASE_ACCESS_TOKEN": "tu_access_token_aqui"
-      }
+      "url": "https://mcp.supabase.com/mcp?project_ref=kclglwxssvtwderrqgks"
     }
   }
 }

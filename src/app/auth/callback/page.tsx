@@ -21,16 +21,40 @@ function AuthCallbackContent() {
         // Obtener los parámetros de la URL
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
+        const code = searchParams.get('code');
+        const type = searchParams.get('type');
         const errorParam = searchParams.get('error');
         const errorDescription = searchParams.get('error_description');
 
-        console.log('Auth callback params:', { accessToken, refreshToken, errorParam, errorDescription });
+        console.log('Auth callback params:', { accessToken, refreshToken, code, type, errorParam, errorDescription });
 
         if (errorParam) {
           console.error('Auth error:', errorParam, errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Error en la verificación. Intenta de nuevo.');
           return;
+        }
+
+        // Si hay un código de autorización, intercambiarlo por una sesión
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error('Error exchanging code:', exchangeError);
+            setStatus('error');
+            setMessage('Error al verificar el enlace. Intenta de nuevo.');
+            return;
+          }
+
+          // Verificar si es recuperación de contraseña
+          if (type === 'recovery') {
+            setStatus('success');
+            setMessage('Enlace verificado. Redirigiendo para cambiar tu contraseña...');
+            setTimeout(() => {
+              router.push('/auth/reset-password');
+            }, 2000);
+            return;
+          }
         }
 
         if (accessToken && refreshToken) {

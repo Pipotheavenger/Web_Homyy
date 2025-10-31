@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
+import { LogOut } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface SidebarProps {
   navigationItems: NavigationItem[];
@@ -20,10 +22,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
 
   const handleNavigation = (href: string) => {
     router.push(href);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error al cerrar sesión:', error);
+        alert('Error al cerrar sesión. Por favor, intenta de nuevo.');
+      } else {
+        // Limpiar cualquier dato local si es necesario
+        localStorage.removeItem('userType');
+        // Redirigir al login
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error inesperado al cerrar sesión:', error);
+      alert('Error inesperado. Por favor, intenta de nuevo.');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // Colores específicos para el sidebar
@@ -154,6 +178,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </nav>
+
+        {/* Botón de Cerrar Sesión */}
+        <div className={`${collapsed ? 'mt-4' : 'mt-8'} pt-4 border-t border-white/20`}>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className={`w-full flex items-center transition-all duration-300 ${
+              collapsed 
+                ? 'justify-center px-2 py-2' 
+                : 'space-x-3 px-4 py-3'
+            } rounded-xl ${currentColors.text} ${currentColors.hover} hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed group`}
+            title={collapsed ? 'Cerrar sesión' : undefined}
+          >
+            {isLoggingOut ? (
+              <div className={`${collapsed ? 'w-4 h-4' : 'w-5 h-5'} border-2 border-white/30 border-t-white rounded-full animate-spin`} />
+            ) : (
+              <LogOut 
+                size={collapsed ? 18 : 20} 
+                className="text-white group-hover:text-red-300 transition-colors" 
+              />
+            )}
+            {!collapsed && (
+              <div className="flex-1 text-left">
+                <div className="font-medium group-hover:text-red-300 transition-colors">
+                  {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+                </div>
+                <div className="text-xs opacity-75">Salir de tu cuenta</div>
+              </div>
+            )}
+          </button>
+        </div>
 
       </div>
     </aside>
