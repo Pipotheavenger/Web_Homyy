@@ -92,7 +92,7 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
                 value={precio}
                 onChange={(e) => setPrecio(e.target.value)}
                 placeholder="0"
-                className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
+                className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
                 min="0"
               />
             </div>
@@ -113,7 +113,7 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
               value={estimatedDuration}
               onChange={(e) => setEstimatedDuration(e.target.value)}
               placeholder="Ej: 3-4 horas, 2 días, etc."
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
             />
           </div>
 
@@ -127,7 +127,7 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
               onChange={(e) => setCoverLetter(e.target.value)}
               placeholder="Cuéntale al cliente por qué eres el mejor para este trabajo..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none resize-none"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none resize-none"
             />
           </div>
 

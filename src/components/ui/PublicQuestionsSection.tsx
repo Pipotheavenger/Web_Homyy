@@ -137,7 +137,7 @@ export const PublicQuestionsSection: React.FC<PublicQuestionsSectionProps> = ({
                           placeholder="Escribe tu respuesta..."
                           value={answerText}
                           onChange={(e) => setAnswerText(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none text-sm"
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none text-sm"
                           onKeyPress={(e) => e.key === 'Enter' && !submittingAnswer && handleAnswerQuestion(pregunta.id)}
                           disabled={submittingAnswer}
                         />

@@ -197,7 +197,7 @@ export default function DetalleTrabajoPage() {
                     placeholder="Escribe tu pregunta sobre este trabajo..."
                     value={nuevaPregunta}
                     onChange={(e) => setNuevaPregunta(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
                     onKeyPress={(e) => e.key === 'Enter' && !submittingQuestion && handleEnviarPregunta()}
                     disabled={submittingQuestion}
                   />

@@ -104,13 +104,21 @@ export const workerStatsService = {
       }
 
       // Obtener calificación promedio desde reviews
-      const { data: reviews, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('professional_id', professional?.id || '');
-
-      if (reviewsError) {
-        console.error('Error fetching reviews:', reviewsError);
+      let reviews = null;
+      let reviewsError = null;
+      
+      if (professional?.id) {
+        const result = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('professional_id', professional.id);
+        
+        reviews = result.data;
+        reviewsError = result.error;
+        
+        if (reviewsError) {
+          console.error('Error fetching reviews:', reviewsError);
+        }
       }
 
       // Calcular estadísticas
