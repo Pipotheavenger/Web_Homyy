@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { serviceService, applicationsService, bookingsService, questionsService, escrowService } from '@/lib/services';
+import { chatService } from '@/lib/api/chat';
 import { formatDate, formatPrice } from '@/lib/utils/empty-state-helpers';
 
 export const useDetallesPostulantes = () => {
@@ -221,6 +222,27 @@ export const useDetallesPostulantes = () => {
       );
       
       if (response.success) {
+        // Obtener el booking que se acaba de crear
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('service_id', serviceId)
+          .eq('worker_id', candidateToConfirm.workerId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        // Crear el chat automáticamente
+        if (bookings && bookings.length > 0) {
+          const bookingId = bookings[0].id;
+          const chatResponse = await chatService.getOrCreateChat(bookingId);
+          
+          if (chatResponse.success) {
+            console.log('✅ Chat creado automáticamente para el booking:', bookingId);
+          } else {
+            console.warn('⚠️ No se pudo crear el chat automáticamente:', chatResponse.error);
+          }
+        }
+
         setSelectedCandidate(candidateToConfirm.id);
         setShowConfirmationModal(false);
         setCandidateToConfirm(null);

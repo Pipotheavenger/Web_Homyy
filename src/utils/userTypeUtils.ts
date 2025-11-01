@@ -37,6 +37,12 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
         description: 'Buscar trabajos disponibles'
       },
       {
+        label: 'Chats',
+        href: '/worker/chats',
+        icon: MessageCircle,
+        description: 'Mensajes con clientes'
+      },
+      {
         label: 'Pagos',
         href: '/worker/pagos',
         icon: DollarSign,
@@ -59,7 +65,7 @@ export const getNavigationItems = (userType: UserType): NavigationItem[] => {
       },
       {
         label: 'Chats',
-        href: '/chats',
+        href: '/user/chats',
         icon: MessageCircle,
         description: 'Mensajes y conversaciones'
       },
@@ -125,6 +131,14 @@ export const getPageConfig = (userType: UserType, page: string): PageConfig => {
         title: 'Dashboard del Trabajador',
         description: 'Panel principal para profesionales',
         breadcrumbs: [{ label: 'Dashboard', active: true }]
+      },
+      chats: {
+        title: 'Chats',
+        description: 'Mensajes con clientes',
+        breadcrumbs: [
+          { label: 'Inicio', href: '/worker/dashboard' },
+          { label: 'Chats', active: true }
+        ]
       },
       historial: {
         title: 'Historial de Trabajos',
