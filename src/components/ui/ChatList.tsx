@@ -47,9 +47,9 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
           <MessageCircle size={24} className="text-purple-600" />
           Mensajes
@@ -60,7 +60,7 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
       </div>
 
       {/* Chat list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {chats.map((chat) => {
           const otherUser = getOtherUser(chat);
           const isSelected = chat.id === selectedChatId;

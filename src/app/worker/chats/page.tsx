@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageCircle, ArrowLeft } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { ChatList } from '@/components/ui/ChatList';
 import { ChatWindow } from '@/components/ui/ChatWindow';
@@ -27,10 +27,6 @@ export default function WorkerChatsPage() {
     return await sendMessage(message, selectedChat.id);
   };
 
-  const handleBackToList = () => {
-    setSelectedChat(null);
-  };
-
   if (loading && chats.length === 0) {
     return (
       <Layout>
@@ -42,80 +38,67 @@ export default function WorkerChatsPage() {
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <div className="container mx-auto px-4 py-8">
-          {/* Empty state if no chats */}
-          {chats.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+    <Layout currentPage="chats">
+      <div className="h-[calc(100vh-96px)] min-h-0 p-4">
+        {/* Empty state if no chats */}
+        {chats.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md">
               <EmptyState
                 icon={<MessageCircle size={32} className="text-purple-500" />}
                 title="No tienes conversaciones activas"
                 description="Aquí podrás conversar con los clientes que contraten tus servicios. Una vez acepten tu postulación, podrás chatear con ellos para coordinar los detalles del trabajo."
               />
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-3 h-[calc(100vh-12rem)]">
-                {/* Chat List */}
-                <div
-                  className={`lg:col-span-1 border-r border-gray-200 ${
-                    selectedChat ? 'hidden lg:block' : 'block'
-                  }`}
-                >
-                  <ChatList
-                    chats={chats}
-                    selectedChatId={selectedChat?.id}
-                    onSelectChat={handleSelectChat}
+          </div>
+        ) : (
+          <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Chat List */}
+            <aside
+              className={`min-h-0 overflow-hidden rounded-2xl bg-white shadow-lg ${
+                selectedChat ? 'hidden lg:block' : 'block'
+              }`}
+            >
+              <ChatList
+                chats={chats}
+                selectedChatId={selectedChat?.id}
+                onSelectChat={handleSelectChat}
+                currentUserId={user?.id || ''}
+              />
+            </aside>
+
+            {/* Chat Window */}
+            <section
+              className={`lg:col-span-2 min-h-0 rounded-2xl bg-white shadow-lg ${
+                selectedChat ? 'block' : 'hidden lg:block'
+              }`}
+            >
+              {selectedChat ? (
+                <div className="h-full min-h-0">
+                  <ChatWindow
+                    chat={selectedChat}
+                    messages={messages}
                     currentUserId={user?.id || ''}
+                    onSendMessage={handleSendMessage}
+                    sending={sending}
                   />
                 </div>
-
-                {/* Chat Window */}
-                <div
-                  className={`lg:col-span-2 ${
-                    selectedChat ? 'block' : 'hidden lg:block'
-                  }`}
-                >
-                  {selectedChat ? (
-                    <div className="h-full flex flex-col">
-                      {/* Mobile back button */}
-                      <button
-                        onClick={handleBackToList}
-                        className="lg:hidden flex items-center gap-2 p-3 border-b border-gray-200 bg-white hover:bg-gray-50"
-                      >
-                        <ArrowLeft size={20} className="text-purple-600" />
-                        <span className="text-sm font-medium text-gray-700">
-                          Volver a chats
-                        </span>
-                      </button>
-
-                      <ChatWindow
-                        chat={selectedChat}
-                        messages={messages}
-                        currentUserId={user?.id || ''}
-                        onSendMessage={handleSendMessage}
-                        sending={sending}
-                      />
-                    </div>
-                  ) : (
-                    <div className="hidden lg:flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-purple-50 to-pink-50">
-                      <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
-                        <MessageCircle size={48} className="text-purple-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">
-                        Selecciona una conversación
-                      </h3>
-                      <p className="text-sm text-gray-600 max-w-sm">
-                        Elige un chat de la lista para comenzar a conversar con tus clientes
-                      </p>
-                    </div>
-                  )}
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-4">
+                    <MessageCircle size={48} className="text-purple-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    Selecciona una conversación
+                  </h3>
+                  <p className="text-sm text-gray-600 max-w-sm">
+                    Elige un chat de la lista para comenzar a conversar con tus clientes
+                  </p>
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
+              )}
+            </section>
+          </div>
+        )}
       </div>
     </Layout>
   );

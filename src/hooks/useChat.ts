@@ -148,15 +148,26 @@ export const useChat = (chatId?: string) => {
       // Marcar como leído automáticamente si no soy el emisor
       chatService.markMessagesAsRead(chatId);
       
-      // Recargar lista de chats para actualizar "último mensaje"
-      loadChats();
+      // Actualizar la lista de chats sin recargar todo
+      setChats(prevChats => {
+        return prevChats.map(chat => {
+          if (chat.id === chatId) {
+            return {
+              ...chat,
+              last_message: newMessage.message,
+              last_message_at: newMessage.created_at
+            };
+          }
+          return chat;
+        });
+      });
     });
 
     return () => {
       console.log('🔕 useChat: Desuscribiéndose de mensajes');
       unsubscribe();
     };
-  }, [chatId, loadChats]);
+  }, [chatId]);
 
   return {
     chats,
