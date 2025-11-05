@@ -20,12 +20,12 @@ export const TopProfessionals = ({ professionals }: TopProfessionalsProps) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-gray-800">Profesionales Destacados</h3>
+    <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h3 className="text-lg md:text-xl font-bold text-gray-800">Profesionales Destacados</h3>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-3 md:space-y-4">
         {professionals.map((worker) => (
           <div key={worker.id} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">

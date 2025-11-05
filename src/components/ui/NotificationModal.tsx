@@ -113,7 +113,7 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
 
   const modalContent = (
     <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[9999] p-0 md:p-4"
       style={{ zIndex: 9999 }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -122,12 +122,12 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
       }}
     >
       <div 
-        className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-gray-200 flex flex-col max-h-[85vh] min-h-[400px] relative"
-        style={{ zIndex: 10000, maxHeight: '85vh' }}
+        className="bg-white rounded-t-3xl md:rounded-2xl md:max-w-2xl w-full md:w-auto shadow-2xl border border-gray-200 flex flex-col max-h-[90vh] md:max-h-[85vh] min-h-[400px] md:min-h-[400px] relative m-0 md:m-4"
+        style={{ zIndex: 10000 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
               <Bell size={20} className="text-purple-600" />
@@ -158,7 +158,7 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
         </div>
 
         {/* Lista de notificaciones */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 min-h-0 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3 md:px-4 py-4 min-h-0 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>

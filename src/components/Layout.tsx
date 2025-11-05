@@ -35,16 +35,18 @@ export default function Layout({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
-        {/* Sidebar */}
-        <Sidebar 
-          navigationItems={navigationItems}
-          currentPage={currentPage}
-          userType={userType}
-          colors={colors}
-        />
+        {/* Sidebar - Oculto en móvil */}
+        <div className="hidden md:block">
+          <Sidebar 
+            navigationItems={navigationItems}
+            currentPage={currentPage}
+            userType={userType}
+            colors={colors}
+          />
+        </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col w-full md:w-auto min-w-0 overflow-x-hidden">
           {/* Header - Siempre visible con campana de notificaciones */}
           <Header
             title={finalTitle}
@@ -55,6 +57,8 @@ export default function Layout({
             userType={userType}
             colors={colors}
             showNotifications={true}
+            navigationItems={navigationItems}
+            currentPage={currentPage}
           />
 
           {/* Page Content */}

@@ -59,8 +59,8 @@ export const RecoverPasswordModal = ({ isOpen, onClose }: RecoverPasswordModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 relative animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in">
+      <div className="bg-white rounded-t-3xl md:rounded-2xl md:max-w-md w-full md:w-auto p-6 relative animate-scale-in m-0 md:m-4">
         {/* Botón cerrar */}
         {!isLoading && (
           <button

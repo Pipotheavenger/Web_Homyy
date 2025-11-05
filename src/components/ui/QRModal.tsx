@@ -57,8 +57,8 @@ export const QRModal = ({ isOpen, onClose, metodoPago, monto, onConfirmPayment }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(116,63,198,0.15)] border border-white/40 my-8 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-0 md:p-4 overflow-y-auto">
+      <div className="bg-white/95 backdrop-blur-md rounded-t-3xl md:rounded-2xl md:max-w-md w-full md:w-auto shadow-[0_20px_60px_rgba(116,63,198,0.15)] border border-white/40 my-0 md:my-8 max-h-[90vh] flex flex-col m-0 md:m-4">
         <div className="p-4 overflow-y-auto flex-1">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">

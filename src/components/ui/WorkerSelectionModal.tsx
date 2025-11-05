@@ -76,13 +76,13 @@ export const WorkerSelectionModal = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4 overflow-y-auto"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl max-w-md w-full shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden my-8 max-h-[90vh] flex flex-col"
+          className="bg-white rounded-t-3xl md:rounded-2xl md:max-w-md w-full md:w-auto shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden my-0 md:my-8 max-h-[90vh] flex flex-col m-0 md:m-4"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 p-4 text-white relative overflow-hidden flex-shrink-0">

@@ -54,8 +54,8 @@ export const PaymentSuccessModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-[0_20px_80px_rgba(0,0,0,0.3)] overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-0 md:p-4 animate-fadeIn">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl md:max-w-md w-full md:w-auto shadow-[0_20px_80px_rgba(0,0,0,0.3)] overflow-hidden m-0 md:m-4">
         {/* Header with gradient */}
         <div className="relative bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 p-8 text-white overflow-hidden">
           {/* Animated background circles */}

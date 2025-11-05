@@ -263,56 +263,58 @@ export default function PagosPage() {
       onBackClick={handleVolver}
       currentPage="pagos"
     >
-      <div className="p-4 sm:p-6 bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-blue-50/30 min-h-screen">
+      <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-blue-50/30 min-h-screen max-w-full overflow-x-hidden">
         {/* Balance Card */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Wallet size={24} className="text-white" />
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-4 sm:p-6 mb-4 sm:mb-6 w-full max-w-full overflow-hidden">
+          {/* Layout vertical para pantallas <425px, horizontal para pantallas más grandes */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+            <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <Wallet size={20} className="sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Balance Disponible</h2>
-                <p className="text-gray-600 text-sm">Tu saldo actual</p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 break-words">Balance Disponible</h2>
+                <p className="text-gray-600 text-xs sm:text-sm">Tu saldo actual</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right w-full sm:w-auto">
               {loading ? (
                 <div className="animate-pulse">
-                  <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="h-6 sm:h-8 bg-gray-200 rounded w-full sm:w-32 mb-2"></div>
+                  <div className="h-3 sm:h-4 bg-gray-200 rounded w-16"></div>
                 </div>
               ) : (
                 <>
-                  <div className="text-3xl font-bold text-purple-600">{formatPrice(balance)}</div>
-                  <div className="text-gray-600 text-sm">COP</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-purple-600 break-words">{formatPrice(balance)}</div>
+                  <div className="text-gray-600 text-xs sm:text-sm">COP</div>
                 </>
               )}
             </div>
           </div>
           
-          <div className="flex gap-4">
+          {/* Botones en vertical para pantallas <425px, horizontal para pantallas más grandes */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={handleRecargar}
-              className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2.5 sm:py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm sm:text-base"
             >
-              <TrendingUp size={20} />
+              <TrendingUp size={18} className="sm:w-5 sm:h-5" />
               Recargar Cuenta
             </button>
             <button
               onClick={() => setShowRetirar(true)}
               disabled={balance <= 0}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 sm:py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
-              <TrendingDown size={20} />
+              <TrendingDown size={18} className="sm:w-5 sm:h-5" />
               Retirar Dinero
             </button>
           </div>
         </div>
 
         {/* Transaction History */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Historial de Transacciones</h3>
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-4 sm:p-6 w-full max-w-full overflow-hidden">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Historial de Transacciones</h3>
           
           {loading ? (
             <div className="space-y-4">
@@ -321,36 +323,37 @@ export default function PagosPage() {
               ))}
             </div>
           ) : transactions.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className={`bg-gradient-to-r ${getStatusColor(transaction.status)} border rounded-xl p-4`}
+                  className={`bg-gradient-to-r ${getStatusColor(transaction.status)} border rounded-xl p-3 sm:p-4 w-full max-w-full overflow-hidden`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      {getTypeIcon(transaction.type)}
-                      <div>
-                        <h4 className="font-semibold text-gray-800">
+                  {/* Layout vertical para pantallas <425px, horizontal para pantallas más grandes */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                    <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1">
+                      <div className="flex-shrink-0">{getTypeIcon(transaction.type)}</div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base break-words">
                           {transaction.type === 'recarga' ? 'Recarga' : 
                            transaction.type === 'debito' ? 'Pago de Servicio' : 'Retiro'} {transaction.payment_method.toUpperCase()}
                         </h4>
-                        <p className="text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
                         {transaction.transaction_reference && (
-                          <p className="text-xs text-gray-500 font-mono">{transaction.transaction_reference}</p>
+                          <p className="text-xs text-gray-500 font-mono break-all">{transaction.transaction_reference}</p>
                         )}
                         {transaction.description && (
-                          <p className="text-xs text-gray-500">{transaction.description}</p>
+                          <p className="text-xs text-gray-500 break-words">{transaction.description}</p>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`font-semibold ${
+                    <div className="text-left sm:text-right w-full sm:w-auto flex-shrink-0">
+                      <div className={`font-semibold text-base sm:text-lg ${
                         transaction.type === 'recarga' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      } break-words`}>
                         {transaction.type === 'recarga' ? '+' : '-'}{formatPrice(Number(transaction.amount))}
                       </div>
-                      <div className="flex items-center space-x-1 text-sm">
+                      <div className="flex items-center space-x-1 text-xs sm:text-sm mt-1">
                         {getStatusIcon(transaction.status)}
                         <span className="text-gray-600">{getStatusText(transaction.status)}</span>
                       </div>

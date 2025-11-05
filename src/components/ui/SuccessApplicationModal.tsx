@@ -17,8 +17,8 @@ export const SuccessApplicationModal: React.FC<SuccessApplicationModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-0 md:p-4">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl md:max-w-md w-full md:w-auto overflow-hidden animate-in fade-in-0 zoom-in-95 duration-300 m-0 md:m-4">
         {/* Header con gradiente */}
         <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>

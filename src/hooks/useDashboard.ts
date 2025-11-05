@@ -33,35 +33,40 @@ export const useDashboard = () => {
     cache.set(key, { data, timestamp: Date.now() });
   }, []);
 
-  // Cargar datos básicos optimizados
+  // Cargar datos básicos optimizados - solo lo esencial
   const loadBasicData = useCallback(async () => {
     try {
       // Verificar caché para datos que no cambian frecuentemente
       const cachedCategories = getCachedData('categories');
       const cachedWorkers = getCachedData('topWorkers');
       
-      const promises = [
+      // Cargar solo lo esencial primero: perfil y servicios
+      const [profileResponse, servicesResponse] = await Promise.all([
         profileService.getProfile(),
-        serviceService.getUserServices(),
+        serviceService.getUserServices()
+      ]);
+
+      // Cargar stats y categorías/trabajadores en paralelo (no bloquean la UI)
+      const secondaryPromises = [
         statsService.getDashboardStats()
       ];
 
       // Solo cargar categorías y trabajadores si no están en caché
       if (!cachedCategories) {
-        promises.push(categoryService.getAll());
+        secondaryPromises.push(categoryService.getAll());
       }
       if (!cachedWorkers) {
-        promises.push(workerService.getAll({ is_available: true }));
+        secondaryPromises.push(workerService.getAll({ is_available: true, limit: 5 }));
       }
 
-      const results = await Promise.all(promises);
+      const secondaryResults = await Promise.all(secondaryPromises);
       
       return {
-        profileResponse: results[0],
-        servicesResponse: results[1],
-        statsResponse: results[2],
-        categoriesResponse: cachedCategories ? { success: true, data: cachedCategories } : results[3],
-        workersResponse: cachedWorkers ? { success: true, data: cachedWorkers } : results[4]
+        profileResponse,
+        servicesResponse,
+        statsResponse: secondaryResults[0],
+        categoriesResponse: cachedCategories ? { success: true, data: cachedCategories } : secondaryResults[1],
+        workersResponse: cachedWorkers ? { success: true, data: cachedWorkers } : secondaryResults[2]
       };
     } catch (error) {
       throw error;
@@ -76,13 +81,13 @@ export const useDashboard = () => {
         // Cargar datos básicos optimizados
         const { profileResponse, servicesResponse, categoriesResponse, workersResponse, statsResponse } = await loadBasicData();
 
-        // Procesar perfil del usuario
+        // Procesar perfil del usuario (crítico - mostrar nombre rápido)
         if (profileResponse.success && profileResponse.data) {
           const firstName = profileResponse.data.name?.split(' ')[0] || 'Usuario';
           setUserName(firstName);
         }
 
-        // Procesar servicios
+        // Procesar servicios (crítico - mostrar servicios rápido)
         if (servicesResponse.success && servicesResponse.data) {
           const activeServices = servicesResponse.data.filter(
             (service: Service) => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
@@ -90,37 +95,44 @@ export const useDashboard = () => {
           
           setServices(activeServices);
           
-          // Marcar carga inicial como completa después de cargar servicios
+          // Marcar carga inicial como completa INMEDIATAMENTE después de servicios
           setInitialLoadComplete(true);
+          setLoading(false); // ✅ Quitar loading temprano
           
           // Cargar datos relacionados de forma asíncrona (no bloquea la UI)
-          loadServiceRelatedData(activeServices);
+          loadServiceRelatedData(activeServices).catch(err => {
+            console.error('Error cargando datos relacionados:', err);
+          });
         }
 
-        // Procesar otros datos y guardar en caché
-        if (categoriesResponse.success && categoriesResponse.data) {
+        // Procesar otros datos en segundo plano (no bloquean)
+        if (categoriesResponse?.success && categoriesResponse.data) {
           setCategories(categoriesResponse.data);
           setCachedData('categories', categoriesResponse.data);
         }
 
-        if (workersResponse.success && workersResponse.data) {
-          const topWorkersData = workersResponse.data.slice(0, 5);
+        if (workersResponse?.success && workersResponse.data) {
+          const topWorkersData = Array.isArray(workersResponse.data) 
+            ? workersResponse.data.slice(0, 5)
+            : [];
           setTopWorkers(topWorkersData);
-          setCachedData('topWorkers', workersResponse.data);
+          if (Array.isArray(workersResponse.data)) {
+            setCachedData('topWorkers', workersResponse.data);
+          }
         }
 
-        if (statsResponse.success && statsResponse.data) {
+        if (statsResponse?.success && statsResponse.data) {
           setStats(statsResponse.data);
         }
 
       } catch (err) {
         setError('Error al cargar los datos del dashboard');
-      } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadServiceRelatedData = useCallback(async (activeServices: Service[]) => {
@@ -130,38 +142,33 @@ export const useDashboard = () => {
       
       if (!user || activeServices.length === 0) return;
 
-      // Obtener todos los IDs de servicios
-      const serviceIds = activeServices.map(s => s.id);
+      // Limitar a solo los primeros servicios para evitar cargar demasiado
+      const servicesToLoad = activeServices.slice(0, 10);
+      const serviceIds = servicesToLoad.map(s => s.id);
       
-      // Ejecutar todas las consultas en paralelo para máxima eficiencia
-      const [applicationsResult, reviewsResult, professionalsResult] = await Promise.allSettled([
-        // Cargar aplicaciones
-        supabase
-          .from('applications')
-          .select(`
-            service_id,
-            status,
-            worker_id
-          `)
-          .in('service_id', serviceIds),
+      // Solo servicios completados necesitan verificar reseñas
+      const completedServices = servicesToLoad.filter(s => s.status === 'completed');
+      const completedServiceIds = completedServices.map(s => s.id);
+      
+      // Ejecutar consultas optimizadas en paralelo
+      const [applicationsResult, reviewsResult] = await Promise.allSettled([
+        // Cargar aplicaciones solo para servicios que necesitan verificación
+        serviceIds.length > 0
+          ? supabase
+              .from('applications')
+              .select('service_id, status, worker_id')
+              .in('service_id', serviceIds)
+              .limit(50) // Limitar resultados
+          : Promise.resolve({ data: [] }),
         
         // Cargar reseñas solo para servicios completados
-        (() => {
-          const completedServiceIds = activeServices
-            .filter(s => s.status === 'completed')
-            .map(s => s.id);
-          
-          return completedServiceIds.length > 0 
-            ? supabase
-                .from('reviews')
-                .select('service_id, professional_id')
-                .in('service_id', completedServiceIds)
-                .eq('reviewer_id', user.id)
-            : Promise.resolve({ data: [] });
-        })(),
-        
-        // Cargar profesionales (se ejecutará después de obtener worker_ids)
-        Promise.resolve({ data: [] })
+        completedServiceIds.length > 0
+          ? supabase
+              .from('reviews')
+              .select('service_id, professional_id')
+              .in('service_id', completedServiceIds)
+              .eq('reviewer_id', user.id)
+          : Promise.resolve({ data: [] })
       ]);
 
       // Obtener datos de aplicaciones
@@ -174,55 +181,41 @@ export const useDashboard = () => {
         ? reviewsResult.value.data 
         : [];
 
-      // Obtener nombres de trabajadores por separado
-      const workerIds = [...new Set(
-        allApplications?.map(app => app.worker_id).filter(Boolean) || []
-      )];
-
-      let workers = [];
-      if (workerIds.length > 0) {
-        const { data: workersData, error: workersError } = await supabase
-          .from('user_profiles')
-          .select('user_id, name')
-          .in('user_id', workerIds);
-
-        if (workersError) {
-          console.warn('Error obteniendo trabajadores:', workersError);
-        } else {
-          workers = workersData || [];
-        }
-      }
-
-      // Obtener professional_ids para trabajadores (ya obtenidos arriba)
-
-      // Cargar profesionales si hay worker_ids
-      const { data: professionals } = workerIds.length > 0 
-        ? await supabase
-            .from('professionals')
-            .select('id, user_id')
-            .in('user_id', workerIds) 
-        : { data: [] };
-
-      // Procesar datos de forma optimizada
+      // Solo procesar servicios completados para verificar reseñas
       const reviewed: Record<string, boolean> = {};
 
-      activeServices.forEach(service => {
-        const serviceApplications = allApplications?.filter(app => app.service_id === service.id) || [];
-        
-        if (service.status === 'completed') {
-          // Verificar si ya tiene reseña (solo para completados)
-          const acceptedApplication = serviceApplications.find(app => app.status === 'accepted');
-          if (acceptedApplication) {
-            const professional = professionals?.find(p => p.user_id === acceptedApplication.worker_id);
-            if (professional) {
-              const hasReview = existingReviews?.some(review => 
-                review.service_id === service.id && review.professional_id === professional.id
-              );
-              reviewed[service.id] = !!hasReview;
+      // Si hay servicios completados, cargar datos de profesionales de forma optimizada
+      if (completedServices.length > 0) {
+        // Obtener worker_ids únicos de aplicaciones aceptadas
+        const acceptedApplications = allApplications?.filter(app => app.status === 'accepted') || [];
+        const workerIds = [...new Set(
+          acceptedApplications.map(app => app.worker_id).filter(Boolean)
+        )];
+
+        if (workerIds.length > 0) {
+          // Cargar profesionales en una sola query optimizada
+          const { data: professionals } = await supabase
+            .from('professionals')
+            .select('id, user_id')
+            .in('user_id', workerIds);
+
+          // Procesar solo servicios completados
+          completedServices.forEach(service => {
+            const serviceApplications = allApplications?.filter(app => app.service_id === service.id) || [];
+            const acceptedApplication = serviceApplications.find(app => app.status === 'accepted');
+            
+            if (acceptedApplication && professionals) {
+              const professional = professionals.find(p => p.user_id === acceptedApplication.worker_id);
+              if (professional) {
+                const hasReview = existingReviews?.some(review => 
+                  review.service_id === service.id && review.professional_id === professional.id
+                );
+                reviewed[service.id] = !!hasReview;
+              }
             }
-          }
+          });
         }
-      });
+      }
 
       setReviewedServices(reviewed);
 

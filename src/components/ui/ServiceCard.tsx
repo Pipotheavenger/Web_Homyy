@@ -178,7 +178,7 @@ const ServiceCard = memo(({ service, categories, hasReviewed, onViewDetails, onD
 
   return (
     <div 
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer group"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-lg hover:shadow-blue-100/50 transition-all duration-300 cursor-pointer group w-full max-w-full overflow-hidden"
       onClick={() => onViewDetails(service.id)}
     >
       {/* Header con categoría, título y botón de eliminar */}
@@ -191,7 +191,7 @@ const ServiceCard = memo(({ service, categories, hasReviewed, onViewDetails, onD
           
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-1">
-              <h3 className="font-semibold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">
+              <h3 className="font-semibold text-gray-900 text-base md:text-lg group-hover:text-blue-600 transition-colors break-words">
                 {service.title}
               </h3>
               <button

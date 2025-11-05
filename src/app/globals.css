@@ -50,9 +50,14 @@ button:active {
 /* Scroll suave global para look nativo */
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Tipografía antialiased siempre */
 body {
   font-feature-settings: "liga";
+  overflow-x: hidden;
+  max-width: 100vw;
+  position: relative;
 }

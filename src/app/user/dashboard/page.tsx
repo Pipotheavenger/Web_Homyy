@@ -169,17 +169,17 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" currentPage="dashboard">
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
         <WelcomeBanner userName={userName} onCreateService={handleCrearServicio} />
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Mis Servicios</h3>
+        <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="lg:col-span-2 min-w-0">
+            <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h3 className="text-lg md:text-xl font-bold text-gray-800">Mis Servicios</h3>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {!initialLoadComplete ? (
                   <SkeletonLoader type="service-card" count={3} />
                 ) : services.length > 0 ? (
@@ -213,9 +213,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 min-w-0">
             {!initialLoadComplete ? (
-              <div className="bg-white rounded-2xl shadow-sm border p-6">
+              <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
                 <SkeletonLoader type="text" />
               </div>
             ) : (

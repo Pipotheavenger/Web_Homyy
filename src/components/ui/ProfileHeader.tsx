@@ -65,12 +65,13 @@ export const ProfileHeader = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center space-x-4">
+    <div className="bg-white rounded-2xl shadow-sm border p-4 lg:p-6 mb-4 lg:mb-6 w-full max-w-full overflow-hidden">
+      {/* Layout vertical para pantallas <830px, horizontal para pantallas más grandes */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4 lg:mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center space-y-3 lg:space-y-0 lg:space-x-4 w-full lg:w-auto mb-4 lg:mb-0">
           {/* Foto de perfil */}
-          <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center text-2xl text-white font-bold">
+          <div className="relative flex-shrink-0 self-center lg:self-auto">
+            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center text-xl lg:text-2xl text-white font-bold">
               {usuario.foto ? (
                 <img
                   src={usuario.foto}
@@ -84,24 +85,24 @@ export const ProfileHeader = ({
           </div>
 
           {/* Información básica */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">
+          <div className="text-center lg:text-left flex-1 min-w-0">
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-800 mb-1 break-words">
               {usuario.nombre} {usuario.apellido}
             </h1>
             
             {/* Calificación */}
-            <div className="flex items-center space-x-2 mb-2">
+            <div className="flex items-center justify-center lg:justify-start space-x-2 mb-2 flex-wrap gap-1">
               <div className="flex items-center space-x-1">
                 {renderStars(usuario.calificacion)}
               </div>
-              <span className="text-sm font-medium text-gray-700">{usuario.calificacion.toFixed(1)}</span>
-              <span className="text-sm text-gray-500">({usuario.serviciosCompletados} servicios)</span>
+              <span className="text-xs lg:text-sm font-medium text-gray-700">{usuario.calificacion.toFixed(1)}</span>
+              <span className="text-xs lg:text-sm text-gray-500 break-words">({usuario.serviciosCompletados} servicios)</span>
             </div>
 
             {/* Mensaje creativo de tiempo de cuenta */}
-            <div className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200/40 rounded-full w-fit">
-              <Sparkles size={14} className="text-purple-500" />
-              <span className="text-xs font-medium text-purple-700">
+            <div className="flex items-center justify-center lg:justify-start space-x-2 px-2 lg:px-3 py-1 lg:py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200/40 rounded-full w-full lg:w-fit">
+              <Sparkles size={12} className="lg:w-3.5 lg:h-3.5 text-purple-500 flex-shrink-0" />
+              <span className="text-xs font-medium text-purple-700 break-words text-center lg:text-left">
                 {getCreativeMessage()}
               </span>
             </div>
@@ -110,39 +111,39 @@ export const ProfileHeader = ({
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-r from-[#743fc6]/10 to-[#8a5fd1]/10 rounded-xl p-4 border border-[#743fc6]/20">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+        <div className="bg-gradient-to-r from-[#743fc6]/10 to-[#8a5fd1]/10 rounded-xl p-3 lg:p-4 border border-[#743fc6]/20 w-full max-w-full overflow-hidden">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#743fc6] rounded-lg flex items-center justify-center">
-              <Award size={20} className="text-white" />
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[#743fc6] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Award size={18} className="lg:w-5 lg:h-5 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Servicios Completados</p>
-              <p className="text-xl font-bold text-gray-800">{usuario.serviciosCompletados}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs lg:text-sm text-gray-600 break-words">Servicios Completados</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-800 break-words">{usuario.serviciosCompletados}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-[#fbbc6c]/10 to-[#f9b055]/10 rounded-xl p-4 border border-[#fbbc6c]/20">
+        <div className="bg-gradient-to-r from-[#fbbc6c]/10 to-[#f9b055]/10 rounded-xl p-3 lg:p-4 border border-[#fbbc6c]/20 w-full max-w-full overflow-hidden">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#fbbc6c] rounded-lg flex items-center justify-center">
-              <Clock size={20} className="text-white" />
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-[#fbbc6c] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Clock size={18} className="lg:w-5 lg:h-5 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Servicios Activos</p>
-              <p className="text-xl font-bold text-gray-800">{usuario.serviciosActivos}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs lg:text-sm text-gray-600 break-words">Servicios Activos</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-800 break-words">{usuario.serviciosActivos}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 rounded-xl p-4 border border-green-500/20">
+        <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 rounded-xl p-3 lg:p-4 border border-green-500/20 w-full max-w-full overflow-hidden">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-              <DollarSign size={20} className="text-white" />
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <DollarSign size={18} className="lg:w-5 lg:h-5 text-white" />
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Balance</p>
-              <p className="text-xl font-bold text-gray-800">{formatPrice(usuario.balance)}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs lg:text-sm text-gray-600 break-words">Balance</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-800 break-words">{formatPrice(usuario.balance)}</p>
             </div>
           </div>
         </div>

@@ -52,8 +52,8 @@ export const ApplicationModal = ({ isOpen, onClose, trabajo, onSubmit }: Applica
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="bg-white rounded-t-3xl md:rounded-2xl md:max-w-md w-full md:w-auto p-6 relative m-0 md:m-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
