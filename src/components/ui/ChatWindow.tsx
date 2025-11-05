@@ -60,9 +60,9 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
     // 👇 importante: min-h-0 para permitir overflow del hijo
     <div className="h-full min-h-0 flex flex-col bg-white">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
             {otherUser?.profile_picture_url ? (
               <img src={otherUser.profile_picture_url} alt={otherUser.name} className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -88,7 +88,7 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
           ref={scrollRef}
           className="h-full overflow-y-auto overscroll-contain scroll-smooth"
         >
-          <div className="p-4 space-y-3">
+          <div className="px-4 py-3 space-y-2.5">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-3">
@@ -107,8 +107,8 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
                     <div key={message.id} className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                       {showAvatar ? (
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isOwn ? 'bg-gradient-to-br from-purple-500 to-pink-500' : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ${
+                            isOwn ? 'bg-gradient-to-br from-purple-500 to-pink-500 ring-purple-200' : 'bg-gradient-to-br from-gray-400 to-gray-500 ring-gray-200'
                           }`}
                         >
                           {message.sender?.profile_picture_url ? (
@@ -125,10 +125,10 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
 
                       <div className={`flex flex-col max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
                         <div
-                          className={`px-3 py-2 rounded-2xl ${
+                          className={`px-3 py-2 rounded-2xl shadow-sm ${
                             isOwn
                               ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-tr-none'
-                              : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                              : 'bg-gray-100 text-gray-900 rounded-tl-none border border-gray-200'
                           }`}
                         >
                           <p className="text-sm break-words">{message.message}</p>
@@ -148,7 +148,7 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
+      <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50/50 to-purple-50/30 flex-shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -157,12 +157,12 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Escribe un mensaje..."
             disabled={sending}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-400 disabled:bg-gray-100"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-gray-900 placeholder-gray-400 disabled:bg-gray-100 shadow-sm"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || sending}
-            className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-md hover:shadow-lg"
           >
             {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>

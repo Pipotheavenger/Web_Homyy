@@ -39,11 +39,11 @@ export default function WorkerChatsPage() {
 
   return (
     <Layout currentPage="chats">
-      <div className="h-[calc(100vh-96px)] min-h-0 p-4">
+      <div className="h-[calc(100vh-96px)] min-h-0 p-2 sm:p-3">
         {/* Empty state if no chats */}
         {chats.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 max-w-md">
               <EmptyState
                 icon={<MessageCircle size={32} className="text-purple-500" />}
                 title="No tienes conversaciones activas"
@@ -52,10 +52,10 @@ export default function WorkerChatsPage() {
             </div>
           </div>
         ) : (
-          <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-3">
             {/* Chat List */}
             <aside
-              className={`min-h-0 overflow-hidden rounded-2xl bg-white shadow-lg ${
+              className={`min-h-0 overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-200 ${
                 selectedChat ? 'hidden lg:block' : 'block'
               }`}
             >
@@ -69,7 +69,7 @@ export default function WorkerChatsPage() {
 
             {/* Chat Window */}
             <section
-              className={`lg:col-span-2 min-h-0 rounded-2xl bg-white shadow-lg ${
+              className={`lg:col-span-2 min-h-0 rounded-2xl bg-white shadow-2xl border border-gray-200 ${
                 selectedChat ? 'block' : 'hidden lg:block'
               }`}
             >

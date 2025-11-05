@@ -49,12 +49,12 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          <MessageCircle size={24} className="text-purple-600" />
+      <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 bg-gradient-to-r from-purple-50/50 to-pink-50/50">
+        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <MessageCircle size={22} className="text-purple-600" />
           Mensajes
         </h2>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 mt-0.5">
           {chats.length} {chats.length === 1 ? 'conversación' : 'conversaciones'}
         </p>
       </div>
@@ -70,13 +70,13 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
             <button
               key={chat.id}
               onClick={() => onSelectChat(chat)}
-              className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                isSelected ? 'bg-purple-50 border-l-4 border-l-purple-600' : ''
+              className={`w-full px-3 py-3 border-b border-gray-100 hover:bg-gray-50 transition-all duration-200 text-left ${
+                isSelected ? 'bg-purple-50 border-l-4 border-l-purple-600 shadow-inner' : ''
               }`}
             >
               <div className="flex items-start gap-3">
                 {/* Avatar */}
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-white">
                   {otherUser?.profile_picture_url ? (
                     <img
                       src={otherUser.profile_picture_url}
