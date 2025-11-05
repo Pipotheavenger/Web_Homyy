@@ -84,8 +84,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={`${currentColors.background} shadow-lg transition-all duration-300 ${
       collapsed ? 'w-16' : 'w-64'
-    } min-h-screen`}>
-      <div className={`relative ${collapsed ? 'p-2' : 'p-6'}`}>
+    } min-h-screen md:h-full`}>
+      <div className={`relative h-full ${collapsed ? 'p-2' : 'p-6'}`}>
         {/* Logo/Brand */}
         <div className={`flex items-center mb-6 ${collapsed ? 'flex-col space-y-2' : 'justify-between'}`}>
           <div className={`flex items-center ${collapsed ? 'flex-col' : 'space-x-3'}`}>

@@ -138,95 +138,98 @@ export default function PerfilWorkerPage() {
       onBackClick={handleBack}
       currentPage="perfil"
     >
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
         {/* Header del Perfil - Estilo Limpio */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
+          {/* Layout vertical para pantallas <1160px, horizontal para pantallas más grandes */}
+          <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
             {/* Avatar */}
-            <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
-              {usuario?.profile_picture_url ? (
-                <img
-                  src={usuario.profile_picture_url}
-                  alt={usuario.name}
-                  className="w-full h-full rounded-2xl object-cover"
-                />
-              ) : (
-                <span className="text-2xl font-bold text-white">
-                  {usuario?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                </span>
-              )}
+            <div className="relative flex-shrink-0 self-center lg:self-auto">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-emerald-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
+                {usuario?.profile_picture_url ? (
+                  <img
+                    src={usuario.profile_picture_url}
+                    alt={usuario.name}
+                    className="w-full h-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  <span className="text-xl md:text-2xl font-bold text-white">
+                    {usuario?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Información Principal */}
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{usuario?.name || 'Usuario'}</h1>
-              <p className="text-lg text-gray-600 mb-3">{workerProfile?.profession || 'Profesional'}</p>
+            <div className="flex-1 text-center lg:text-left min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 break-words">{usuario?.name || 'Usuario'}</h1>
+              <p className="text-base md:text-lg text-gray-600 mb-3 break-words">{workerProfile?.profession || 'Profesional'}</p>
               
               {/* Rating */}
-              <div className="flex items-center space-x-2 mb-3">
+              <div className="flex items-center justify-center lg:justify-start space-x-2 mb-3 flex-wrap gap-1">
                 <div className="flex items-center space-x-1">
                   {renderStars(reviewStats.averageRating)}
                 </div>
-                <span className="text-sm text-gray-600">
+                <span className="text-xs md:text-sm text-gray-600 break-words">
                   {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'} ({reviewStats.totalReviews} servicios)
                 </span>
               </div>
 
               {/* Badge de Miembro */}
-              <div className="inline-flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
-                <CheckCircle size={16} />
-                <span>Miembro desde {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha no disponible'}</span>
+              <div className="inline-flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium break-words">
+                <CheckCircle size={14} className="md:w-4 md:h-4 flex-shrink-0" />
+                <span className="break-words">Miembro desde {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha no disponible'}</span>
               </div>
             </div>
 
             {/* Botón de Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+              className="flex items-center justify-center space-x-2 px-3 md:px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors w-full lg:w-auto flex-shrink-0"
             >
-              <LogOut size={16} />
-              <span>Cerrar Sesión</span>
+              <LogOut size={16} className="flex-shrink-0" />
+              <span className="break-words">Cerrar Sesión</span>
             </button>
           </div>
         </div>
 
         {/* Métricas del Perfil */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 w-full max-w-full overflow-hidden">
           {/* Servicios Completados */}
-          <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <CheckCircle size={20} className="text-emerald-600" />
+          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle size={18} className="sm:w-5 sm:h-5 text-emerald-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Servicios Completados</p>
-                <p className="text-2xl font-bold text-gray-900">{serviciosRecientes?.length || 0}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Servicios Completados</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{serviciosRecientes?.length || 0}</p>
               </div>
             </div>
           </div>
 
           {/* Servicios Activos */}
-          <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-blue-600" />
+          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Clock size={18} className="sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Servicios Activos</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Servicios Activos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">0</p>
               </div>
             </div>
           </div>
 
           {/* Balance */}
-          <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign size={20} className="text-green-600" />
+          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <DollarSign size={18} className="sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Balance</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">
                   ${usuario?.balance ? usuario.balance.toLocaleString() : '0'}
                 </p>
               </div>
@@ -235,8 +238,8 @@ export default function PerfilWorkerPage() {
         </div>
 
         {/* Tabs de Navegación */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex space-x-1 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
+          <div className="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-1 mb-4 lg:mb-6 w-full max-w-full overflow-x-auto">
             {[
               { id: 'informacion', label: 'Información Personal', icon: User },
               { id: 'servicios', label: 'Mis Trabajos', icon: Briefcase },
@@ -245,108 +248,108 @@ export default function PerfilWorkerPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center justify-center lg:justify-start space-x-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 text-sm lg:text-base w-full lg:w-auto flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-emerald-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <tab.icon size={16} />
-                <span>{tab.label}</span>
+                <tab.icon size={16} className="flex-shrink-0" />
+                <span className="break-words text-center lg:text-left">{tab.label}</span>
               </button>
             ))}
           </div>
 
           {/* Contenido de los tabs */}
           {activeTab === 'informacion' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4 lg:space-y-6 mt-4 lg:mt-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
                 {/* Información Personal */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+                <div className="space-y-3 lg:space-y-4 w-full max-w-full overflow-hidden">
+                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Información Personal</h3>
                   
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <User size={16} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">Nombre</p>
-                        <p className="font-medium text-gray-900">{usuario?.name || 'No disponible'}</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <User size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Nombre</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.name || 'No disponible'}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Mail size={16} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">Email</p>
-                        <p className="font-medium text-gray-900">{usuario?.email || 'No disponible'}</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Mail size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Email</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-all">{usuario?.email || 'No disponible'}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Phone size={16} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">Teléfono</p>
-                        <p className="font-medium text-gray-900">{usuario?.phone || 'No disponible'}</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Phone size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Teléfono</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.phone || 'No disponible'}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <MapPin size={16} className="text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">Ubicación</p>
-                        <p className="font-medium text-gray-900">{usuario?.location || 'No disponible'}</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <MapPin size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Ubicación</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.location || 'No disponible'}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Información Profesional */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Profesional</h3>
+                <div className="space-y-3 lg:space-y-4 w-full max-w-full overflow-hidden">
+                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Información Profesional</h3>
                   
                   <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-3 bg-emerald-50 rounded-lg">
-                      <Briefcase size={16} className="text-emerald-600" />
-                      <div>
-                        <p className="text-sm text-gray-600">Profesión</p>
-                        <p className="font-medium text-gray-900">{workerProfile?.profession || 'No especificado'}</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-emerald-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Briefcase size={14} className="lg:w-4 lg:h-4 text-emerald-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Profesión</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{workerProfile?.profession || 'No especificado'}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                      <Calendar size={16} className="text-blue-600" />
-                      <div>
-                        <p className="text-sm text-gray-600">Miembro desde</p>
-                          <p className="font-medium text-gray-900">
-                            {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { 
-                              day: 'numeric',
-                              month: 'long', 
-                              year: 'numeric' 
-                            }) : 'Fecha no disponible'}
-                          </p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-blue-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Calendar size={14} className="lg:w-4 lg:h-4 text-blue-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Miembro desde</p>
+                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">
+                          {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { 
+                            day: 'numeric',
+                            month: 'long', 
+                            year: 'numeric' 
+                          }) : 'Fecha no disponible'}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                      <Shield size={16} className="text-green-600" />
-                      <div>
-                        <p className="text-sm text-gray-600">Estado de la cuenta</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-green-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Shield size={14} className="lg:w-4 lg:h-4 text-green-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Estado de la cuenta</p>
                         <div className="flex items-center space-x-2">
-                          <CheckCircle size={16} className="text-green-600" />
-                          <p className="font-medium text-gray-900">Verificada</p>
+                          <CheckCircle size={14} className="lg:w-4 lg:h-4 text-green-600 flex-shrink-0" />
+                          <p className="font-medium text-sm lg:text-base text-gray-900 break-words">Verificada</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg">
-                      <Award size={16} className="text-yellow-600" />
-                      <div>
-                        <p className="text-sm text-gray-600">Calificación promedio</p>
+                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-yellow-50 rounded-lg w-full max-w-full overflow-hidden">
+                      <Award size={14} className="lg:w-4 lg:h-4 text-yellow-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm text-gray-600 break-words">Calificación promedio</p>
                         <div className="flex items-center space-x-2">
                           <div className="flex items-center space-x-1">
                             {renderStars(reviewStats.averageRating)}
                           </div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-sm lg:text-base text-gray-900 break-words">
                             {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : 'Sin calificaciones'}
                           </p>
                         </div>
@@ -359,18 +362,19 @@ export default function PerfilWorkerPage() {
           )}
 
           {activeTab === 'servicios' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Mis Trabajos</h3>
+            <div className="space-y-3 lg:space-y-4 mt-4 lg:mt-6">
+              <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Mis Trabajos</h3>
               
-              <div className="space-y-3">
+              <div className="space-y-3 sm:space-y-4">
                 {serviciosRecientes && serviciosRecientes.length > 0 ? (
                   serviciosRecientes.map((booking) => (
-                    <div key={booking.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">
+                    <div key={booking.id} className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100 w-full max-w-full overflow-hidden">
+                      {/* Layout vertical para <1160px, horizontal para pantallas más grandes */}
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-0 mb-2 lg:mb-3">
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base break-words flex-1">
                           {booking.service?.title || 'Servicio'}
                         </h4>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 w-fit ${
                           booking.status === 'completed' ? 'bg-green-100 text-green-700' : 
                           booking.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 
                           booking.status === 'scheduled' ? 'bg-yellow-100 text-yellow-700' : 
@@ -382,22 +386,22 @@ export default function PerfilWorkerPage() {
                         </span>
                       </div>
                       
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <div className="space-y-1">
-                          <p><span className="font-medium">Cliente:</span> {booking.client?.name || 'N/A'}</p>
-                          <p><span className="font-medium">Fecha:</span> {booking.start_date}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-gray-600">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4">
+                          <p className="break-words"><span className="font-medium">Cliente:</span> {booking.client?.name || 'N/A'}</p>
+                          <p className="break-words"><span className="font-medium">Fecha:</span> {booking.start_date}</p>
                         </div>
-                        <p className="font-bold text-emerald-600 text-lg">{formatPrice(Number(booking.total_price))}</p>
+                        <p className="font-bold text-emerald-600 text-base sm:text-lg break-words">{formatPrice(Number(booking.total_price))}</p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Briefcase size={24} className="text-gray-400" />
+                  <div className="text-center py-8 sm:py-12">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                      <Briefcase size={20} className="sm:w-6 sm:h-6 text-gray-400" />
                     </div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No tienes trabajos aún</h4>
-                    <p className="text-gray-600 text-sm">Completa tu perfil y comienza a recibir propuestas</p>
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">No tienes trabajos aún</h4>
+                    <p className="text-gray-600 text-xs sm:text-sm break-words">Completa tu perfil y comienza a recibir propuestas</p>
                   </div>
                 )}
               </div>
@@ -409,29 +413,30 @@ export default function PerfilWorkerPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Mis Reseñas</h3>
 
               {/* Resumen de calificaciones */}
-              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Resumen de Calificaciones</h4>
-                    <div className="flex items-center space-x-2">
+              <div className="p-3 sm:p-4 bg-emerald-50 rounded-lg border border-emerald-100 w-full max-w-full overflow-hidden">
+                {/* Layout vertical para evitar cortes, horizontal en pantallas grandes */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-0">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base break-words">Resumen de Calificaciones</h4>
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center space-x-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star 
                             key={star} 
-                            size={16} 
-                            className={star <= reviewStats.averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                            size={14} 
+                            className={`sm:w-4 sm:h-4 flex-shrink-0 ${star <= reviewStats.averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                           />
                         ))}
                       </div>
-                      <span className="text-xl font-bold text-gray-900">
+                      <span className="text-lg sm:text-xl font-bold text-gray-900 break-words">
                         {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
                       </span>
-                      <span className="text-sm text-gray-600">({reviewStats.totalReviews} reseñas)</span>
+                      <span className="text-xs sm:text-sm text-gray-600 break-words">({reviewStats.totalReviews} reseñas)</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-emerald-600">{reviewStats.satisfaction}%</div>
-                    <div className="text-sm text-gray-600">Satisfacción</div>
+                  <div className="text-left lg:text-right flex-shrink-0">
+                    <div className="text-xl sm:text-2xl font-bold text-emerald-600 break-words">{reviewStats.satisfaction}%</div>
+                    <div className="text-xs sm:text-sm text-gray-600 break-words">Satisfacción</div>
                   </div>
                 </div>
               </div>

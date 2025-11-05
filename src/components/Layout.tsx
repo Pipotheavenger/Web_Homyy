@@ -34,9 +34,9 @@ export default function Layout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex">
+      <div className="flex md:relative">
         {/* Sidebar - Oculto en móvil */}
-        <div className="hidden md:block">
+        <div className="hidden md:block md:sticky md:top-0 md:self-start md:h-screen md:flex-shrink-0">
           <Sidebar 
             navigationItems={navigationItems}
             currentPage={currentPage}
@@ -46,7 +46,7 @@ export default function Layout({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col w-full md:w-auto min-w-0 overflow-x-hidden">
+        <div className="flex-1 flex flex-col w-full md:w-auto min-w-0 overflow-x-hidden min-h-screen">
           {/* Header - Siempre visible con campana de notificaciones */}
           <Header
             title={finalTitle}
