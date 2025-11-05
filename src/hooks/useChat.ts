@@ -32,16 +32,21 @@ export const useChat = (chatId?: string) => {
 
   // Cargar mensajes de un chat específico
   const loadMessages = useCallback(async (id: string) => {
+    console.log('📖 useChat: Cargando mensajes para chat:', id);
     setLoading(true);
     setError(null);
+    // Limpiar mensajes anteriores inmediatamente
+    setMessages([]);
     
     const response = await chatService.getMessages(id);
     
     if (response.success && response.data) {
+      console.log('✅ useChat: Mensajes cargados:', response.data.length);
       setMessages(response.data);
       // Marcar mensajes como leídos
       await chatService.markMessagesAsRead(id);
     } else {
+      console.error('❌ useChat: Error al cargar mensajes:', response.error);
       setError(response.error);
     }
     
@@ -123,7 +128,13 @@ export const useChat = (chatId?: string) => {
   // Efecto para cargar mensajes cuando se selecciona un chat
   useEffect(() => {
     if (chatId) {
+      console.log('🔄 useChat: chatId cambió a:', chatId);
+      // Limpiar mensajes anteriores antes de cargar nuevos
+      setMessages([]);
       loadMessages(chatId);
+    } else {
+      // Si no hay chatId, limpiar mensajes
+      setMessages([]);
     }
   }, [chatId, loadMessages]);
 

@@ -13,13 +13,14 @@ import type { Chat } from '@/lib/api/chat';
 export default function WorkerChatsPage() {
   const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const { chats, messages, loading, sending, sendMessage, loadMessages } = useChat(
+  const { chats, messages, loading, sending, sendMessage } = useChat(
     selectedChat?.id
   );
 
   const handleSelectChat = (chat: Chat) => {
+    console.log('👆 Seleccionando chat:', chat.id);
     setSelectedChat(chat);
-    loadMessages(chat.id);
+    // No es necesario llamar loadMessages aquí - el hook lo hace automáticamente
   };
 
   const handleSendMessage = async (message: string) => {
