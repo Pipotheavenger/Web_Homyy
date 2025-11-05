@@ -6,6 +6,7 @@ import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
 interface SidebarProps {
   navigationItems: NavigationItem[];
@@ -24,6 +25,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+  const counts = useNotificationCounts();
+
+  // Función para obtener el badge según la ruta
+  const getBadgeCount = (href: string) => {
+    if (href.includes('chats')) return counts.unreadMessages;
+    if (href.includes('pagos')) return counts.pendingPayments;
+    if (href.includes('dashboard') && userType === 'user') return counts.newApplications;
+    if (href.includes('trabajos') && userType === 'worker') return counts.newApplications;
+    return 0;
+  };
 
   const handleNavigation = (href: string) => {
     router.push(href);
@@ -139,11 +150,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                            (currentPage === 'perfil' && itemPath === 'perfil') ||
                            (currentPage === 'trabajos' && itemPath === 'trabajos');
             
+            const badgeCount = getBadgeCount(item.href);
+            
             return (
               <button
                 key={item.href}
                 onClick={() => handleNavigation(item.href)}
-                 className={`w-full flex items-center transition-all duration-300 ${
+                 className={`w-full flex items-center transition-all duration-300 relative ${
                    collapsed 
                      ? 'justify-center px-2 py-2' 
                      : 'space-x-3 px-4 py-3'
@@ -169,10 +182,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                    } 
                  />
                 {!collapsed && (
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs opacity-75">{item.description}</div>
+                  <div className="flex-1 text-left flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-xs opacity-75">{item.description}</div>
+                    </div>
+                    {getBadgeCount(item.href) > 0 && (
+                      <span className="flex-shrink-0 ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                        {getBadgeCount(item.href) > 99 ? '99+' : getBadgeCount(item.href)}
+                      </span>
+                    )}
                   </div>
+                )}
+                {collapsed && getBadgeCount(item.href) > 0 && (
+                  <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                 )}
               </button>
             );

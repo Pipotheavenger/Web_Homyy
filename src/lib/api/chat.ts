@@ -183,12 +183,8 @@ export const chatService = {
    */
   async getMyChats(): Promise<ApiResponse<Chat[]>> {
     try {
-      console.log('🔐 chatService.getMyChats: Obteniendo usuario...');
       const user = await getAuthenticatedUser();
-      
-      console.log('👤 chatService.getMyChats: Usuario autenticado:', user.id);
 
-      console.log('📡 chatService.getMyChats: Consultando chats...');
       const { data: chats, error } = await supabase
         .from('chats')
         .select(`
@@ -203,12 +199,6 @@ export const chatService = {
         `)
         .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false, nullsFirst: false });
-
-      console.log('📊 chatService.getMyChats: Resultado query:', { 
-        chats: chats?.length || 0, 
-        error: error?.message || 'ninguno',
-        errorDetails: error
-      });
 
       if (error) throw error;
 
@@ -293,27 +283,21 @@ export const chatService = {
    */
   async sendMessage(data: SendMessageData): Promise<ApiResponse<ChatMessage>> {
     try {
-      console.log('📤 chatService.sendMessage: Iniciando...', data);
       const user = await getAuthenticatedUser();
-      
-      console.log('👤 chatService.sendMessage: Usuario:', user.id);
 
       // Verificar que el usuario es parte del chat
-      console.log('🔍 chatService.sendMessage: Verificando permisos...');
       const { data: chat, error: chatError } = await supabase
         .from('chats')
         .select('client_id, worker_id')
         .eq('id', data.chat_id)
         .single();
 
-      console.log('📊 chatService.sendMessage: Chat encontrado:', chat);
       if (chatError) throw new Error('Chat no encontrado');
       if (chat.client_id !== user.id && chat.worker_id !== user.id) {
         throw new Error('No tienes permiso para enviar mensajes en este chat');
       }
 
       // Crear el mensaje
-      console.log('💾 chatService.sendMessage: Insertando mensaje...');
       const { data: message, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -329,14 +313,9 @@ export const chatService = {
         `)
         .single();
 
-      console.log('📊 chatService.sendMessage: Resultado:', { message, error });
-      if (error) {
-        console.error('❌ chatService.sendMessage: Error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       // Actualizar el chat con el último mensaje
-      console.log('🔄 chatService.sendMessage: Actualizando último mensaje del chat...');
       await supabase
         .from('chats')
         .update({
@@ -344,8 +323,6 @@ export const chatService = {
           last_message_at: new Date().toISOString()
         })
         .eq('id', data.chat_id);
-
-      console.log('✅ chatService.sendMessage: Mensaje enviado y chat actualizado');
 
       return {
         data: message,
@@ -422,8 +399,9 @@ export const chatService = {
       )
       .subscribe();
 
-    // Retornar función para desuscribirse
+    // Retornar función para desuscribirse y limpiar el canal completamente
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   },

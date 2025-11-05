@@ -18,9 +18,7 @@ export default function WorkerChatsPage() {
   );
 
   const handleSelectChat = (chat: Chat) => {
-    console.log('👆 Seleccionando chat:', chat.id);
     setSelectedChat(chat);
-    // No es necesario llamar loadMessages aquí - el hook lo hace automáticamente
   };
 
   const handleSendMessage = async (message: string) => {

@@ -2,6 +2,7 @@
 import { ArrowLeft, Menu } from 'lucide-react';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { UserType } from '@/contexts/UserTypeContext';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 
 interface HeaderProps {
   title: string;
@@ -11,6 +12,7 @@ interface HeaderProps {
   onBackClick?: () => void;
   userType: UserType;
   colors: any;
+  showNotifications?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   showBackButton = false,
   onBackClick,
   userType,
-  colors
+  colors,
+  showNotifications = true
 }) => {
   return (
     <header className={`${colors.card} border-b ${colors.border} shadow-sm`}>
@@ -45,30 +48,35 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Breadcrumbs */}
-          {breadcrumbs.length > 0 && (
-            <nav className="hidden md:flex items-center space-x-2">
-              {breadcrumbs.map((crumb, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  {index > 0 && (
-                    <span className="text-gray-400">/</span>
-                  )}
-                  {crumb.href ? (
-                    <a
-                      href={crumb.href}
-                      className={`text-sm ${crumb.active ? colors.text : 'text-gray-600 hover:text-gray-800'} transition-colors`}
-                    >
-                      {crumb.label}
-                    </a>
-                  ) : (
-                    <span className={`text-sm ${crumb.active ? colors.text : 'text-gray-600'}`}>
-                      {crumb.label}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </nav>
-          )}
+          <div className="flex items-center gap-4">
+            {/* Breadcrumbs */}
+            {breadcrumbs.length > 0 && (
+              <nav className="hidden md:flex items-center space-x-2">
+                {breadcrumbs.map((crumb, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    {index > 0 && (
+                      <span className="text-gray-400">/</span>
+                    )}
+                    {crumb.href ? (
+                      <a
+                        href={crumb.href}
+                        className={`text-sm ${crumb.active ? colors.text : 'text-gray-600 hover:text-gray-800'} transition-colors`}
+                      >
+                        {crumb.label}
+                      </a>
+                    ) : (
+                      <span className={`text-sm ${crumb.active ? colors.text : 'text-gray-600'}`}>
+                        {crumb.label}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </nav>
+            )}
+
+            {/* Campana de notificaciones */}
+            {showNotifications && <NotificationBell />}
+          </div>
         </div>
       </div>
     </header>

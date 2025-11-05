@@ -234,13 +234,7 @@ export const useDetallesPostulantes = () => {
         // Crear el chat automáticamente
         if (bookings && bookings.length > 0) {
           const bookingId = bookings[0].id;
-          const chatResponse = await chatService.getOrCreateChat(bookingId);
-          
-          if (chatResponse.success) {
-            console.log('✅ Chat creado automáticamente para el booking:', bookingId);
-          } else {
-            console.warn('⚠️ No se pudo crear el chat automáticamente:', chatResponse.error);
-          }
+          await chatService.getOrCreateChat(bookingId);
         }
 
         setSelectedCandidate(candidateToConfirm.id);
