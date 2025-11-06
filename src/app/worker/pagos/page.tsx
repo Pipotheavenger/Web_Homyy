@@ -491,7 +491,7 @@ export default function PagosWorkerPage() {
                     onChange={(e) => setMonto(e.target.value)}
                     placeholder="50,000"
                     max={balance}
-                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold"
+                    className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold text-gray-900 placeholder:text-gray-400"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">Monto mínimo: $10,000 COP</p>
