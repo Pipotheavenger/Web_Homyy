@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, User } from 'lucide-react';
+import { Send, Loader2, User, ArrowLeft } from 'lucide-react';
 import type { Chat, ChatMessage } from '@/lib/api/chat';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,9 +12,10 @@ interface ChatWindowProps {
   currentUserId: string;
   onSendMessage: (message: string) => Promise<boolean>;
   sending: boolean;
+  onBack?: () => void; // ✅ Función para volver a la lista de chats
 }
 
-export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sending }: ChatWindowProps) => {
+export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sending, onBack }: ChatWindowProps) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,9 +61,9 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
     // 👇 importante: min-h-0 para permitir overflow del hijo
     <div className="h-full min-h-0 flex flex-col bg-white">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 shadow-sm">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0 shadow-sm relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
+          <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center shadow-md ring-2 ring-white flex-shrink-0">
             {otherUser?.profile_picture_url ? (
               <img src={otherUser.profile_picture_url} alt={otherUser.name} className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -77,6 +78,16 @@ export const ChatWindow = ({ chat, messages, currentUserId, onSendMessage, sendi
               <p className="text-xs text-purple-600 truncate">📋 {chat.booking.service.title}</p>
             )}
           </div>
+          {/* ✅ Botón de retroceso para móviles (solo visible en pantallas < 1024px) */}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="lg:hidden w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full flex items-center justify-center hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg flex-shrink-0"
+              aria-label="Volver a la lista de chats"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+          )}
         </div>
       </div>
 

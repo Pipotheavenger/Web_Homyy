@@ -139,6 +139,7 @@ export default function WorkerChatsPage() {
                       currentUserId={user?.id || ''}
                       onSendMessage={handleSendMessage}
                       sending={sending}
+                      onBack={() => setSelectedChat(null)} // ✅ Volver a la lista de chats
                     />
                   </div>
                 </Suspense>
