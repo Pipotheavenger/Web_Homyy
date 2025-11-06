@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -143,18 +143,7 @@ export default function Dashboard() {
     setSelectedServiceForReview(null);
   };
 
-  if (loading) {
-    return (
-      <Layout title="Dashboard" currentPage="dashboard">
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-[#743fc6]/30 border-t-[#743fc6] rounded-full animate-spin"></div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
+  // Mostrar skeleton inmediatamente - no esperar a que todo cargue
   if (error) {
     return (
       <Layout title="Dashboard" currentPage="dashboard">
@@ -170,9 +159,11 @@ export default function Dashboard() {
   return (
     <Layout title="Dashboard" currentPage="dashboard">
       <div className="p-3 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
-        <WelcomeBanner userName={userName} onCreateService={handleCrearServicio} />
+        {/* Banner - Carga inmediata (no depende de datos pesados) */}
+        <WelcomeBanner userName={userName || 'Usuario'} onCreateService={handleCrearServicio} />
 
         <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Sección de servicios - Crítica, carga primero */}
           <div className="lg:col-span-2 min-w-0">
             <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
               <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -213,6 +204,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Profesionales destacados - Secundario, carga después */}
           <div className="lg:col-span-1 min-w-0">
             {!initialLoadComplete ? (
               <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
@@ -225,14 +217,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modal de reseñas */}
-      <ReviewModal
-        isOpen={showReviewModal}
-        onClose={handleCloseReviewModal}
-        onSubmit={handleSubmitReview}
-        professionalName={selectedServiceForReview?.workerName || 'Trabajador'}
-        serviceTitle={selectedServiceForReview?.title || ''}
-      />
+      {/* Modal de reseñas - Solo se carga cuando se necesita */}
+      {showReviewModal && (
+        <ReviewModal
+          isOpen={showReviewModal}
+          onClose={handleCloseReviewModal}
+          onSubmit={handleSubmitReview}
+          professionalName={selectedServiceForReview?.workerName || 'Trabajador'}
+          serviceTitle={selectedServiceForReview?.title || ''}
+        />
+      )}
     </Layout>
   );
 }

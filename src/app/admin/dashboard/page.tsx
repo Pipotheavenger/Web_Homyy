@@ -73,45 +73,67 @@ function AdminDashboard() {
     loadData();
   }, [activeTab, currentPage, searchTerm, statusFilter]);
 
+  // Funciones helper para reducir complejidad cognitiva
+  const loadStatsData = async () => {
+    const statsResponse = await adminService.getStats();
+    if (statsResponse.success) {
+      setStats(statsResponse.data);
+    }
+  };
+
+  const loadUsersData = async () => {
+    const usersResponse = await adminService.getUsers({
+      search: searchTerm || undefined,
+      limit: itemsPerPage,
+      offset: (currentPage - 1) * itemsPerPage
+    });
+    if (usersResponse.success) {
+      setUsers(usersResponse.data);
+      setTotalItems(usersResponse.count || 0);
+    }
+  };
+
+  const loadTransactionsData = async () => {
+    const transactionsResponse = await adminService.getTransactions({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      limit: itemsPerPage,
+      offset: (currentPage - 1) * itemsPerPage
+    });
+    if (!transactionsResponse.success) {
+      console.error('Error al cargar transacciones:', transactionsResponse.error || 'Respuesta no exitosa');
+      return;
+    }
+    setTransactions(transactionsResponse.data);
+    setTotalItems(transactionsResponse.count || 0);
+  };
+
+  const loadServicesData = async () => {
+    const servicesResponse = await adminService.getServices({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      limit: itemsPerPage,
+      offset: (currentPage - 1) * itemsPerPage
+    });
+    if (servicesResponse.success) {
+      setServices(servicesResponse.data);
+      setTotalItems(servicesResponse.count || 0);
+    }
+  };
+
+  // Mapa de funciones para cada tab (reduciendo complejidad con objeto en lugar de if-else)
+  const dataLoaders: Record<string, () => Promise<void>> = {
+    stats: loadStatsData,
+    users: loadUsersData,
+    transactions: loadTransactionsData,
+    services: loadServicesData
+  };
+
   const loadData = async () => {
     setLoading(true);
 
     try {
-      if (activeTab === 'stats') {
-        const statsResponse = await adminService.getStats();
-        if (statsResponse.success) {
-          setStats(statsResponse.data);
-        }
-      } else if (activeTab === 'users') {
-        const usersResponse = await adminService.getUsers({
-          search: searchTerm || undefined,
-          limit: itemsPerPage,
-          offset: (currentPage - 1) * itemsPerPage
-        });
-        if (usersResponse.success) {
-          setUsers(usersResponse.data);
-          setTotalItems(usersResponse.count || 0);
-        }
-      } else if (activeTab === 'transactions') {
-        const transactionsResponse = await adminService.getTransactions({
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-          limit: itemsPerPage,
-          offset: (currentPage - 1) * itemsPerPage
-        });
-        if (transactionsResponse.success) {
-          setTransactions(transactionsResponse.data);
-          setTotalItems(transactionsResponse.count || 0);
-        }
-      } else if (activeTab === 'services') {
-        const servicesResponse = await adminService.getServices({
-          status: statusFilter !== 'all' ? statusFilter : undefined,
-          limit: itemsPerPage,
-          offset: (currentPage - 1) * itemsPerPage
-        });
-        if (servicesResponse.success) {
-          setServices(servicesResponse.data);
-          setTotalItems(servicesResponse.count || 0);
-        }
+      const loader = dataLoaders[activeTab];
+      if (loader) {
+        await loader();
       }
     } catch (error) {
       console.error('Error general en loadData:', error);
@@ -149,16 +171,6 @@ function AdminDashboard() {
   };
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-CO', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

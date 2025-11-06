@@ -56,22 +56,59 @@ export default function PerfilWorkerPage() {
     }
   };
 
-  if (loading) {
+  // ✅ OPTIMIZACIÓN: Skeleton profesional mientras carga
+  const ProfileSkeleton = () => (
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-300 rounded-2xl"></div>
+          <div className="flex-1 space-y-3">
+            <div className="h-6 bg-gray-300 rounded w-48"></div>
+            <div className="h-4 bg-gray-200 rounded w-32"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Metrics Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="h-16 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Tabs Skeleton */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
+        <div className="flex space-x-2 mb-6">
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ✅ OPTIMIZACIÓN: Mostrar skeleton solo si no hay datos y está cargando
+  if (loading && !usuario) {
     return (
       <Layout 
         title="Mi Perfil Profesional" 
         currentPage="perfil"
       >
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
-          </div>
-        </div>
+        <ProfileSkeleton />
       </Layout>
     );
   }
 
-  if (error || !usuario) {
+  if (error && !usuario) {
     return (
       <Layout 
         title="Mi Perfil Profesional" 

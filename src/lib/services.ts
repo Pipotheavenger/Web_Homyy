@@ -119,14 +119,6 @@ export const serviceService = {
         };
       });
 
-      // Debug log para verificar PINs
-      console.log('🔧 getUserServices - Servicios con escrow:', servicesWithCategories.map(s => ({
-        id: s.id,
-        title: s.title,
-        status: s.status,
-        escrow_pin: s.escrow_pin
-      })));
-
       return { data: servicesWithCategories, error: null, success: true };
     } catch (error) {
       return {

@@ -24,15 +24,18 @@ export const useProfile = () => {
 
   const loadProfileData = async () => {
     try {
-      setLoading(true);
+      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay perfil previo
+      if (profile === null) {
+        setLoading(true);
+      }
       
-      // Cargar perfil
+      // ✅ OPTIMIZACIÓN: Cargar perfil primero (crítico para mostrar UI)
       const profileResponse = await profileService.getProfile();
       if (profileResponse.success && profileResponse.data) {
         const data = profileResponse.data;
         const nameParts = (data.name || '').split(' ');
         
-        setProfile({
+        const profileData = {
           id: data.id,
           nombre: nameParts[0] || '',
           apellido: nameParts.slice(1).join(' ') || '',
@@ -44,14 +47,16 @@ export const useProfile = () => {
           calificacion: 0,
           serviciosCompletados: 0,
           serviciosActivos: 0,
-          balance: 0,
+          balance: data.balance || 0, // ✅ Usar balance real de la BD
           preferencias: {
             notificaciones: true,
             emailMarketing: false,
             privacidad: true
           }
-        });
+        };
         
+        // ✅ Actualizar perfil INMEDIATAMENTE para mostrar UI
+        setProfile(profileData);
         setFormData({
           nombre: nameParts[0] || '',
           apellido: nameParts.slice(1).join(' ') || '',
@@ -59,20 +64,22 @@ export const useProfile = () => {
           telefono: data.phone || '',
           ubicacion: 'Bogotá, Colombia'
         });
+        
+        // ✅ Quitar loading lo antes posible
+        setLoading(false);
       }
 
-      // Cargar bookings recientes
-      const bookingsResponse = await bookingsService.getMyBookingsAsClient();
-      if (bookingsResponse.success && bookingsResponse.data) {
-        setBookings(bookingsResponse.data.slice(0, 5));
-        
-        // Cargar reviews dadas por el usuario
-        // TODO: Implementar cuando tengamos una función para obtener reviews del usuario como reviewer
-      }
+      // ✅ OPTIMIZACIÓN: Cargar bookings en segundo plano (no bloquea UI)
+      bookingsService.getMyBookingsAsClient().then((bookingsResponse) => {
+        if (bookingsResponse.success && bookingsResponse.data) {
+          setBookings(bookingsResponse.data.slice(0, 5));
+        }
+      }).catch(err => {
+        console.warn('Error cargando bookings:', err);
+      });
 
     } catch (error) {
-      // Silent error
-    } finally {
+      console.error('Error cargando perfil:', error);
       setLoading(false);
     }
   };

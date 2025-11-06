@@ -185,6 +185,7 @@ export const chatService = {
     try {
       const user = await getAuthenticatedUser();
 
+      // ✅ OPTIMIZACIÓN: Cargar chats básicos primero (más rápido)
       const { data: chats, error } = await supabase
         .from('chats')
         .select(`
@@ -198,26 +199,48 @@ export const chatService = {
           worker:user_profiles!chats_worker_id_fkey(id, name, email, profile_picture_url)
         `)
         .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .limit(20); // Limitar a 20 chats más recientes para carga rápida
 
       if (error) throw error;
 
-      // Calcular mensajes no leídos para cada chat
-      const chatsWithUnread = await Promise.all(
-        (chats || []).map(async (chat) => {
-          const { count } = await supabase
-            .from('chat_messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('chat_id', chat.id)
-            .eq('is_read', false)
-            .neq('sender_id', user.id);
+      if (!chats || chats.length === 0) {
+        return {
+          data: [],
+          error: null,
+          success: true
+        };
+      }
 
-          return {
-            ...chat,
-            unread_count: count || 0
-          };
-        })
-      );
+      // ✅ OPTIMIZACIÓN: Calcular mensajes no leídos en una sola query usando agregación
+      const chatIds = chats.map(chat => chat.id);
+      
+      // Obtener todos los conteos de mensajes no leídos en paralelo
+      const { data: unreadCounts, error: unreadError } = await supabase
+        .from('chat_messages')
+        .select('chat_id')
+        .in('chat_id', chatIds)
+        .eq('is_read', false)
+        .neq('sender_id', user.id);
+
+      if (unreadError) {
+        console.warn('Error obteniendo conteos de no leídos:', unreadError);
+      }
+
+      // Crear mapa de conteos por chat_id
+      const unreadMap = new Map<string, number>();
+      if (unreadCounts) {
+        unreadCounts.forEach(msg => {
+          const current = unreadMap.get(msg.chat_id) || 0;
+          unreadMap.set(msg.chat_id, current + 1);
+        });
+      }
+
+      // Combinar chats con conteos de no leídos
+      const chatsWithUnread = chats.map(chat => ({
+        ...chat,
+        unread_count: unreadMap.get(chat.id) || 0
+      }));
 
       return {
         data: chatsWithUnread,
@@ -236,36 +259,47 @@ export const chatService = {
   /**
    * Obtener mensajes de un chat específico
    */
-  async getMessages(chatId: string): Promise<ApiResponse<ChatMessage[]>> {
+  async getMessages(chatId: string, limit: number = 100): Promise<ApiResponse<ChatMessage[]>> {
     try {
       const user = await getAuthenticatedUser();
 
-      // Verificar que el usuario tiene acceso al chat
-      const { data: chat } = await supabase
-        .from('chats')
-        .select('client_id, worker_id')
-        .eq('id', chatId)
-        .single();
+      // ✅ OPTIMIZACIÓN: Verificar acceso y obtener mensajes en paralelo
+      const [chatResult, messagesResult] = await Promise.all([
+        // Verificar que el usuario tiene acceso al chat
+        supabase
+          .from('chats')
+          .select('client_id, worker_id')
+          .eq('id', chatId)
+          .single(),
+        
+        // ✅ OPTIMIZACIÓN: Cargar solo los últimos mensajes primero (más rápido)
+        // Cargar desde el más reciente hacia atrás para mostrar los últimos N mensajes
+        supabase
+          .from('chat_messages')
+          .select(`
+            *,
+            sender:user_profiles!chat_messages_sender_id_fkey(id, name, profile_picture_url)
+          `)
+          .eq('chat_id', chatId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+      ]);
 
-      if (!chat) throw new Error('Chat no encontrado');
+      const { data: chat, error: chatError } = chatResult;
+      const { data: messages, error: messagesError } = messagesResult;
+
+      if (chatError || !chat) throw new Error('Chat no encontrado');
       if (chat.client_id !== user.id && chat.worker_id !== user.id) {
         throw new Error('No tienes acceso a este chat');
       }
 
-      // Obtener mensajes
-      const { data: messages, error } = await supabase
-        .from('chat_messages')
-        .select(`
-          *,
-          sender:user_profiles!chat_messages_sender_id_fkey(id, name, profile_picture_url)
-        `)
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
+      if (messagesError) throw messagesError;
 
-      if (error) throw error;
+      // ✅ Invertir orden para mostrar del más antiguo al más reciente
+      const sortedMessages = (messages || []).reverse();
 
       return {
-        data: messages || [],
+        data: sortedMessages,
         error: null,
         success: true
       };

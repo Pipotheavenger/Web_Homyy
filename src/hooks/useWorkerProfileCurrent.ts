@@ -31,7 +31,10 @@ export const useWorkerProfileCurrent = () => {
 
   const loadWorkerProfileData = async () => {
     try {
-      setLoading(true);
+      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay datos previos
+      if (!usuario) {
+        setLoading(true);
+      }
       setError(null);
 
       // Obtener usuario actual
@@ -40,35 +43,38 @@ export const useWorkerProfileCurrent = () => {
         throw new Error('Usuario no autenticado');
       }
 
-      // Cargar perfil básico del usuario
-      const { data: userProfile, error: userError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      // ✅ OPTIMIZACIÓN: Cargar perfiles en paralelo (más rápido)
+      const [userProfileResult, workerProfileResult] = await Promise.allSettled([
+        // Cargar perfil básico del usuario (crítico)
+        supabase
+          .from('user_profiles')
+          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance')
+          .eq('user_id', user.id)
+          .single(),
+        
+        // Cargar perfil de trabajador (puede no existir)
+        supabase
+          .from('worker_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+      ]);
 
-      if (userError) {
-        console.error('Error cargando perfil de usuario:', userError);
+      // Procesar resultado del perfil de usuario
+      if (userProfileResult.status === 'rejected' || !userProfileResult.value.data) {
+        const error = userProfileResult.status === 'rejected' 
+          ? userProfileResult.reason 
+          : userProfileResult.value.error;
+        console.error('Error cargando perfil de usuario:', error);
         throw new Error('Error al cargar perfil de usuario');
       }
 
-      if (!userProfile) {
-        throw new Error('Perfil de usuario no encontrado');
-      }
+      const userProfile = userProfileResult.value.data;
+      const workerData = workerProfileResult.status === 'fulfilled' && workerProfileResult.value.data
+        ? workerProfileResult.value.data
+        : null;
 
-      // Cargar perfil de trabajador
-      const { data: workerData, error: workerError } = await supabase
-        .from('worker_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (workerError) {
-        console.error('Error cargando perfil de trabajador:', workerError);
-        // No es error crítico, el usuario puede no tener perfil de trabajador aún
-      }
-
-      // Formatear datos del usuario - mantener estructura consistente con DB
+      // ✅ OPTIMIZACIÓN: Formatear y mostrar datos INMEDIATAMENTE
       const formattedUser = {
         id: userProfile.id,
         user_id: userProfile.user_id,
@@ -86,7 +92,7 @@ export const useWorkerProfileCurrent = () => {
         calificacion: workerData?.rating || 0,
         serviciosCompletados: workerData?.total_services || 0,
         serviciosActivos: 0,
-        balance: userProfile.balance || 0, // Usar el balance real de la base de datos
+        balance: userProfile.balance || 0,
         preferencias: {
           notificaciones: true,
           emailMarketing: false,
@@ -97,19 +103,7 @@ export const useWorkerProfileCurrent = () => {
       setUsuario(formattedUser);
       setWorkerProfile(workerData);
 
-      // Cargar bookings como trabajador
-      const bookingsResponse = await bookingsService.getMyBookingsAsWorker();
-      if (bookingsResponse.success && bookingsResponse.data) {
-        setBookings(bookingsResponse.data.slice(0, 5));
-      }
-
-      // Cargar reviews recibidas
-      const reviewsResponse = await reviewsService.getByProfessional(user.id);
-      if (reviewsResponse.success && reviewsResponse.data) {
-        setReviews(reviewsResponse.data);
-      }
-
-      // Actualizar formData
+      // Actualizar formData INMEDIATAMENTE
       setFormData({
         nombre: userProfile.name?.split(' ')[0] || '',
         apellido: userProfile.name?.split(' ').slice(1).join(' ') || '',
@@ -122,10 +116,31 @@ export const useWorkerProfileCurrent = () => {
         hourly_rate: workerData?.hourly_rate?.toString() || ''
       });
 
+      // ✅ Quitar loading lo antes posible
+      setLoading(false);
+
+      // ✅ OPTIMIZACIÓN: Cargar datos secundarios en segundo plano (no bloquea UI)
+      Promise.allSettled([
+        // Cargar bookings como trabajador
+        bookingsService.getMyBookingsAsWorker().then((response) => {
+          if (response.success && response.data) {
+            setBookings(response.data.slice(0, 5));
+          }
+        }),
+        
+        // Cargar reviews recibidas
+        reviewsService.getByProfessional(user.id).then((response) => {
+          if (response.success && response.data) {
+            setReviews(response.data);
+          }
+        })
+      ]).catch(err => {
+        console.warn('Error cargando datos secundarios:', err);
+      });
+
     } catch (err: any) {
       console.error('Error cargando perfil de trabajador:', err);
       setError(err.message || 'Error al cargar el perfil');
-    } finally {
       setLoading(false);
     }
   };

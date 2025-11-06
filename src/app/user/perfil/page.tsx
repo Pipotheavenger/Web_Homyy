@@ -50,22 +50,50 @@ export default function PerfilPage() {
     }
   };
 
-  if (loading) {
+  // ✅ OPTIMIZACIÓN: Skeleton profesional mientras carga
+  const ProfileSkeleton = () => (
+    <div className="p-3 lg:p-6 space-y-4 lg:space-y-6 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
+          <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gray-300 rounded-2xl"></div>
+          <div className="flex-1 space-y-3">
+            <div className="h-6 bg-gray-300 rounded w-48"></div>
+            <div className="h-4 bg-gray-200 rounded w-32"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Tabs Skeleton */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
+        <div className="flex space-x-2 mb-6">
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ✅ OPTIMIZACIÓN: Mostrar skeleton solo si no hay datos y está cargando
+  if (loading && !usuario) {
     return (
       <Layout 
         title="Mi Perfil" 
         currentPage="perfil"
       >
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
-          </div>
-        </div>
+        <ProfileSkeleton />
       </Layout>
     );
   }
 
-  if (!usuario) {
+  if (!usuario && !loading) {
     return (
       <Layout 
         title="Mi Perfil" 

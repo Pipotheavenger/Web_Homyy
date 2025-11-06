@@ -9,8 +9,18 @@ const { createClient } = require('@supabase/supabase-js');
 async function verifyBookingsAndChats() {
   console.log('🔍 Verificando bookings y chats...\n');
   
-  const supabaseUrl = 'https://kclglwxssvtwderrqgks.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjbGdsd3hzc3Z0d2RlcnJxZ2tzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjU1Nzc4OSwiZXhwIjoyMDY4MTMzNzg5fQ.2Jz9O9tcAYOp3HzoxxDxW6orkP17kJBrj7Es1oion1k';
+  // Leer variables de entorno - nunca hardcodear secrets
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Error: Se requieren las siguientes variables de entorno:');
+    console.error('   SUPABASE_URL o NEXT_PUBLIC_SUPABASE_URL');
+    console.error('   SUPABASE_SERVICE_ROLE_KEY');
+    console.error('\n⚠️  IMPORTANTE: Nunca hardcodees el Service Role Key en el código.');
+    console.error('   Usa variables de entorno para mantener la seguridad.');
+    process.exit(1);
+  }
   
   const supabase = createClient(supabaseUrl, supabaseKey);
   
@@ -25,9 +35,8 @@ async function verifyBookingsAndChats() {
     
     if (bookingsError) {
       console.log('❌ Error:', bookingsError.message);
-    } else {
-      console.log(`✅ Bookings encontrados: ${bookings?.length || 0}`);
-      if (bookings && bookings.length > 0) {
+    } else if (bookings && bookings.length > 0) {
+      console.log(`✅ Bookings encontrados: ${bookings.length}`);
         bookings.forEach((booking, index) => {
           console.log(`\n📦 Booking ${index + 1}:`);
           console.log(`   ID: ${booking.id}`);
@@ -37,9 +46,8 @@ async function verifyBookingsAndChats() {
           console.log(`   Status: ${booking.status}`);
           console.log(`   Created: ${booking.created_at}`);
         });
-      } else {
-        console.log('⚠️  No hay bookings en la base de datos');
-      }
+    } else {
+      console.log('⚠️  No hay bookings en la base de datos');
     }
     
     console.log('\n' + '='.repeat(60) + '\n');
@@ -53,9 +61,8 @@ async function verifyBookingsAndChats() {
     
     if (chatsError) {
       console.log('❌ Error:', chatsError.message);
-    } else {
-      console.log(`✅ Chats encontrados: ${chats?.length || 0}`);
-      if (chats && chats.length > 0) {
+    } else if (chats && chats.length > 0) {
+      console.log(`✅ Chats encontrados: ${chats.length}`);
         chats.forEach((chat, index) => {
           console.log(`\n💬 Chat ${index + 1}:`);
           console.log(`   ID: ${chat.id}`);
@@ -64,9 +71,8 @@ async function verifyBookingsAndChats() {
           console.log(`   Worker ID: ${chat.worker_id}`);
           console.log(`   Created: ${chat.created_at}`);
         });
-      } else {
-        console.log('⚠️  No hay chats en la base de datos');
-      }
+    } else {
+      console.log('⚠️  No hay chats en la base de datos');
     }
     
     console.log('\n' + '='.repeat(60) + '\n');

@@ -12,38 +12,45 @@ export const useChat = (chatId?: string) => {
 
   // Cargar lista de chats
   const loadChats = useCallback(async () => {
-    setLoading(true);
+    // ✅ OPTIMIZACIÓN: No bloquear UI mientras carga chats
+    // Solo mostrar loading si no hay chats previos
+    if (chats.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     
     const response = await chatService.getMyChats();
     
     if (response.success && response.data) {
+      // ✅ Actualizar chats inmediatamente (sin esperar loading)
       setChats(response.data);
+      setLoading(false); // Quitar loading lo antes posible
     } else {
       setError(response.error);
+      setLoading(false);
     }
-    
-    setLoading(false);
-  }, []);
+  }, [chats.length]);
 
   // Cargar mensajes de un chat específico
   const loadMessages = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    // Limpiar mensajes anteriores inmediatamente
+    // ✅ OPTIMIZACIÓN: Limpiar mensajes anteriores inmediatamente para feedback visual
     setMessages([]);
+    setError(null);
+    
+    // ✅ OPTIMIZACIÓN: No mostrar loading global (solo en el chat específico)
+    // Esto permite que el usuario vea la lista de chats mientras carga mensajes
     
     const response = await chatService.getMessages(id);
     
     if (response.success && response.data) {
       setMessages(response.data);
-      // Marcar mensajes como leídos
-      await chatService.markMessagesAsRead(id);
+      // ✅ OPTIMIZACIÓN: Marcar como leídos en segundo plano (no bloquea)
+      chatService.markMessagesAsRead(id).catch(err => {
+        console.warn('Error marcando mensajes como leídos:', err);
+      });
     } else {
       setError(response.error);
     }
-    
-    setLoading(false);
   }, []);
 
   // Enviar mensaje
@@ -110,6 +117,7 @@ export const useChat = (chatId?: string) => {
     let mounted = true;
 
     if (!chatId && mounted) {
+      // ✅ OPTIMIZACIÓN: Cargar chats inmediatamente sin esperar
       loadChats();
     }
 

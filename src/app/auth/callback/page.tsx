@@ -15,6 +15,108 @@ function AuthCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verificando tu cuenta...');
 
+  // Funciones helper para reducir complejidad cognitiva
+  const handleAuthError = (errorParam: string | null, errorDescription: string | null): boolean => {
+    if (!errorParam) return false;
+    
+    console.error('Auth error:', errorParam, errorDescription);
+    setStatus('error');
+    setMessage(errorDescription || 'Error en la verificación. Intenta de nuevo.');
+    return true;
+  };
+
+  const handleCodeExchange = async (code: string, type: string | null): Promise<boolean> => {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (exchangeError) {
+      console.error('Error exchanging code:', exchangeError);
+      setStatus('error');
+      setMessage('Error al verificar el enlace. Intenta de nuevo.');
+      return false;
+    }
+
+    // Verificar si es recuperación de contraseña
+    if (type === 'recovery') {
+      setStatus('success');
+      setMessage('Enlace verificado. Redirigiendo para cambiar tu contraseña...');
+      setTimeout(() => {
+        router.push('/auth/reset-password');
+      }, 2000);
+      return true; // Indica que se manejó completamente
+    }
+
+    return false; // Indica que necesita procesamiento adicional
+  };
+
+  const handleManualSession = async (accessToken: string, refreshToken: string): Promise<boolean> => {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+
+    if (error) {
+      console.error('Error setting session:', error);
+      setStatus('error');
+      setMessage('Error al establecer la sesión. Intenta de nuevo.');
+      return false;
+    }
+
+    if (!data.session) {
+      setStatus('error');
+      setMessage('No se pudo establecer la sesión. Intenta de nuevo.');
+      return false;
+    }
+
+    setStatus('success');
+    setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
+    await redirectToAppropriateDashboard(data.session.user);
+    return true;
+  };
+
+  const handleExistingSession = async (): Promise<boolean> => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session:', sessionError);
+      setStatus('error');
+      setMessage('Error al verificar la cuenta. Intenta de nuevo.');
+      return false;
+    }
+
+    if (!sessionData.session) {
+      router.push('/login');
+      return false;
+    }
+
+    setStatus('success');
+    setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
+    await redirectToAppropriateDashboard(sessionData.session.user);
+    return true;
+  };
+
+  const redirectToAppropriateDashboard = async (user: any) => {
+    try {
+      const userType = await getUserType(user.id);
+      
+      if (userType) {
+        const dashboardPath = redirectToUserDashboard(userType);
+        setTimeout(() => {
+          router.push(dashboardPath);
+        }, 2000);
+      } else {
+        console.error('No se pudo determinar el tipo de usuario');
+        setTimeout(() => {
+          router.push('/user/dashboard');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error determining user type:', error);
+      setTimeout(() => {
+        router.push('/user/dashboard');
+      }, 2000);
+    }
+  };
+
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
@@ -28,113 +130,26 @@ function AuthCallbackContent() {
 
         console.log('Auth callback params:', { accessToken, refreshToken, code, type, errorParam, errorDescription });
 
-        if (errorParam) {
-          console.error('Auth error:', errorParam, errorDescription);
-          setStatus('error');
-          setMessage(errorDescription || 'Error en la verificación. Intenta de nuevo.');
-          return;
-        }
+        // Manejar errores de autenticación
+        if (handleAuthError(errorParam, errorDescription)) return;
 
-        // Si hay un código de autorización, intercambiarlo por una sesión
+        // Intercambiar código por sesión si existe
         if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          
-          if (exchangeError) {
-            console.error('Error exchanging code:', exchangeError);
-            setStatus('error');
-            setMessage('Error al verificar el enlace. Intenta de nuevo.');
-            return;
-          }
-
-          // Verificar si es recuperación de contraseña
-          if (type === 'recovery') {
-            setStatus('success');
-            setMessage('Enlace verificado. Redirigiendo para cambiar tu contraseña...');
-            setTimeout(() => {
-              router.push('/auth/reset-password');
-            }, 2000);
-            return;
-          }
+          const handled = await handleCodeExchange(code, type);
+          if (handled) return; // Ya se procesó completamente (recuperación de contraseña)
         }
 
+        // Establecer sesión manual si hay tokens
         if (accessToken && refreshToken) {
-          // Establecer la sesión manualmente
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-
-          if (error) {
-            console.error('Error setting session:', error);
-            setStatus('error');
-            setMessage('Error al establecer la sesión. Intenta de nuevo.');
-            return;
-          }
-
-          if (data.session) {
-            setStatus('success');
-            setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
-            
-            // Determinar el tipo de usuario y redirigir apropiadamente
-            await redirectToAppropriateDashboard(data.session.user);
-          } else {
-            setStatus('error');
-            setMessage('No se pudo establecer la sesión. Intenta de nuevo.');
-          }
-        } else {
-          // Verificar si ya hay una sesión activa
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('Error getting session:', sessionError);
-            setStatus('error');
-            setMessage('Error al verificar la cuenta. Intenta de nuevo.');
-            return;
-          }
-
-          if (sessionData.session) {
-            setStatus('success');
-            setMessage('¡Cuenta verificada exitosamente! Redirigiendo...');
-            
-            // Determinar el tipo de usuario y redirigir apropiadamente
-            await redirectToAppropriateDashboard(sessionData.session.user);
-          } else {
-            // Redirigir al login si no hay sesión
-            router.push('/login');
-          }
+          if (await handleManualSession(accessToken, refreshToken)) return;
         }
+
+        // Verificar sesión existente
+        await handleExistingSession();
       } catch (err) {
         console.error('Unexpected error:', err);
         setStatus('error');
         setMessage('Error inesperado. Intenta de nuevo.');
-      }
-    };
-
-    const redirectToAppropriateDashboard = async (user: any) => {
-      try {
-        // Obtener el tipo de usuario desde la base de datos
-        const userType = await getUserType(user.id);
-        
-        if (userType) {
-          // Redirigir al dashboard correspondiente
-          const dashboardPath = redirectToUserDashboard(userType);
-          
-          setTimeout(() => {
-            router.push(dashboardPath);
-          }, 2000);
-        } else {
-          console.error('No se pudo determinar el tipo de usuario');
-          // Fallback: redirigir al dashboard del usuario
-          setTimeout(() => {
-            router.push('/user/dashboard');
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('Error determining user type:', error);
-        // Fallback: redirigir al dashboard del usuario
-        setTimeout(() => {
-          router.push('/user/dashboard');
-        }, 2000);
       }
     };
 

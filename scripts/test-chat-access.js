@@ -9,8 +9,18 @@ const { createClient } = require('@supabase/supabase-js');
 async function testChatAccess() {
   console.log('🔍 Probando acceso a chats...\n');
   
-  const supabaseUrl = 'https://kclglwxssvtwderrqgks.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjbGdsd3hzc3Z0d2RlcnJxZ2tzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1NTc3ODksImV4cCI6MjA2ODEzMzc4OX0.RajU-ogx9qiCGR0itBU6Oc66l8cxWVzC3pvzJPwu88k';
+  // Leer variables de entorno - nunca hardcodear secrets
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Error: Se requieren las siguientes variables de entorno:');
+    console.error('   SUPABASE_URL o NEXT_PUBLIC_SUPABASE_URL');
+    console.error('   NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    console.error('\n⚠️  IMPORTANTE: Nunca hardcodees las keys en el código.');
+    console.error('   Usa variables de entorno para mantener la seguridad.');
+    process.exit(1);
+  }
   
   const supabase = createClient(supabaseUrl, supabaseKey);
   
@@ -51,9 +61,8 @@ async function testChatAccess() {
       console.log('   Código:', chatsError.code);
       console.log('   Detalles:', chatsError.details);
       console.log('   Hint:', chatsError.hint);
-    } else {
-      console.log(`✅ Chats obtenidos: ${chats?.length || 0}`);
-      if (chats && chats.length > 0) {
+    } else if (chats && chats.length > 0) {
+      console.log(`✅ Chats obtenidos: ${chats.length}`);
         chats.forEach((chat, index) => {
           console.log(`\n💬 Chat ${index + 1}:`);
           console.log(`   ID: ${chat.id}`);
@@ -62,24 +71,23 @@ async function testChatAccess() {
           console.log(`   Worker: ${chat.worker?.name || 'N/A'}`);
           console.log(`   Service: ${chat.booking?.service?.title || 'N/A'}`);
         });
-      } else {
-        console.log('⚠️  No se encontraron chats');
-        
-        // Verificar si hay bookings para este usuario
-        console.log('\n🔍 Verificando bookings del usuario...');
-        const { data: bookings } = await supabase
-          .from('bookings')
-          .select('*')
-          .or(`client_id.eq.${authData.user.id},worker_id.eq.${authData.user.id}`);
-        
-        console.log(`   Bookings encontrados: ${bookings?.length || 0}`);
-        if (bookings && bookings.length > 0) {
-          bookings.forEach((booking, index) => {
-            console.log(`   ${index + 1}. Booking ${booking.id}`);
-            console.log(`      Client: ${booking.client_id}`);
-            console.log(`      Worker: ${booking.worker_id}`);
-          });
-        }
+    } else {
+      console.log('⚠️  No se encontraron chats');
+      
+      // Verificar si hay bookings para este usuario
+      console.log('\n🔍 Verificando bookings del usuario...');
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('*')
+        .or(`client_id.eq.${authData.user.id},worker_id.eq.${authData.user.id}`);
+      
+      console.log(`   Bookings encontrados: ${bookings?.length || 0}`);
+      if (bookings && bookings.length > 0) {
+        bookings.forEach((booking, index) => {
+          console.log(`   ${index + 1}. Booking ${booking.id}`);
+          console.log(`      Client: ${booking.client_id}`);
+          console.log(`      Worker: ${booking.worker_id}`);
+        });
       }
     }
     

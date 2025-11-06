@@ -6,7 +6,7 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+const path = require('node:path');
 
 console.log('🔍 Verificando configuración de Supabase...\n');
 

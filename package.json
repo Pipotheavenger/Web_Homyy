@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sonar": "sonar-scanner -Dsonar.token=fc7fbb8edc0befafade0eff80805d0389421b368",
+    "sonar:env": "sonar-scanner -Dsonar.token=%SONAR_TOKEN%"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.51.0",

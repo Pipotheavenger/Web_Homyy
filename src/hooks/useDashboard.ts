@@ -78,16 +78,20 @@ export const useDashboard = () => {
       try {
         setLoading(true);
         
-        // Cargar datos básicos optimizados
-        const { profileResponse, servicesResponse, categoriesResponse, workersResponse, statsResponse } = await loadBasicData();
+        // FASE 1: Cargar datos CRÍTICOS primero (perfil y servicios)
+        // Esto permite mostrar contenido inmediatamente
+        const [profileResponse, servicesResponse] = await Promise.all([
+          profileService.getProfile(),
+          serviceService.getUserServices()
+        ]);
 
-        // Procesar perfil del usuario (crítico - mostrar nombre rápido)
+        // Procesar perfil del usuario INMEDIATAMENTE (crítico para WelcomeBanner)
         if (profileResponse.success && profileResponse.data) {
           const firstName = profileResponse.data.name?.split(' ')[0] || 'Usuario';
           setUserName(firstName);
         }
 
-        // Procesar servicios (crítico - mostrar servicios rápido)
+        // Procesar servicios INMEDIATAMENTE (crítico para mostrar servicios)
         if (servicesResponse.success && servicesResponse.data) {
           const activeServices = servicesResponse.data.filter(
             (service: Service) => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
@@ -95,39 +99,82 @@ export const useDashboard = () => {
           
           setServices(activeServices);
           
-          // Marcar carga inicial como completa INMEDIATAMENTE después de servicios
+          // ✅ Marcar como completo INMEDIATAMENTE - permite mostrar UI
           setInitialLoadComplete(true);
-          setLoading(false); // ✅ Quitar loading temprano
+          setLoading(false); // Quitar loading lo antes posible
           
-          // Cargar datos relacionados de forma asíncrona (no bloquea la UI)
+          // Cargar datos relacionados en segundo plano (no bloquea)
           loadServiceRelatedData(activeServices).catch(err => {
             console.error('Error cargando datos relacionados:', err);
           });
+        } else {
+          // Si no hay servicios o hay error, marcar como completo de todos modos
+          setServices([]);
+          setInitialLoadComplete(true);
+          setLoading(false);
         }
 
-        // Procesar otros datos en segundo plano (no bloquean)
-        if (categoriesResponse?.success && categoriesResponse.data) {
-          setCategories(categoriesResponse.data);
-          setCachedData('categories', categoriesResponse.data);
+        // FASE 2: Cargar datos SECUNDARIOS en paralelo (no bloquean la UI)
+        // Verificar caché primero
+        const cachedCategories = getCachedData('categories');
+        const cachedWorkers = getCachedData('topWorkers');
+        
+        const secondaryPromises: Promise<any>[] = [];
+        
+        // Solo cargar si no está en caché
+        if (!cachedCategories) {
+          secondaryPromises.push(
+            categoryService.getAll().then(response => {
+              if (response.success && response.data) {
+                setCategories(response.data);
+                setCachedData('categories', response.data);
+              }
+            })
+          );
+        } else {
+          setCategories(cachedCategories);
         }
 
-        if (workersResponse?.success && workersResponse.data) {
-          const topWorkersData = Array.isArray(workersResponse.data) 
-            ? workersResponse.data.slice(0, 5)
+        if (!cachedWorkers) {
+          secondaryPromises.push(
+            workerService.getAll({ is_available: true, limit: 5 }).then(response => {
+              if (response.success && response.data) {
+                const topWorkersData = Array.isArray(response.data) 
+                  ? response.data.slice(0, 5)
+                  : [];
+                setTopWorkers(topWorkersData);
+                if (Array.isArray(response.data)) {
+                  setCachedData('topWorkers', response.data);
+                }
+              }
+            })
+          );
+        } else {
+          const topWorkersData = Array.isArray(cachedWorkers) 
+            ? cachedWorkers.slice(0, 5)
             : [];
           setTopWorkers(topWorkersData);
-          if (Array.isArray(workersResponse.data)) {
-            setCachedData('topWorkers', workersResponse.data);
-          }
         }
 
-        if (statsResponse?.success && statsResponse.data) {
-          setStats(statsResponse.data);
-        }
+        // Stats - no crítico, cargar en background
+        secondaryPromises.push(
+          statsService.getDashboardStats().then(response => {
+            if (response.success && response.data) {
+              setStats(response.data);
+            }
+          })
+        );
+
+        // Ejecutar todas las cargas secundarias en paralelo (no bloquean)
+        Promise.allSettled(secondaryPromises).catch(err => {
+          console.error('Error cargando datos secundarios:', err);
+        });
 
       } catch (err) {
+        console.error('Error loading dashboard:', err);
         setError('Error al cargar los datos del dashboard');
         setLoading(false);
+        setInitialLoadComplete(true); // Marcar como completo incluso con error para mostrar UI
       }
     };
 
