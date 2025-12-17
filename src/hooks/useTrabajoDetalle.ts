@@ -46,9 +46,12 @@ export const useTrabajoDetalle = (serviceId: string) => {
       }
 
       // Verificar si ya aplicó (en paralelo, sin bloquear)
+      // Solo considerar aplicaciones que NO estén retiradas (withdrawn)
       applicationsService.getMyApplications().then(myApplicationsResponse => {
         if (myApplicationsResponse.success && myApplicationsResponse.data) {
-          const applied = myApplicationsResponse.data.some(app => app.service_id === serviceId);
+          const applied = myApplicationsResponse.data.some(
+            app => app.service_id === serviceId && app.status !== 'withdrawn'
+          );
           setHasApplied(applied);
         }
       }).catch(err => {
@@ -103,11 +106,16 @@ export const useTrabajoDetalle = (serviceId: string) => {
         setIsModalOpen(false);
         setHasApplied(true);
         setIsSuccessModalOpen(true);
+        router.push('/worker/dashboard');
       } else {
-        alert('Error al enviar aplicación: ' + response.error);
+        const errorMessage = response.error || 'Error desconocido al enviar la aplicación';
+        console.error('Error en respuesta de aplicación:', response);
+        alert('Error al enviar aplicación: ' + errorMessage);
       }
     } catch (error) {
-      alert('Error al enviar la aplicación');
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al enviar la aplicación';
+      console.error('Excepción al enviar aplicación:', error);
+      alert('Error al enviar la aplicación: ' + errorMessage);
     }
   };
 

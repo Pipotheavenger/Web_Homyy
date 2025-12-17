@@ -155,7 +155,7 @@ export default function PagosWorkerPage() {
     const transactionRef = `RET-${Date.now()}`;
     const response = await transactionsService.create({
       type: 'retiro',
-      amount: -parseFloat(monto), // Negativo para retiro
+      amount: parseFloat(monto), // Positivo - el tipo 'retiro' indica que resta
       payment_method: selectedMetodo,
       transaction_reference: transactionRef,
       description: `Retiro ${selectedMetodo?.toUpperCase()}`,
@@ -322,9 +322,16 @@ export default function PagosWorkerPage() {
                       {getTypeIcon(transaction.type)}
                       <div className="min-w-0 flex-1">
                         <h4 className="font-semibold text-gray-800 text-sm sm:text-base break-words">
-                          {transaction.type === 'recarga' ? 'Recarga' : 'Retiro'} {transaction.payment_method.toUpperCase()}
+                          {transaction.type === 'recarga' 
+                            ? (transaction.description?.includes('Pago por completar servicio') 
+                                ? 'Pago por Servicio Completado' 
+                                : 'Recarga')
+                            : 'Retiro'} {transaction.payment_method && transaction.payment_method !== 'platform' ? transaction.payment_method.toUpperCase() : ''}
                         </h4>
                         <p className="text-xs sm:text-sm text-gray-600 break-words">{formatDate(transaction.created_at)}</p>
+                        {transaction.description && (
+                          <p className="text-xs text-gray-500 break-words">{transaction.description}</p>
+                        )}
                         {transaction.transaction_reference && (
                           <p className="text-xs text-gray-500 font-mono break-all">{transaction.transaction_reference}</p>
                         )}

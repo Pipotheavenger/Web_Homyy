@@ -4,11 +4,17 @@ import { supabase } from '@/lib/supabase';
 import { serviceService, applicationsService, bookingsService, questionsService, escrowService } from '@/lib/services';
 import { chatService } from '@/lib/api/chat';
 import { formatDate, formatPrice } from '@/lib/utils/empty-state-helpers';
+import { useQueryClient } from '@tanstack/react-query';
+import { dashboardKeys } from './queries/dashboardQueries';
+import { clearCachedData } from '@/lib/cache-utils';
+import { useAuth } from './useAuth';
 
 export const useDetallesPostulantes = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceId = searchParams.get('id');
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [servicio, setServicio] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
@@ -116,7 +122,11 @@ export const useDetallesPostulantes = () => {
   const filteredPostulantes = useMemo(() => {
     if (!applications) return [];
 
-    let filtered = applications.filter(app => {
+    // Primero excluir aplicaciones retiradas (withdrawn)
+    let filtered = applications.filter(app => app.status !== 'withdrawn');
+
+    // Luego aplicar el filtro seleccionado
+    filtered = filtered.filter(app => {
       if (selectedFilter === 'todos') return true;
       if (selectedFilter === 'pendiente') return app.status === 'pending';
       if (selectedFilter === 'aprobado') return app.status === 'accepted';
@@ -241,6 +251,13 @@ export const useDetallesPostulantes = () => {
         setShowConfirmationModal(false);
         setCandidateToConfirm(null);
         
+        // Invalidar caché de servicios para que se recargue con el PIN
+        if (user?.id) {
+          queryClient.invalidateQueries({ queryKey: dashboardKeys.services(user.id) });
+          // Limpiar caché local también
+          clearCachedData(`user_services_${user.id}`);
+        }
+        
         // Recargar datos
         await loadServiceDetails();
         await loadApplications();
@@ -339,7 +356,7 @@ export const useDetallesPostulantes = () => {
     fechaPublicacion: formatDate(servicio.created_at),
     fechaLimite: 'No especificado',
     estado: servicio.status,
-    postulantes: applications.length,
+    postulantes: filteredPostulantes.length,
     progreso: 0,
     etapa: servicio.status === 'active' ? 'Contratando' : 
            servicio.status === 'hired' ? 'Contratado' : 

@@ -150,20 +150,6 @@ const ServiceCard = memo(({ service, categories, hasReviewed, onViewDetails, onD
   const categoryColor = CATEGORY_COLORS[categoryName] || CATEGORY_COLORS['otros'];
   const statusInfo = STATUS[service.status] || { pct: 0, label: 'Desconocido', cls: 'text-gray-600 bg-gray-50 border-gray-200' };
 
-  // Debug log para ver los datos del servicio
-  if (service.status === 'hired') {
-    console.log('🔍 Servicio contratado:', {
-      id: service.id,
-      status: service.status,
-      completion_pin: (service as any).completion_pin,
-      escrow_pin: (service as any).escrow_pin,
-      service: service
-    });
-  }
-
-
-
-
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
@@ -227,13 +213,6 @@ const ServiceCard = memo(({ service, categories, hasReviewed, onViewDetails, onD
             </span>
             {service.status === 'hired' && (
               <>
-                {console.log('🎯 Verificando PIN para servicio contratado:', {
-                  id: service.id,
-                  title: service.title,
-                  completion_pin: (service as any).completion_pin,
-                  escrow_pin: (service as any).escrow_pin,
-                  hasPin: !!(service as any).completion_pin || !!(service as any).escrow_pin
-                })}
                 {((service as any).completion_pin || (service as any).escrow_pin) ? (
                   <div className="bg-orange-100 border border-orange-200 rounded-lg px-2 py-1">
                     <span className="text-xs font-mono font-bold text-orange-700">

@@ -20,12 +20,14 @@ export default function TrabajosDisponiblesPage() {
   const { 
     trabajos, 
     loading, 
+    error,
     searchTerm, 
     setSearchTerm, 
     selectedCategory, 
     setSelectedCategory, 
     categorias, 
-    formatPrice 
+    formatPrice,
+    reload
   } = useTrabajos();
 
   const formatDate = (dateString: string) => {
@@ -43,6 +45,28 @@ export default function TrabajosDisponiblesPage() {
         <div className="p-6">
           <div className="flex items-center justify-center h-64">
             <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="Trabajos Disponibles" currentPage="trabajos">
+        <div className="p-6">
+          <div className={`${colors.card} rounded-2xl p-8 border ${colors.border} text-center`}>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Error al cargar trabajos</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={reload}
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors"
+            >
+              Reintentar
+            </button>
           </div>
         </div>
       </Layout>

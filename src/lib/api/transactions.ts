@@ -152,13 +152,16 @@ export const transactionsService = {
   },
 
   /**
-   * Obtener el balance total del usuario
+   * Obtener el balance total del usuario calculado directamente desde las transacciones
+   * Balance = SUM(recargas) - SUM(débitos) - SUM(retiros)
+   * Solo considera transacciones completadas
    */
   async getBalance() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Calcular balance usando GROUP BY: recargas - débitos - retiros
       const { data: transactions, error } = await supabase
         .from('transactions')
         .select('type, amount')
@@ -167,12 +170,14 @@ export const transactionsService = {
 
       if (error) throw error;
 
+      // Calcular balance: SUM(recargas) - SUM(débitos) - SUM(retiros)
       let balance = 0;
-      transactions?.forEach(t => {
-        if (t.type === 'recarga') {
-          balance += Math.abs(Number(t.amount));
-        } else if (t.type === 'retiro' || t.type === 'debito') {
-          balance -= Math.abs(Number(t.amount));
+      
+      transactions?.forEach(transaction => {
+        if (transaction.type === 'recarga') {
+          balance += Number(transaction.amount);
+        } else if (transaction.type === 'debito' || transaction.type === 'retiro') {
+          balance -= Number(transaction.amount);
         }
       });
 
@@ -182,10 +187,10 @@ export const transactionsService = {
         success: true
       };
     } catch (error) {
-      console.error('Error calculating balance:', error);
+      console.error('Error getting balance:', error);
       return {
         data: 0,
-        error: error instanceof Error ? error.message : 'Error al calcular balance',
+        error: error instanceof Error ? error.message : 'Error al obtener balance',
         success: false
       };
     }

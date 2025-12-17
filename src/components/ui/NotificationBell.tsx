@@ -1,12 +1,23 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationModal } from './NotificationModal';
 
 export const NotificationBell = () => {
-  const { unreadCount, loadUnreadCount } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    hasLoaded,
+    loadNotifications,
+    loadUnreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = useNotifications({ autoLoad: false });
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -55,7 +66,18 @@ export const NotificationBell = () => {
         </button>
       </div>
 
-      <NotificationModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <NotificationModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        notifications={notifications}
+        loading={loading}
+        error={error}
+        onLoad={loadNotifications}
+        hasLoaded={hasLoaded}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+        onDelete={deleteNotification}
+      />
     </>
   );
 };

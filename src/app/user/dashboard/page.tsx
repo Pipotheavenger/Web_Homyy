@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useDashboard } from '@/hooks/useDashboard';
 import { WelcomeBanner } from '@/components/ui/WelcomeBanner';
 import ServiceCard from '@/components/ui/ServiceCard';
-import { TopProfessionals } from '@/components/ui/TopProfessionals';
 import { ReviewModal } from '@/components/ui/ReviewModal';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { reviewsService } from '@/lib/services';
+
+// Lazy load TopProfessionals - componente secundario
+const TopProfessionals = lazy(() => 
+  import('@/components/ui/TopProfessionals').then(module => ({ default: module.TopProfessionals }))
+);
 
 export default function Dashboard() {
   const router = useRouter();
@@ -204,14 +208,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Profesionales destacados - Secundario, carga después */}
+          {/* Profesionales destacados - Secundario, carga después con lazy loading */}
           <div className="lg:col-span-1 min-w-0">
             {!initialLoadComplete ? (
               <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
                 <SkeletonLoader type="text" />
               </div>
             ) : (
-              <TopProfessionals professionals={topWorkers} />
+              <Suspense fallback={
+                <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 w-full max-w-full overflow-hidden">
+                  <SkeletonLoader type="text" />
+                </div>
+              }>
+                <TopProfessionals professionals={topWorkers} />
+              </Suspense>
             )}
           </div>
         </div>

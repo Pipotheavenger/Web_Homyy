@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
 import type { ApiResponse } from '@/types/database';
 
 // =====================================================
@@ -93,6 +94,25 @@ export const applicationsService = {
         throw new Error('Este servicio ya no está disponible');
       }
 
+      // Verificar si ya existe una aplicación activa (no retirada) para este servicio
+      const { data: existingApplications } = await supabase
+        .from('applications')
+        .select('id, status')
+        .eq('service_id', data.service_id)
+        .eq('worker_id', user.id)
+        .neq('status', 'withdrawn'); // Excluir aplicaciones retiradas
+
+      if (existingApplications && existingApplications.length > 0) {
+        // Verificar si hay alguna aplicación que no esté retirada
+        const hasActiveApplication = existingApplications.some(
+          app => app.status !== 'withdrawn'
+        );
+        
+        if (hasActiveApplication) {
+          throw new Error('Ya te has postulado a este servicio');
+        }
+      }
+
       // Crear la aplicación (INSERT simple sin joins)
       const applicationData = {
         service_id: data.service_id,
@@ -103,18 +123,50 @@ export const applicationsService = {
         status: 'pending' as const
       };
 
+      console.log('📝 Intentando crear aplicación con datos:', applicationData);
+
       const { data: application, error } = await supabase
         .from('applications')
-        .insert(applicationData)
+        .insert([applicationData])
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Error al insertar aplicación:', error);
-        if (error.code === '23505') {
+        // Capturar información completa del error
+        const postgrestError = error as PostgrestError;
+        const errorInfo = {
+          message: postgrestError.message || error.message || 'Error desconocido',
+          code: postgrestError.code || (error as any)?.code,
+          details: postgrestError.details || (error as any)?.details,
+          hint: postgrestError.hint || (error as any)?.hint,
+        };
+        
+        console.error('Error al insertar aplicación:', {
+          message: errorInfo.message,
+          code: errorInfo.code,
+          details: errorInfo.details,
+          hint: errorInfo.hint,
+        });
+        
+        // Verificar si es un error de duplicado (restricción única)
+        const duplicate =
+          errorInfo.code === '23505' ||
+          errorInfo.message?.includes('duplicate key value') ||
+          errorInfo.message?.includes('duplicate key value violates unique') ||
+          errorInfo.message?.includes('unique constraint') ||
+          errorInfo.message?.includes('applications_service_id_worker_id_active_key');
+        
+        if (duplicate) {
           throw new Error('Ya te has postulado a este servicio');
         }
-        throw error;
+        
+        // Verificar si es un error de RLS
+        if (errorInfo.code === '42501' || errorInfo.message?.includes('row-level security') || errorInfo.message?.includes('policy')) {
+          throw new Error('No tienes permiso para crear esta aplicación. Por favor, contacta al soporte.');
+        }
+        
+        // Lanzar error con mensaje descriptivo
+        throw new Error(errorInfo.message || 'No se pudo crear la aplicación');
       }
 
       if (!application) {
@@ -205,22 +257,81 @@ export const applicationsService = {
 
   /**
    * Obtener aplicaciones del trabajador actual
+   * OPTIMIZADO: Carga aplicaciones primero, luego servicios en paralelo (más rápido)
    */
-  async getMyApplications(): Promise<ApiResponse<Application[]>> {
+  async getMyApplications(options?: { includeService?: boolean; limit?: number; userId?: string }): Promise<ApiResponse<Application[]>> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      let userId = options?.userId;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuario no autenticado');
+        userId = user.id;
+      }
 
-      const { data, error } = await supabase
+      const { includeService = true, limit = 25 } = options ?? {};
+
+      // FASE 1: Cargar aplicaciones básicas primero (sin join - más rápido)
+      let applicationsQuery = supabase
         .from('applications')
-        .select('*')
-        .eq('worker_id', user.id)
-        .order('created_at', { ascending: false });
+        .select('id, service_id, worker_id, status, proposed_price, cover_letter, estimated_duration, created_at, updated_at')
+        .eq('worker_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      if (error) throw error;
+      const { data: applications, error: applicationsError } = await applicationsQuery;
+
+      if (applicationsError) throw applicationsError;
+
+      if (!applications || applications.length === 0) {
+        return {
+          data: [],
+          error: null,
+          success: true
+        };
+      }
+
+      // Si no se necesitan datos del servicio, retornar inmediatamente
+      if (!includeService) {
+        return {
+          data: applications as Application[],
+          error: null,
+          success: true
+        };
+      }
+
+      // FASE 2: Cargar datos de servicios en una sola query optimizada (en paralelo)
+      const serviceIds = [...new Set(applications.map(app => app.service_id).filter(Boolean))];
+      
+      if (serviceIds.length === 0) {
+        return {
+          data: applications as Application[],
+          error: null,
+          success: true
+        };
+      }
+
+      // Query optimizada: solo campos necesarios, sin joins anidados
+      const { data: services, error: servicesError } = await supabase
+        .from('services')
+        .select('id, title, description, location, status, created_at, worker_final_amount, escrow_amount')
+        .in('id', serviceIds);
+
+      if (servicesError) {
+        console.warn('Error cargando servicios para aplicaciones:', servicesError);
+        // Continuar sin datos de servicio si falla
+      }
+
+      // Crear mapa de servicios para acceso rápido
+      const servicesMap = new Map((services || []).map(s => [s.id, s]));
+
+      // Combinar aplicaciones con servicios
+      const applicationsWithServices = applications.map(app => ({
+        ...app,
+        service: app.service_id ? servicesMap.get(app.service_id) || null : null,
+      }));
 
       return {
-        data: data || [],
+        data: applicationsWithServices as Application[],
         error: null,
         success: true
       };

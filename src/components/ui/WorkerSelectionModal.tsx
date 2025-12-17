@@ -35,7 +35,7 @@ export const WorkerSelectionModal = ({
 }: WorkerSelectionModalProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { calculateInflatedPrice, calculateCommissionAmount, formatPrice, commissionPercentage } = useCommission();
+  const { calculateInflatedPrice, formatPrice } = useCommission();
 
   const handleConfirm = async () => {
     setIsConfirming(true);
@@ -67,7 +67,6 @@ export const WorkerSelectionModal = ({
 
   const originalPrice = postulante.precio;
   const inflatedPrice = calculateInflatedPrice(originalPrice);
-  const commissionAmount = calculateCommissionAmount(originalPrice);
 
 
   return (
@@ -177,26 +176,14 @@ export const WorkerSelectionModal = ({
                   </div>
                 </div>
 
-                {/* Desglose de precios */}
+                {/* Valor a pagar */}
                 <div className="bg-white border-2 border-purple-200 rounded-xl p-3 mb-4">
-                  <h4 className="font-semibold text-gray-800 mb-2 flex items-center space-x-2 text-sm">
-                    <DollarSign size={14} className="text-purple-600" />
-                    <span>Desglose de Precios</span>
-                  </h4>
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Precio del trabajador:</span>
-                      <span className="font-medium">{formatPrice(originalPrice)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Comisión plataforma:</span>
-                      <span className="font-medium text-purple-600">+{formatPrice(commissionAmount)}</span>
-                    </div>
-                    <hr className="border-purple-200" />
-                    <div className="flex justify-between font-bold text-sm">
-                      <span className="text-gray-800">Total a pagar:</span>
-                      <span className="text-purple-600">{formatPrice(inflatedPrice)}</span>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-800 flex items-center space-x-2 text-sm">
+                      <DollarSign size={14} className="text-purple-600" />
+                      <span>Valor a pagar:</span>
+                    </span>
+                    <span className="font-bold text-lg text-purple-600">{formatPrice(inflatedPrice)}</span>
                   </div>
                 </div>
 

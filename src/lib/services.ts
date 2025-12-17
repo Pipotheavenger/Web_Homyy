@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
 import type {
   Service,
   Category,
@@ -7,6 +8,8 @@ import type {
   ServiceFilters,
   ApiResponse
 } from '@/types/database';
+
+type EscrowRecord = { service_id: string; completion_pin: string; amount: number };
 
 // =====================================================
 // SERVICIOS PARA CATEGORÍAS
@@ -56,17 +59,37 @@ export const categoryService = {
 // =====================================================
 
 export const serviceService = {
-  async getUserServices(): Promise<ApiResponse<Service[]>> {
+  async getUserServices(options?: { includeCategories?: boolean; includeEscrow?: boolean; userId?: string }): Promise<ApiResponse<Service[]>> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      let userId = options?.userId;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuario no autenticado');
+        userId = user.id;
+      }
 
-      // Obtener servicios sin relaciones para evitar problemas con RLS
+      const includeCategories = options?.includeCategories ?? false; // Por defecto false para velocidad
+      const includeEscrow = options?.includeEscrow ?? false; // Por defecto false para velocidad
+
+      // OPTIMIZADO: Query simple y rápida - solo servicios básicos
       const { data: services, error: servicesError } = await supabase
         .from('services')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .select(`
+          id,
+          user_id,
+          title,
+          description,
+          category_id,
+          location,
+          status,
+          created_at,
+          updated_at,
+          escrow_amount,
+          worker_final_amount
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50); // Limitar resultados para mejor rendimiento
 
       if (servicesError) throw servicesError;
 
@@ -74,43 +97,77 @@ export const serviceService = {
         return { data: [], error: null, success: true };
       }
 
-      // Obtener categorías por separado
-      const categoryIds = [...new Set(services.map(s => s.category_id).filter(Boolean))];
+      // Detectar si hay servicios que necesitan escrow (hired o in_progress)
+      const needsEscrow = services.some(s => s.status === 'hired' || s.status === 'in_progress');
+      const shouldIncludeEscrow = includeEscrow || needsEscrow;
+
+      // Si no se necesitan categorías ni escrow, retornar inmediatamente (más rápido)
+      if (!includeCategories && !shouldIncludeEscrow) {
+        return {
+          data: services.map(s => ({ ...s, category: null, escrow_pin: null, budget: s.escrow_amount || 0 })),
+          error: null,
+          success: true
+        };
+      }
+
+      // Cargar datos adicionales solo si se solicitan (en paralelo)
+      const promises: Promise<any>[] = [];
       
-      let categories = [];
-      if (categoryIds.length > 0) {
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from('categories')
-          .select('*')
-          .in('id', categoryIds);
-
-        if (categoriesError) {
-          console.warn('Error obteniendo categorías:', categoriesError);
+      if (includeCategories) {
+        const categoryIds = [...new Set(services.map(s => s.category_id).filter(Boolean))];
+        if (categoryIds.length > 0) {
+          promises.push(
+            supabase
+              .from('categories')
+              .select('id, name, icon, color')
+              .in('id', categoryIds)
+              .then(({ data, error }) => ({ type: 'categories', data: error ? [] : (data || []), error }))
+          );
         } else {
-          categories = categoriesData || [];
+          promises.push(Promise.resolve({ type: 'categories', data: [] }));
         }
       }
 
-      // Obtener datos de escrow_transactions para servicios contratados
-      const serviceIds = services.map(s => s.id);
-      let escrowData: Array<{ service_id: string; completion_pin: string; amount: number }> = [];
-      if (serviceIds.length > 0) {
-        const { data: escrowDataResponse, error: escrowError } = await supabase
-          .from('escrow_transactions')
-          .select('service_id, completion_pin, amount')
-          .in('service_id', serviceIds);
-
-        if (escrowError) {
-          console.warn('Error obteniendo datos de escrow:', escrowError);
+      if (shouldIncludeEscrow) {
+        const serviceIds = services.map(s => s.id);
+        if (serviceIds.length > 0) {
+          promises.push(
+            supabase
+              .from('escrow_transactions')
+              .select('service_id, completion_pin, amount')
+              .in('service_id', serviceIds)
+              .then(({ data, error }) => ({ type: 'escrow', data: error ? [] : (data || []), error }))
+          );
         } else {
-          escrowData = escrowDataResponse || [];
+          promises.push(Promise.resolve({ type: 'escrow', data: [] }));
         }
       }
 
-      // Combinar servicios con sus categorías y datos de escrow
-      const servicesWithCategories = services.map(service => {
-        const category = categories.find(c => c.id === service.category_id);
-        const escrow = escrowData.find(e => e.service_id === service.id);
+      // Ejecutar todas las queries en paralelo
+      const results = await Promise.allSettled(promises);
+      
+      let categories: Category[] = [];
+      let escrowData: EscrowRecord[] = [];
+
+      results.forEach(result => {
+        if (result.status === 'fulfilled') {
+          if (result.value.type === 'categories') {
+            categories = result.value.data;
+          } else if (result.value.type === 'escrow') {
+            escrowData = result.value.data;
+          }
+        }
+      });
+
+      // Combinar datos
+      const servicesWithExtras = services.map(service => {
+        const category = includeCategories
+          ? categories.find(c => c.id === service.category_id)
+          : null;
+        const escrow = shouldIncludeEscrow
+          ? escrowData.find(e => e.service_id === service.id)
+          : null;
+
         return {
           ...service,
           category: category || null,
@@ -119,7 +176,7 @@ export const serviceService = {
         };
       });
 
-      return { data: servicesWithCategories, error: null, success: true };
+      return { data: servicesWithExtras, error: null, success: true };
     } catch (error) {
       return {
         data: null,
@@ -131,62 +188,47 @@ export const serviceService = {
 
   async getAvailableServices(): Promise<ApiResponse<Service[]>> {
     try {
-      // Primero obtenemos los servicios
-      const { data: services, error } = await supabase
+      // Consulta simple y rápida: solo servicios básicos primero
+      const { data: services, error: servicesError } = await supabase
         .from('services')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          title,
+          description,
+          category_id,
+          location,
+          status,
+          created_at,
+          updated_at,
+          escrow_amount,
+          worker_final_amount
+        `)
         .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (error) throw error;
+      if (servicesError) {
+        console.error('Error obteniendo servicios:', servicesError);
+        throw servicesError;
+      }
 
       if (!services || services.length === 0) {
         return { data: [], error: null, success: true };
       }
 
-      // Ahora enriquecemos cada servicio con sus relaciones
-      const enrichedServices = await Promise.all(
-        services.map(async (service) => {
-          // Obtener categoría
-          let category = null;
-          if (service.category_id) {
-            const { data: cat } = await supabase
-              .from('categories')
-              .select('*')
-              .eq('id', service.category_id)
-              .single();
-            category = cat;
-          }
+      // Retornar servicios básicos primero (sin relaciones)
+      // Las relaciones se pueden cargar después si es necesario
+      const basicServices = services.map(service => ({
+        ...service,
+        category: null,
+        client: null,
+        schedules: []
+      }));
 
-          // Obtener schedules
-          const { data: schedules } = await supabase
-            .from('service_schedules')
-            .select('*')
-            .eq('service_id', service.id);
-
-
-          // Obtener info del cliente
-          let client = null;
-          if (service.user_id) {
-            const { data: userProfile } = await supabase
-              .from('user_profiles')
-              .select('name, profile_picture_url')
-              .eq('user_id', service.user_id)
-              .single();
-            client = userProfile;
-          }
-
-          return {
-            ...service,
-            category,
-            schedules: schedules || [],
-            client
-          };
-        })
-      );
-
-      return { data: enrichedServices, error: null, success: true };
+      return { data: basicServices, error: null, success: true };
     } catch (error) {
+      console.error('Error en getAvailableServices:', error);
       return {
         data: null,
         error: error instanceof Error ? error.message : 'Error al obtener servicios',
@@ -411,11 +453,19 @@ export const serviceService = {
 // =====================================================
 
 export const workerService = {
-  async getAll(filters?: { is_available?: boolean; is_verified?: boolean }): Promise<ApiResponse<any[]>> {
+  async getAll(filters?: { is_available?: boolean; is_verified?: boolean; limit?: number }): Promise<ApiResponse<any[]>> {
     try {
       let query = supabase
         .from('worker_profiles')
-        .select('*')
+        .select(`
+          *,
+          user:user_profiles!worker_profiles_user_id_fkey(
+            name,
+            email,
+            phone,
+            profile_picture_url
+          )
+        `)
         .order('rating', { ascending: false });
 
       if (filters?.is_available !== undefined) {
@@ -424,28 +474,12 @@ export const workerService = {
       if (filters?.is_verified !== undefined) {
         query = query.eq('is_verified', filters.is_verified);
       }
+      if (filters?.limit !== undefined) {
+        query = query.limit(filters.limit);
+      }
 
       const { data: workers, error } = await query;
       if (error) throw error;
-
-      // Cargar información de usuario para cada trabajador
-      if (workers && workers.length > 0) {
-        const workersWithUsers = await Promise.all(
-          workers.map(async (worker) => {
-            const { data: userProfile } = await supabase
-              .from('user_profiles')
-              .select('name, email, phone, profile_picture_url')
-              .eq('user_id', worker.user_id)
-              .single();
-
-            return {
-              ...worker,
-              user: userProfile
-            };
-          })
-        );
-        return { data: workersWithUsers, error: null, success: true };
-      }
 
       return { data: workers || [], error: null, success: true };
     } catch (error) {
@@ -529,15 +563,19 @@ export const workerService = {
 // =====================================================
 
 export const profileService = {
-  async getProfile(): Promise<ApiResponse<any>> {
+  async getProfile(userId?: string): Promise<ApiResponse<any>> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuario no autenticado');
+        targetUserId = user.id;
+      }
 
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .single();
 
       if (error) throw error;
@@ -580,29 +618,51 @@ export const profileService = {
 // =====================================================
 
 export const statsService = {
-  async getDashboardStats(): Promise<ApiResponse<any>> {
+  async getDashboardStats(options?: { userTypeOverride?: 'client' | 'worker' | 'admin'; userId?: string }): Promise<ApiResponse<any>> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      let userId = options?.userId;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Usuario no autenticado');
+        userId = user.id;
+      }
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('user_type')
-        .eq('user_id', user.id)
-        .single();
+      let userType = options?.userTypeOverride;
+      if (!userType) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('user_type')
+          .eq('user_id', userId)
+          .single();
+        userType = profile?.user_type || 'client';
+      }
 
-      if (profile?.user_type === 'worker') {
-        const { data: bookings } = await supabase
+      if (userType === 'worker') {
+        const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('*, service:services(title)')
-          .eq('worker_id', user.id)
+          .select('id, status, total_price, created_at, service:services(title)')
+          .eq('worker_id', userId)
           .order('created_at', { ascending: false })
           .limit(5);
+
+        if (error) {
+          console.warn('Error obteniendo reservas para estadísticas de trabajador:', error);
+          return {
+            data: {
+              total_bookings: 0,
+              completed_bookings: 0,
+              total_earnings: 0,
+              recent_bookings: []
+            },
+            error: null,
+            success: true
+          };
+        }
 
         const completed = bookings?.filter(b => b.status === 'completed').length || 0;
         const totalEarnings = bookings
           ?.filter(b => b.status === 'completed')
-          .reduce((sum, b) => sum + Number(b.total_price), 0) || 0;
+          .reduce((sum, b) => sum + Number(b.total_price || 0), 0) || 0;
 
         return {
           data: {
@@ -614,30 +674,30 @@ export const statsService = {
           error: null,
           success: true
         };
-      } else {
-        const { data: services } = await supabase
-          .from('services')
-          .select('*')
-          .eq('user_id', user.id);
-
-        const { data: bookings } = await supabase
-          .from('bookings')
-          .select('*')
-          .eq('client_id', user.id)
-          .limit(5);
-
-        return {
-          data: {
-            total_services: services?.length || 0,
-            active_services: services?.filter(s => s.status === 'active').length || 0,
-            completed_services: services?.filter(s => s.status === 'completed').length || 0,
-            recent_services: services?.slice(0, 5) || [],
-            recent_bookings: bookings || []
-          },
-          error: null,
-          success: true
-        };
       }
+
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('id, status, created_at, total_price')
+        .eq('client_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.warn('Error obteniendo reservas para estadísticas de cliente:', error);
+      }
+
+      return {
+        data: {
+          total_services: 0,
+          active_services: 0,
+          completed_services: 0,
+          recent_services: [],
+          recent_bookings: bookings || []
+        },
+        error: null,
+        success: true
+      };
     } catch (error) {
       return {
         data: null,

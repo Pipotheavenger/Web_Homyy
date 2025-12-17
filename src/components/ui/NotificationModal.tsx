@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Check, Trash2, AlertCircle, CheckCircle, MessageCircle, DollarSign, Calendar, Clock, User, FileCheck, ShieldAlert, Star } from 'lucide-react';
-import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Notification } from '@/lib/api/notifications';
@@ -11,6 +10,14 @@ import type { Notification } from '@/lib/api/notifications';
 interface NotificationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  notifications: Notification[];
+  loading: boolean;
+  error?: string | null;
+  onLoad?: (options?: { force?: boolean }) => Promise<void> | void;
+  hasLoaded?: boolean;
+  onMarkAsRead: (notificationId: string) => Promise<boolean>;
+  onMarkAllAsRead: () => Promise<boolean>;
+  onDelete: (notificationId: string) => Promise<boolean>;
 }
 
 // Función para obtener el icono según el tipo de notificación
@@ -69,8 +76,18 @@ const formatNotificationDate = (dateString: string) => {
   }
 };
 
-export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) => {
-  const { notifications, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+export const NotificationModal = ({
+  isOpen,
+  onClose,
+  notifications,
+  loading,
+  error,
+  onLoad,
+  hasLoaded = false,
+  onMarkAsRead,
+  onMarkAllAsRead,
+  onDelete
+}: NotificationModalProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -91,24 +108,30 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen && onLoad) {
+      onLoad({ force: !hasLoaded });
+    }
+  }, [isOpen, onLoad, hasLoaded]);
+
   if (!isOpen || !mounted) return null;
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleMarkAsRead = async (id: string) => {
     setSelectedId(id);
-    await markAsRead(id);
+    await onMarkAsRead(id);
     setSelectedId(null);
   };
 
   const handleDelete = async (id: string) => {
     setSelectedId(id);
-    await deleteNotification(id);
+    await onDelete(id);
     setSelectedId(null);
   };
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    await onMarkAllAsRead();
   };
 
   const modalContent = (
@@ -162,6 +185,24 @@ export const NotificationModal = ({ isOpen, onClose }: NotificationModalProps) =
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center">
+                <AlertCircle size={28} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-1">No se pudieron cargar las notificaciones</h3>
+                <p className="text-sm text-gray-600">{error}</p>
+              </div>
+              {onLoad && (
+                <button
+                  onClick={() => onLoad({ force: true })}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-500 hover:bg-purple-600 rounded-lg transition-colors"
+                >
+                  Reintentar
+                </button>
+              )}
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">

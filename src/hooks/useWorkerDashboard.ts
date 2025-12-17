@@ -1,128 +1,134 @@
-import { useState, useEffect } from 'react';
-import { profileService, applicationsService, workerStatsService } from '@/lib/services';
+import { useMemo, useCallback } from 'react';
+import { applicationsService } from '@/lib/services';
 import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
+import { useAuth } from './useAuth';
+import { useWorkerApplications } from './queries/workerDashboardQueries';
+import { workerDashboardKeys } from './queries/workerDashboardQueries';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useWorkerDashboard = () => {
-  const [userName, setUserName] = useState<string>('');
-  const [applications, setApplications] = useState<any[]>([]);
-  const [myBookings, setMyBookings] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    balance: 0,
-    completedServices: 0,
-    averageRating: 0,
-    totalEarnings: 0,
-    pendingApplications: 0,
-    activeServices: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, loading: authLoading, profile: authProfile } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? undefined;
+  const authProfileName = authProfile?.name ?? null;
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  // Determinar si la query debe estar habilitada
+  const queryEnabled = !authLoading && !!userId;
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
+  // Query para aplicaciones - solo se ejecuta cuando hay userId y auth ha terminado
+  const {
+    data: rawApplications = [],
+    isLoading: applicationsLoading,
+    error: applicationsError,
+  } = useWorkerApplications(userId, queryEnabled);
 
-      // Cargar datos en paralelo
-      const [profileResponse, applicationsResponse, statsResponse] = await Promise.all([
-        profileService.getProfile(),
-        applicationsService.getMyApplications(),
-        workerStatsService.getWorkerStats()
-      ]);
+  // Procesar aplicaciones
+  const applications = useMemo(() => {
+    return transformApplications(rawApplications);
+  }, [rawApplications]);
 
-      // Procesar perfil del usuario
-      if (profileResponse.success && profileResponse.data) {
-        const firstName = profileResponse.data.name?.split(' ')[0] || 'Profesional';
-        setUserName(firstName);
-      }
+  // Calcular estadísticas
+  const stats = useMemo(() => {
+    return calculateWorkerStats({
+      profile: authProfile && authProfile.user_type === 'worker' ? authProfile : null,
+      applications: rawApplications,
+      workerProfile: authProfile && authProfile.user_type === 'worker' ? authProfile : null,
+    });
+  }, [authProfile, rawApplications]);
 
-      // Procesar aplicaciones de forma optimizada
-      if (applicationsResponse.success && applicationsResponse.data) {
-        await loadApplicationsWithServices(applicationsResponse.data);
-      } else {
-        setApplications([]);
-      }
+  // Calcular userName
+  const userName = useMemo(() => {
+    const nombreBase = authProfileName || user?.email || 'Profesional';
+    return nombreBase.split(' ')[0] || 'Profesional';
+  }, [authProfileName, user?.email]);
 
-      // Procesar estadísticas reales
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
-      } else {
-        // Valores por defecto si hay error
-        setStats({
-          balance: 0,
-          completedServices: 0,
-          averageRating: 0,
-          totalEarnings: 0,
-          pendingApplications: 0,
-          activeServices: 0
-        });
-      }
+  // Estados combinados
+  // Mostrar loading solo durante la carga inicial
+  // Si hay datos en caché, no mostrar loading (mejor UX)
+  const loading = authLoading || (queryEnabled && applicationsLoading && rawApplications.length === 0);
+  const error = applicationsError ? (applicationsError as Error).message : null;
 
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError('Error al cargar los datos del dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadApplicationsWithServices = async (applications: any[]) => {
-    try {
-      const { supabase } = await import('@/lib/supabase');
-      
-      // Obtener todos los IDs de servicios de las aplicaciones
-      const serviceIds = applications.map(app => app.service_id);
-      
-      // Cargar todos los servicios en una sola consulta
-      const { data: services } = await supabase
-        .from('services')
-        .select('id, title, description, location, status, created_at')
-        .in('id', serviceIds);
-
-      // Combinar aplicaciones con servicios
-      const applicationsWithServices = applications.map(app => {
-        const service = services?.find(s => s.id === app.service_id);
-        return {
-          ...app,
-          service: service || null
-        };
-      });
-      
-      // Filtrar solo aplicaciones de servicios que no estén completados
-      const activeApplications = applicationsWithServices.filter(app => 
-        app.service && app.service.status !== 'completed'
-      );
-      
-      setApplications(activeApplications);
-
-    } catch (error) {
-      console.error('Error loading applications with services:', error);
-      setApplications([]);
-    }
-  };
-
-  const withdrawApplication = async (applicationId: string) => {
+  // Función para retirar aplicación
+  const withdrawApplication = useCallback(async (applicationId: string) => {
     const response = await applicationsService.withdraw(applicationId);
-    if (response.success) {
-      // Recargar aplicaciones
-      loadDashboardData();
+    if (response.success && userId) {
+      // Invalidar y refetch aplicaciones
+      queryClient.invalidateQueries({ queryKey: workerDashboardKeys.applications(userId) });
     }
     return response;
-  };
+  }, [userId, queryClient]);
+
+  // Función para recargar datos (mantiene compatibilidad)
+  const loadDashboardData = useCallback(() => {
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: workerDashboardKeys.applications(userId) });
+    }
+  }, [userId, queryClient]);
 
   return {
     userName,
     applications,
-    myBookings,
     stats,
     loading,
     error,
     formatPrice,
     formatDate,
     withdrawApplication,
-    loadDashboardData
+    loadDashboardData,
   };
 };
 
+function transformApplications(applications: any[]) {
+  if (!applications || applications.length === 0) {
+    return [];
+  }
+
+  const withServices = applications.map(app => ({
+    ...app,
+    service: app.service || null,
+  }));
+
+  return withServices.filter(app => 
+    app.service &&
+    app.service.status !== 'completed' &&
+    app.status !== 'withdrawn' &&
+    app.status !== 'rejected'
+  );
+}
+
+function calculateWorkerStats({
+  profile,
+  applications,
+  workerProfile,
+}: {
+  profile: any | null;
+  applications: any[];
+  workerProfile: any | null;
+}) {
+  const balance = Number(profile?.balance || 0);
+
+  const pendingApplications = applications.filter(app => app.status === 'pending').length;
+  const acceptedApplications = applications.filter(app => app.status === 'accepted');
+
+  const activeServices = acceptedApplications.filter(app => app.service?.status === 'in_progress').length;
+  const completedServices = acceptedApplications.filter(app => app.service?.status === 'completed').length;
+
+  const totalEarnings = acceptedApplications
+    .filter(app => app.service?.status === 'completed')
+    .reduce((sum, app) => {
+      const service = app.service || {};
+      const amount = service.worker_final_amount ?? service.escrow_amount ?? 0;
+      return sum + Number(amount);
+    }, 0);
+
+  const averageRating = Number(workerProfile?.rating || 0);
+
+  return {
+    balance,
+    completedServices,
+    averageRating: Math.round(averageRating * 10) / 10,
+    totalEarnings,
+    pendingApplications,
+    activeServices,
+  };
+}

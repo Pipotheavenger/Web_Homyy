@@ -130,18 +130,26 @@ export const escrowService = {
       // Calcular precio final con comisión
       const finalPrice = originalPrice * (1 + commissionPercentage / 100);
 
-      // Verificar balance del usuario usando la columna precalculada
-      const { data: userProfile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('balance')
+      // Verificar balance del usuario calculado desde transacciones
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('type, amount')
         .eq('user_id', user.id)
-        .single();
+        .in('status', ['completado', 'completada']);
 
-      if (profileError) {
+      if (transactionsError) {
         throw new Error('Error al obtener balance del usuario');
       }
 
-      const currentBalance = Number(userProfile?.balance || 0);
+      // Calcular balance: SUM(recargas) - SUM(débitos) - SUM(retiros)
+      let currentBalance = 0;
+      transactions?.forEach(transaction => {
+        if (transaction.type === 'recarga') {
+          currentBalance += Number(transaction.amount);
+        } else if (transaction.type === 'debito' || transaction.type === 'retiro') {
+          currentBalance -= Number(transaction.amount);
+        }
+      });
 
       if (currentBalance < finalPrice) {
         throw new Error('Saldo insuficiente para realizar esta transacción');

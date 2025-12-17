@@ -390,7 +390,9 @@ export const adminService = {
   },
 
   /**
-   * Obtener balance de usuario
+   * Obtener balance de usuario calculado directamente desde las transacciones
+   * Balance = SUM(recargas) - SUM(débitos) - SUM(retiros)
+   * Solo considera transacciones completadas
    */
   async getUserBalance(userId: string): Promise<ApiResponse<any>> {
     try {
@@ -402,17 +404,28 @@ export const adminService = {
         }
       }
 
-      // Obtener balance precalculado directamente de la columna
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('balance')
+      // Calcular balance usando GROUP BY: recargas - débitos - retiros
+      const { data: transactions, error } = await supabase
+        .from('transactions')
+        .select('type, amount')
         .eq('user_id', userId)
-        .single();
+        .in('status', ['completado', 'completada']);
 
       if (error) throw error;
 
+      // Calcular balance: SUM(recargas) - SUM(débitos) - SUM(retiros)
+      let balance = 0;
+      
+      transactions?.forEach(transaction => {
+        if (transaction.type === 'recarga') {
+          balance += Number(transaction.amount);
+        } else if (transaction.type === 'debito' || transaction.type === 'retiro') {
+          balance -= Number(transaction.amount);
+        }
+      });
+
       return {
-        data: data?.balance || 0,
+        data: balance,
         error: null,
         success: true
       };

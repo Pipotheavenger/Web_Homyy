@@ -1,33 +1,43 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { serviceService } from '@/lib/services';
 
 export const useTrabajos = () => {
   const [trabajos, setTrabajos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todas');
 
-  useEffect(() => {
-    loadTrabajos();
-  }, []);
-
-  const loadTrabajos = async () => {
+  const loadTrabajos = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const response = await serviceService.getAvailableServices();
       
       if (response.success && response.data) {
         setTrabajos(response.data);
+        setError(null);
       } else {
+        const errorMsg = response.error || 'Error desconocido al cargar trabajos';
+        console.error('Error cargando trabajos:', errorMsg);
+        setError(errorMsg);
         setTrabajos([]);
       }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Error al cargar trabajos';
+      console.error('Excepción cargando trabajos:', errorMsg);
+      setError(errorMsg);
       setTrabajos([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTrabajos();
+  }, [loadTrabajos]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -38,6 +48,7 @@ export const useTrabajos = () => {
   };
 
   const filteredTrabajos = trabajos.filter(trabajo => {
+    const matchesStatus = trabajo.status === 'active';
     const matchesSearch = 
       trabajo.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trabajo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,7 +56,7 @@ export const useTrabajos = () => {
     
     const matchesCategory = selectedCategory === 'todas' || trabajo.category?.name === selectedCategory;
     
-    return matchesSearch && matchesCategory;
+    return matchesStatus && matchesSearch && matchesCategory;
   });
 
   // Extraer categorías únicas de los trabajos
@@ -54,12 +65,14 @@ export const useTrabajos = () => {
   return {
     trabajos: filteredTrabajos,
     loading,
+    error,
     searchTerm,
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
     categorias,
-    formatPrice
+    formatPrice,
+    reload: loadTrabajos
   };
 };
 

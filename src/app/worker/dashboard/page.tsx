@@ -68,6 +68,10 @@ export default function WorkerDashboard() {
     
     try {
       const response = await escrowService.completeWorkWithPin(selectedService.serviceId, pin);
+      if (response.success) {
+        // Recargar datos después de completar exitosamente
+        loadDashboardData();
+      }
       return response.success;
     } catch (error) {
       console.error('Error completing work:', error);
@@ -78,6 +82,8 @@ export default function WorkerDashboard() {
   const handleCloseCompletionModal = () => {
     setShowCompletionModal(false);
     setSelectedService(null);
+    // Recargar datos al cerrar el modal (por si se completó el trabajo)
+    loadDashboardData();
   };
 
   const getStatusColor = (status: string) => {
@@ -135,19 +141,8 @@ export default function WorkerDashboard() {
     }
   ];
 
-  if (loading) {
-    return (
-      <Layout title="Dashboard" currentPage="dashboard">
-        <div className="p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
+  // Mostrar error si existe
+  if (error && applications.length === 0) {
     return (
       <Layout title="Dashboard" currentPage="dashboard">
         <div className="p-6">
@@ -216,7 +211,11 @@ export default function WorkerDashboard() {
                 </button>
               </div>
               <div className="space-y-3 sm:space-y-4">
-                {applications.length > 0 ? (
+                {loading && applications.length === 0 ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+                  </div>
+                ) : applications.length > 0 ? (
                   applications.map((app) => (
                     <div key={app.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-300 shadow-md hover:shadow-lg transition-all w-full max-w-full overflow-hidden">
                       {/* Layout vertical para <1160px, horizontal para pantallas más grandes */}
@@ -285,7 +284,7 @@ export default function WorkerDashboard() {
                                   <span className="text-xs font-medium">Retirar</span>
                                 </button>
                               )}
-                              {app.status === 'accepted' && (
+                              {app.status === 'accepted' && app.service?.status !== 'completed' && (
                                 <button
                                   onClick={() => handleCompleteWork({
                                     serviceId: app.service?.id || app.service_id,

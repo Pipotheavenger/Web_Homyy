@@ -1,290 +1,98 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { serviceService, statsService, categoryService, workerService, profileService, applicationsService } from '@/lib/services';
+import { useMemo, useCallback } from 'react';
 import type { Service, Category } from '@/types/database';
-
-// Cache simple para datos que no cambian frecuentemente
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+import { useAuth } from './useAuth';
+import { serviceService } from '@/lib/services';
+import {
+  useUserServices,
+  useDashboardStats,
+  useCategories,
+  useTopWorkers,
+  useReviewedServices,
+} from './queries/dashboardQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { dashboardKeys } from './queries/dashboardQueries';
 
 export const useDashboard = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [topWorkers, setTopWorkers] = useState<any[]>([]);
-  const [userName, setUserName] = useState<string>('');
-  const [reviewedServices, setReviewedServices] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const { user, profile: authProfile, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id;
   
-  // Debug logs removidos para producción
+  // Determinar userType
+  const userType = useMemo(() => {
+    if (!authProfile) return null;
+    return (authProfile.user_type as 'client' | 'worker' | 'admin') || null;
+  }, [authProfile]);
 
-  // Función para obtener datos del caché
-  const getCachedData = useCallback((key: string) => {
-    const cached = cache.get(key);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-      return cached.data;
+  // Query para servicios - CRÍTICO, carga primero
+  const {
+    data: allServicesData,
+    isLoading: servicesLoading,
+    error: servicesError,
+  } = useUserServices(userId, !authLoading && !!userId);
+
+  // Normalizar datos de servicios
+  const allServices: Service[] = useMemo(() => {
+    return allServicesData || [];
+  }, [allServicesData]);
+
+  // Filtrar servicios activos
+  const services = useMemo(() => {
+    return allServices.filter(
+      (service: Service) =>
+        service.status === 'active' ||
+        service.status === 'in_progress' ||
+        service.status === 'completed' ||
+        service.status === 'hired'
+    );
+  }, [allServices]);
+
+  // Query para estadísticas - usa datos de servicios cuando es cliente
+  const {
+    data: stats,
+    isLoading: statsLoading,
+  } = useDashboardStats(userId, userType, allServices.length > 0 ? allServices : undefined, !authLoading && !!userId && !!userType);
+
+  // Query para categorías - SECUNDARIO, carga después (con caché local)
+  const {
+    data: categories = [],
+    isLoading: categoriesLoading,
+  } = useCategories(!authLoading && !!userId && !servicesLoading);
+
+  // Query para top workers - SECUNDARIO, carga después (con caché local)
+  const {
+    data: topWorkers = [],
+    isLoading: workersLoading,
+  } = useTopWorkers(!authLoading && !!userId && userType !== 'worker' && !servicesLoading);
+
+  // Query para servicios revisados - SECUNDARIO, carga en background (solo cuando hay servicios)
+  const serviceIds = useMemo(() => services.map(s => s.id), [services]);
+  const {
+    data: reviewedServices = {},
+    isLoading: reviewedLoading,
+  } = useReviewedServices(userId, serviceIds, !authLoading && !!userId && serviceIds.length > 0 && !servicesLoading);
+
+  // Calcular userName
+  const userName = useMemo(() => {
+    if (authProfile?.name) {
+      return authProfile.name.split(' ')[0] || 'Usuario';
     }
-    return null;
-  }, []);
+    return 'Usuario';
+  }, [authProfile]);
 
-  // Función para guardar datos en caché
-  const setCachedData = useCallback((key: string, data: any) => {
-    cache.set(key, { data, timestamp: Date.now() });
-  }, []);
+  // Estado de loading combinado - solo crítico para UI inicial
+  // Mostrar loading solo si no hay datos en caché
+  const loading = authLoading || (servicesLoading && allServices.length === 0);
+  const initialLoadComplete = !authLoading && !servicesLoading && !!userId;
 
-  // Cargar datos básicos optimizados - solo lo esencial
-  const loadBasicData = useCallback(async () => {
-    try {
-      // Verificar caché para datos que no cambian frecuentemente
-      const cachedCategories = getCachedData('categories');
-      const cachedWorkers = getCachedData('topWorkers');
-      
-      // Cargar solo lo esencial primero: perfil y servicios
-      const [profileResponse, servicesResponse] = await Promise.all([
-        profileService.getProfile(),
-        serviceService.getUserServices()
-      ]);
+  // Error combinado
+  const error = servicesError ? (servicesError as Error).message : null;
 
-      // Cargar stats y categorías/trabajadores en paralelo (no bloquean la UI)
-      const secondaryPromises = [
-        statsService.getDashboardStats()
-      ];
-
-      // Solo cargar categorías y trabajadores si no están en caché
-      if (!cachedCategories) {
-        secondaryPromises.push(categoryService.getAll());
-      }
-      if (!cachedWorkers) {
-        secondaryPromises.push(workerService.getAll({ is_available: true, limit: 5 }));
-      }
-
-      const secondaryResults = await Promise.all(secondaryPromises);
-      
-      return {
-        profileResponse,
-        servicesResponse,
-        statsResponse: secondaryResults[0],
-        categoriesResponse: cachedCategories ? { success: true, data: cachedCategories } : secondaryResults[1],
-        workersResponse: cachedWorkers ? { success: true, data: cachedWorkers } : secondaryResults[2]
-      };
-    } catch (error) {
-      throw error;
-    }
-  }, [getCachedData]);
-
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // FASE 1: Cargar datos CRÍTICOS primero (perfil y servicios)
-        // Esto permite mostrar contenido inmediatamente
-        const [profileResponse, servicesResponse] = await Promise.all([
-          profileService.getProfile(),
-          serviceService.getUserServices()
-        ]);
-
-        // Procesar perfil del usuario INMEDIATAMENTE (crítico para WelcomeBanner)
-        if (profileResponse.success && profileResponse.data) {
-          const firstName = profileResponse.data.name?.split(' ')[0] || 'Usuario';
-          setUserName(firstName);
-        }
-
-        // Procesar servicios INMEDIATAMENTE (crítico para mostrar servicios)
-        if (servicesResponse.success && servicesResponse.data) {
-          const activeServices = servicesResponse.data.filter(
-            (service: Service) => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
-          );
-          
-          setServices(activeServices);
-          
-          // ✅ Marcar como completo INMEDIATAMENTE - permite mostrar UI
-          setInitialLoadComplete(true);
-          setLoading(false); // Quitar loading lo antes posible
-          
-          // Cargar datos relacionados en segundo plano (no bloquea)
-          loadServiceRelatedData(activeServices).catch(err => {
-            console.error('Error cargando datos relacionados:', err);
-          });
-        } else {
-          // Si no hay servicios o hay error, marcar como completo de todos modos
-          setServices([]);
-          setInitialLoadComplete(true);
-          setLoading(false);
-        }
-
-        // FASE 2: Cargar datos SECUNDARIOS en paralelo (no bloquean la UI)
-        // Verificar caché primero
-        const cachedCategories = getCachedData('categories');
-        const cachedWorkers = getCachedData('topWorkers');
-        
-        const secondaryPromises: Promise<any>[] = [];
-        
-        // Solo cargar si no está en caché
-        if (!cachedCategories) {
-          secondaryPromises.push(
-            categoryService.getAll().then(response => {
-              if (response.success && response.data) {
-                setCategories(response.data);
-                setCachedData('categories', response.data);
-              }
-            })
-          );
-        } else {
-          setCategories(cachedCategories);
-        }
-
-        if (!cachedWorkers) {
-          secondaryPromises.push(
-            workerService.getAll({ is_available: true, limit: 5 }).then(response => {
-              if (response.success && response.data) {
-                const topWorkersData = Array.isArray(response.data) 
-                  ? response.data.slice(0, 5)
-                  : [];
-                setTopWorkers(topWorkersData);
-                if (Array.isArray(response.data)) {
-                  setCachedData('topWorkers', response.data);
-                }
-              }
-            })
-          );
-        } else {
-          const topWorkersData = Array.isArray(cachedWorkers) 
-            ? cachedWorkers.slice(0, 5)
-            : [];
-          setTopWorkers(topWorkersData);
-        }
-
-        // Stats - no crítico, cargar en background
-        secondaryPromises.push(
-          statsService.getDashboardStats().then(response => {
-            if (response.success && response.data) {
-              setStats(response.data);
-            }
-          })
-        );
-
-        // Ejecutar todas las cargas secundarias en paralelo (no bloquean)
-        Promise.allSettled(secondaryPromises).catch(err => {
-          console.error('Error cargando datos secundarios:', err);
-        });
-
-      } catch (err) {
-        console.error('Error loading dashboard:', err);
-        setError('Error al cargar los datos del dashboard');
-        setLoading(false);
-        setInitialLoadComplete(true); // Marcar como completo incluso con error para mostrar UI
-      }
-    };
-
-    loadDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadServiceRelatedData = useCallback(async (activeServices: Service[]) => {
-    try {
-      const { supabase } = await import('@/lib/supabase');
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user || activeServices.length === 0) return;
-
-      // Limitar a solo los primeros servicios para evitar cargar demasiado
-      const servicesToLoad = activeServices.slice(0, 10);
-      const serviceIds = servicesToLoad.map(s => s.id);
-      
-      // Solo servicios completados necesitan verificar reseñas
-      const completedServices = servicesToLoad.filter(s => s.status === 'completed');
-      const completedServiceIds = completedServices.map(s => s.id);
-      
-      // Ejecutar consultas optimizadas en paralelo
-      const [applicationsResult, reviewsResult] = await Promise.allSettled([
-        // Cargar aplicaciones solo para servicios que necesitan verificación
-        serviceIds.length > 0
-          ? supabase
-              .from('applications')
-              .select('service_id, status, worker_id')
-              .in('service_id', serviceIds)
-              .limit(50) // Limitar resultados
-          : Promise.resolve({ data: [] }),
-        
-        // Cargar reseñas solo para servicios completados
-        completedServiceIds.length > 0
-          ? supabase
-              .from('reviews')
-              .select('service_id, professional_id')
-              .in('service_id', completedServiceIds)
-              .eq('reviewer_id', user.id)
-          : Promise.resolve({ data: [] })
-      ]);
-
-      // Obtener datos de aplicaciones
-      const allApplications = applicationsResult.status === 'fulfilled' 
-        ? applicationsResult.value.data 
-        : [];
-
-      // Obtener datos de reseñas
-      const existingReviews = reviewsResult.status === 'fulfilled' 
-        ? reviewsResult.value.data 
-        : [];
-
-      // Solo procesar servicios completados para verificar reseñas
-      const reviewed: Record<string, boolean> = {};
-
-      // Si hay servicios completados, cargar datos de profesionales de forma optimizada
-      if (completedServices.length > 0) {
-        // Obtener worker_ids únicos de aplicaciones aceptadas
-        const acceptedApplications = allApplications?.filter(app => app.status === 'accepted') || [];
-        const workerIds = [...new Set(
-          acceptedApplications.map(app => app.worker_id).filter(Boolean)
-        )];
-
-        if (workerIds.length > 0) {
-          // Cargar profesionales en una sola query optimizada
-          const { data: professionals } = await supabase
-            .from('professionals')
-            .select('id, user_id')
-            .in('user_id', workerIds);
-
-          // Procesar solo servicios completados
-          completedServices.forEach(service => {
-            const serviceApplications = allApplications?.filter(app => app.service_id === service.id) || [];
-            const acceptedApplication = serviceApplications.find(app => app.status === 'accepted');
-            
-            if (acceptedApplication && professionals) {
-              const professional = professionals.find(p => p.user_id === acceptedApplication.worker_id);
-              if (professional) {
-                const hasReview = existingReviews?.some(review => 
-                  review.service_id === service.id && review.professional_id === professional.id
-                );
-                reviewed[service.id] = !!hasReview;
-              }
-            }
-          });
-        }
-      }
-
-      setReviewedServices(reviewed);
-
-    } catch (error) {
-      console.error('Error loading service related data:', error);
-      // Establecer valores por defecto
-      const reviewed: Record<string, boolean> = {};
-      
-      activeServices.forEach(service => {
-        reviewed[service.id] = false;
-      });
-      
-      setReviewedServices(reviewed);
-    }
-  }, []);
-
-  const handleDeleteService = async (serviceId: string) => {
+  // Función para eliminar servicio - mantiene la misma lógica
+  const handleDeleteService = useCallback(async (serviceId: string) => {
     const service = services.find(s => s.id === serviceId);
     if (!service) return;
 
     // Permitir eliminar solo servicios activos (contratando) o completados
-    // NO permitir eliminar servicios en progreso (in_progress)
     if (service.status !== 'active' && service.status !== 'completed') {
       if (service.status === 'in_progress') {
         alert('No se puede eliminar un servicio que está en progreso. Debe completarse primero.');
@@ -301,19 +109,22 @@ export const useDashboard = () => {
     if (confirm(confirmMessage)) {
       try {
         const response = await serviceService.delete(serviceId);
-        if (response.success) {
-      const servicesResponse = await serviceService.getUserServices();
-      if (servicesResponse.success && servicesResponse.data) {
-        setServices(servicesResponse.data);
-      }
+        if (response.success && userId) {
+          // Invalidar y refetch servicios
+          queryClient.invalidateQueries({ queryKey: dashboardKeys.services(userId) });
+          
+          // También invalidar stats si es necesario
+          if (userType !== 'worker') {
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.stats(userId, userType || '') });
+          }
         }
       } catch (error) {
         alert('Error al eliminar el servicio');
       }
     }
-  };
+  }, [services, userId, userType, queryClient]);
 
-  // Memoizar servicios filtrados para evitar re-renders innecesarios
+  // Memoizar servicios filtrados
   const filteredServices = useMemo(() => {
     return services.filter(
       service => service.status === 'active' || service.status === 'in_progress' || service.status === 'completed' || service.status === 'hired'
@@ -323,13 +134,14 @@ export const useDashboard = () => {
   return {
     services: filteredServices,
     categories,
-    stats,
+    stats: stats || null,
     topWorkers,
     userName,
+    userType,
     reviewedServices,
     loading,
     error,
     initialLoadComplete,
-    handleDeleteService
+    handleDeleteService,
   };
 };

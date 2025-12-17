@@ -156,7 +156,7 @@ export default function PagosPage() {
     const transactionRef = `RET-${Date.now()}`;
     const response = await transactionsService.create({
       type: 'retiro',
-      amount: -parseFloat(monto), // Negative for withdrawal
+      amount: parseFloat(monto), // Positivo - el tipo 'retiro' indica que resta
       payment_method: selectedMetodo,
       transaction_reference: transactionRef,
       description: `Retiro ${selectedMetodo?.toUpperCase()}`,

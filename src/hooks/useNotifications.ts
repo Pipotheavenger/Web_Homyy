@@ -1,19 +1,31 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { notificationService, type Notification } from '@/lib/api/notifications';
 import { useAuth } from './useAuth';
 
-export const useNotifications = () => {
+interface UseNotificationsOptions {
+  autoLoad?: boolean;
+}
+
+export const useNotifications = ({ autoLoad = true }: UseNotificationsOptions = {}) => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(autoLoad);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   // Cargar notificaciones
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async (options?: { force?: boolean }) => {
     if (!user) return;
+
+    const force = options?.force ?? false;
+    if (hasLoadedRef.current && !force) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -22,6 +34,8 @@ export const useNotifications = () => {
 
     if (response.success && response.data) {
       setNotifications(response.data);
+      hasLoadedRef.current = true;
+      setHasLoaded(true);
     } else {
       setError(response.error);
     }
@@ -84,13 +98,27 @@ export const useNotifications = () => {
     return response.success;
   }, [notifications]);
 
-  // Cargar inicialmente
+  // Resetear estado cuando cambia el usuario
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setLoading(false);
+      setError(null);
+      hasLoadedRef.current = false;
+      setHasLoaded(false);
+      return;
+    }
+
+    if (autoLoad) {
       loadNotifications();
       loadUnreadCount();
+    } else {
+      setLoading(false);
+      hasLoadedRef.current = false;
+      setHasLoaded(false);
     }
-  }, [user, loadNotifications, loadUnreadCount]);
+  }, [user, autoLoad, loadNotifications, loadUnreadCount]);
 
   // Suscribirse a nuevas notificaciones en tiempo real
   useEffect(() => {
@@ -127,6 +155,7 @@ export const useNotifications = () => {
     unreadCount,
     loading,
     error,
+    hasLoaded,
     loadNotifications,
     loadUnreadCount,
     markAsRead,

@@ -1,0 +1,30 @@
+* [33m2e3d9ca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Backend implementado
+*   [33m1d30858[m Merge branch 'master' of github.com:Pipotheavenger/Web_Homyy
+[32m|[m[33m\[m  
+[32m|[m * [33meda161e[m Force redeploy - trigger Vercel deployment
+[32m|[m * [33m5e3fcee[m Simplificar carga de logo: usar directamente SVG desde GitHub
+[32m|[m * [33mbdb8bb6[m Implement public URL fallback system for logo: GitHub raw URL, external services, and robust error handling
+[32m|[m * [33me55329d[m Implement robust logo loading with multiple fallback solutions: PNG image, error handling, and inline SVG backup
+[32m|[m * [33ma092dd7[m Fix logo loading issues: use PNG format, add error handling and fallbacks
+[32m|[m * [33m5e47cc9[m Fix logo loading issue: correct filename case and use img instead of Next.js Image for SVG
+* [33m|[m [33m09ea9b3[m Backend estable
+[33m|[m[33m/[m  
+* [33ma81af85[m Flujo de servicio Completo ( No optimo )
+* [33m0fd4cc8[m back implementado
+* [33m69ba952[m Backend v1
+* [33mf105cd2[m register done
+[33m|[m * [33m8f8ad66[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on master: bd877b7 worker start
+[33m|[m[33m/[m[35m|[m 
+[33m|[m * [33maca5ffa[m index on master: bd877b7 worker start
+[33m|[m[33m/[m  
+* [33mbd877b7[m worker start
+* [33ma506302[m new payment method
+* [33mf985d4b[m stable 2.0 optimo
+* [33mc3ca8f7[m Conexion back mis servicios-no optimizado
+* [33m52d2571[m Version stable 2.0 ( arreglo auth )
+* [33mf2471d6[m Notificaciones
+* [33m553aa1e[m Stable version
+* [33m0c63381[m nuevo pagos
+* [33mab2fc43[m update dashboard , perfil
+* [33med625d5[m Cambios locales en submódulo frontend
+* [33m580b80b[m Initial commit from Create Next App
