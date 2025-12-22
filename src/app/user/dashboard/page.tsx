@@ -10,6 +10,8 @@ import ServiceCard from '@/components/ui/ServiceCard';
 import { ReviewModal } from '@/components/ui/ReviewModal';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { reviewsService } from '@/lib/services';
+import { useQueryClient } from '@tanstack/react-query';
+import { dashboardKeys } from '@/hooks/queries/dashboardQueries';
 
 // Lazy load TopProfessionals - componente secundario
 const TopProfessionals = lazy(() => 
@@ -18,6 +20,7 @@ const TopProfessionals = lazy(() =>
 
 export default function Dashboard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { services, categories, topWorkers, userName, reviewedServices, loading, error, initialLoadComplete, handleDeleteService } = useDashboard();
   
   // Debug logs (removidos para producción)
@@ -83,8 +86,15 @@ export default function Dashboard() {
         return false;
       }
 
-      // Obtener el professional_id desde la tabla professionals usando el user_id
+      // Verificar autenticación
       const { supabase } = await import('@/lib/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Usuario no autenticado');
+        return false;
+      }
+
+      // Obtener el professional_id desde la tabla professionals usando el user_id
       const { data: professional, error: profError } = await supabase
         .from('professionals')
         .select('id')
@@ -97,23 +107,19 @@ export default function Dashboard() {
         return false;
       }
 
-      if (!professional) {
+      if (!professional || !professional.id) {
         alert('El trabajador no tiene un perfil profesional registrado');
         return false;
       }
 
-      // Verificar si ya existe una reseña para este servicio y profesional
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert('Usuario no autenticado');
-        return false;
-      }
+      const professionalId = professional.id;
 
+      // Verificar si ya existe una reseña para este servicio y trabajador
       const { data: existingReview } = await supabase
         .from('reviews')
         .select('id')
         .eq('service_id', selectedServiceForReview.id)
-        .eq('professional_id', professional.id)
+        .eq('professional_id', professionalId)
         .eq('reviewer_id', user.id)
         .maybeSingle();
 
@@ -122,14 +128,20 @@ export default function Dashboard() {
         return false;
       }
 
+      // Crear la reseña usando el professional_id (id de la tabla professionals)
       const response = await reviewsService.create({
         service_id: selectedServiceForReview.id,
-        professional_id: professional.id,
+        professional_id: professionalId, // Usar el id de la tabla professionals
         rating,
         comment: comment.trim() || undefined
       });
 
       if (response.success) {
+        // Invalidar las queries para recargar los datos
+        if (user?.id) {
+          queryClient.invalidateQueries({ queryKey: dashboardKeys.services(user.id) });
+          queryClient.invalidateQueries({ queryKey: dashboardKeys.reviewedServices(user.id) });
+        }
         return true;
       } else {
         alert('Error al enviar la reseña: ' + response.error);

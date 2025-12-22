@@ -16,12 +16,19 @@ import {
   DollarSign,
   Clock,
   TrendingUp,
-  Briefcase
+  Briefcase,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  XCircle,
+  Plus
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkerProfileCurrent } from '@/hooks/useWorkerProfileCurrent';
 import { supabase } from '@/lib/supabase';
+import { useState, useRef } from 'react';
+import Image from 'next/image';
 
 export default function PerfilWorkerPage() {
   const router = useRouter();
@@ -45,6 +52,10 @@ export default function PerfilWorkerPage() {
     formatDate
   } = useWorkerProfileCurrent();
 
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleLogout = async () => {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
       try {
@@ -56,47 +67,102 @@ export default function PerfilWorkerPage() {
     }
   };
 
-  // ✅ OPTIMIZACIÓN: Skeleton profesional mientras carga
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor selecciona una imagen válida');
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen debe ser menor a 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Crear un nombre único para el archivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Subir imagen a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('worker-portfolio')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        // Si el bucket no existe, intentamos crearlo o mostrar mensaje
+        console.error('Error subiendo imagen:', uploadError);
+        // Por ahora, usamos una URL local como placeholder
+        const localUrl = URL.createObjectURL(file);
+        setPortfolioImages([...portfolioImages, localUrl]);
+        alert('Imagen agregada (almacenamiento local). Contacta al administrador para configurar el almacenamiento en la nube.');
+      } else {
+        // Obtener URL pública de la imagen
+        const { data: { publicUrl } } = supabase.storage
+          .from('worker-portfolio')
+          .getPublicUrl(fileName);
+        
+        setPortfolioImages([...portfolioImages, publicUrl]);
+      }
+    } catch (err: any) {
+      console.error('Error:', err);
+      alert('Error al subir la imagen: ' + err.message);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setPortfolioImages(portfolioImages.filter((_, i) => i !== index));
+  };
+
+  const handleBack = () => {
+    router.push('/worker/dashboard');
+  };
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        size={16}
+        className={`${
+          i < Math.floor(rating)
+            ? 'text-yellow-400 fill-yellow-400'
+            : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  // Skeleton mientras carga
   const ProfileSkeleton = () => (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
-          <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-300 rounded-2xl"></div>
+    <div className="p-4 md:p-6 space-y-6 animate-pulse">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col lg:flex-row items-center space-y-4 lg:space-y-0 lg:space-x-6">
+          <div className="w-24 h-24 bg-gray-300 rounded-2xl"></div>
           <div className="flex-1 space-y-3">
             <div className="h-6 bg-gray-300 rounded w-48"></div>
             <div className="h-4 bg-gray-200 rounded w-32"></div>
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
           </div>
-        </div>
-      </div>
-      
-      {/* Metrics Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 p-4">
-            <div className="h-16 bg-gray-200 rounded"></div>
-          </div>
-        ))}
-      </div>
-      
-      {/* Tabs Skeleton */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 lg:p-6">
-        <div className="flex space-x-2 mb-6">
-          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
-          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
-          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
-        </div>
-        <div className="space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-full"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
         </div>
       </div>
     </div>
   );
 
-  // ✅ OPTIMIZACIÓN: Mostrar skeleton solo si no hay datos y está cargando
   if (loading && !usuario) {
     return (
       <Layout 
@@ -130,40 +196,6 @@ export default function PerfilWorkerPage() {
     );
   }
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'completado':
-        return 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200';
-      case 'en_proceso':
-        return 'bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 border-blue-200';
-      case 'activo':
-        return 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-700 border-yellow-200';
-      case 'cancelado':
-        return 'bg-gradient-to-r from-red-50 to-pink-50 text-red-700 border-red-200';
-      default:
-        return 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const handleBack = () => {
-    router.push('/worker/dashboard');
-  };
-
-  // Función para renderizar estrellas
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        size={16}
-        className={`${
-          i < Math.floor(rating)
-            ? 'text-yellow-400 fill-yellow-400'
-            : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
-
   return (
     <Layout 
       title="Mi Perfil Profesional" 
@@ -175,99 +207,156 @@ export default function PerfilWorkerPage() {
       onBackClick={handleBack}
       currentPage="perfil"
     >
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
-        {/* Header del Perfil - Estilo Limpio */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
-          {/* Layout vertical para pantallas <1160px, horizontal para pantallas más grandes */}
-          <div className="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0 self-center lg:self-auto">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-emerald-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
-                {usuario?.profile_picture_url ? (
-                  <img
-                    src={usuario.profile_picture_url}
-                    alt={usuario.name}
-                    className="w-full h-full rounded-2xl object-cover"
-                  />
-                ) : (
-                  <span className="text-xl md:text-2xl font-bold text-white">
-                    {usuario?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                  </span>
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Header Hero Section */}
+        <div className="relative bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 rounded-3xl shadow-xl overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative p-6 md:p-10">
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <div className="w-28 h-28 md:w-32 md:h-32 bg-white rounded-2xl flex items-center justify-center shadow-2xl ring-4 ring-white/50">
+                  {usuario?.profile_picture_url ? (
+                    <img
+                      src={usuario.profile_picture_url}
+                      alt={usuario.name}
+                      className="w-full h-full rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl md:text-4xl font-bold text-emerald-600">
+                      {usuario?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                    </span>
+                  )}
+                </div>
+                {isEditing && (
+                  <button className="absolute bottom-0 right-0 bg-emerald-500 text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors">
+                    <Camera size={16} />
+                  </button>
                 )}
               </div>
-            </div>
 
-            {/* Información Principal */}
-            <div className="flex-1 text-center lg:text-left min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 break-words">{usuario?.name || 'Usuario'}</h1>
-              <p className="text-base md:text-lg text-gray-600 mb-3 break-words">{workerProfile?.profession || 'Profesional'}</p>
-              
-              {/* Rating */}
-              <div className="flex items-center justify-center lg:justify-start space-x-2 mb-3 flex-wrap gap-1">
-                <div className="flex items-center space-x-1">
-                  {renderStars(reviewStats.averageRating)}
+              {/* Información Principal */}
+              <div className="flex-1 text-center lg:text-left text-white">
+                <div className="flex items-center justify-center lg:justify-start gap-3 mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold">{usuario?.name || 'Usuario'}</h1>
+                  {workerProfile?.is_verified && (
+                    <CheckCircle className="text-yellow-300" size={28} />
+                  )}
                 </div>
-                <span className="text-xs md:text-sm text-gray-600 break-words">
-                  {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'} ({reviewStats.totalReviews} servicios)
-                </span>
+                <p className="text-xl md:text-2xl text-emerald-50 mb-4">{workerProfile?.profession || 'Profesional'}</p>
+                
+                {/* Rating y Stats */}
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6">
+                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                    <div className="flex items-center">{renderStars(reviewStats.averageRating)}</div>
+                    <span className="font-semibold">{reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}</span>
+                    <span className="text-sm">({reviewStats.totalReviews})</span>
+                  </div>
+                  
+                  {workerProfile?.experience_years && (
+                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                      <Award size={18} />
+                      <span>{workerProfile.experience_years} años</span>
+                    </div>
+                  )}
+                  
+                  {workerProfile?.location && (
+                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                      <MapPin size={18} />
+                      <span>{workerProfile.location}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Badge de Miembro */}
-              <div className="inline-flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium break-words">
-                <CheckCircle size={14} className="md:w-4 md:h-4 flex-shrink-0" />
-                <span className="break-words">Miembro desde {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha no disponible'}</span>
+              {/* Botones de Acción */}
+              <div className="flex gap-3">
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-white text-emerald-600 px-4 md:px-6 py-2.5 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <Edit3 size={18} />
+                    <span className="hidden sm:inline">Editar Perfil</span>
+                    <span className="sm:hidden">Editar</span>
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      className="bg-white text-emerald-600 px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-lg flex items-center gap-2"
+                    >
+                      <Save size={18} />
+                      <span className="hidden sm:inline">Guardar</span>
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      className="bg-white/20 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/30 transition-all flex items-center gap-2"
+                    >
+                      <X size={18} />
+                      <span className="hidden sm:inline">Cancelar</span>
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-red-600 transition-all shadow-lg flex items-center gap-2"
+                >
+                  <LogOut size={18} />
+                  <span className="hidden sm:inline">Salir</span>
+                </button>
               </div>
             </div>
-
-            {/* Botón de Logout */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center space-x-2 px-3 md:px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors w-full lg:w-auto flex-shrink-0"
-            >
-              <LogOut size={16} className="flex-shrink-0" />
-              <span className="break-words">Cerrar Sesión</span>
-            </button>
           </div>
         </div>
 
-        {/* Métricas del Perfil */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 w-full max-w-full overflow-hidden">
-          {/* Servicios Completados */}
-          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <CheckCircle size={18} className="sm:w-5 sm:h-5 text-emerald-600" />
+        {/* Métricas Rápidas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <CheckCircle className="text-emerald-600" size={24} />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Servicios Completados</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">{serviciosRecientes?.length || 0}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Servicios Activos */}
-          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Clock size={18} className="sm:w-5 sm:h-5 text-blue-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Servicios Activos</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">0</p>
+              <div>
+                <p className="text-xs text-gray-600">Completados</p>
+                <p className="text-2xl font-bold text-gray-900">{serviciosRecientes?.filter((s: any) => s.status === 'completed').length || 0}</p>
               </div>
             </div>
           </div>
 
-          {/* Balance */}
-          <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 w-full max-w-full overflow-hidden">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <DollarSign size={18} className="sm:w-5 sm:h-5 text-green-600" />
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <Clock className="text-blue-600" size={24} />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 break-words">Balance</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 break-words">
-                  ${usuario?.balance ? usuario.balance.toLocaleString() : '0'}
+              <div>
+                <p className="text-xs text-gray-600">En Proceso</p>
+                <p className="text-2xl font-bold text-gray-900">{serviciosRecientes?.filter((s: any) => s.status === 'in_progress').length || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                <Star className="text-yellow-600" size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Calificación</p>
+                <p className="text-2xl font-bold text-gray-900">{reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <DollarSign className="text-green-600" size={24} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600">Balance</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${usuario?.balance ? Math.floor(usuario.balance).toLocaleString() : '0'}
                 </p>
               </div>
             </div>
@@ -275,89 +364,112 @@ export default function PerfilWorkerPage() {
         </div>
 
         {/* Tabs de Navegación */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
-          <div className="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-1 mb-4 lg:mb-6 w-full max-w-full overflow-x-auto">
-            {[
-              { id: 'informacion', label: 'Información Personal', icon: User },
-              { id: 'servicios', label: 'Mis Trabajos', icon: Briefcase },
-              { id: 'reseñas', label: 'Mis Reseñas', icon: Star }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center justify-center lg:justify-start space-x-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 text-sm lg:text-base w-full lg:w-auto flex-shrink-0 ${
-                  activeTab === tab.id
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <tab.icon size={16} className="flex-shrink-0" />
-                <span className="break-words text-center lg:text-left">{tab.label}</span>
-              </button>
-            ))}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="border-b border-gray-100">
+            <div className="flex flex-wrap gap-2 p-4">
+              {[
+                { id: 'informacion', label: 'Información', icon: User },
+                { id: 'profesional', label: 'Profesional', icon: Briefcase },
+                { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
+                { id: 'reseñas', label: 'Reseñas', icon: Star }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all font-medium ${
+                    activeTab === tab.id
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <tab.icon size={18} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Contenido de los tabs */}
-          {activeTab === 'informacion' && (
-            <div className="space-y-4 lg:space-y-6 mt-4 lg:mt-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
-                {/* Información Personal */}
-                <div className="space-y-3 lg:space-y-4 w-full max-w-full overflow-hidden">
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Información Personal</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <User size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Nombre</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.name || 'No disponible'}</p>
+          <div className="p-6">
+            {/* Tab: Información Personal */}
+            {activeTab === 'informacion' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Información Personal */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <User className="text-emerald-600" size={24} />
+                      Información Personal
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nombre Completo</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={formData.nombre + ' ' + formData.apellido}
+                            onChange={(e) => {
+                              const parts = e.target.value.split(' ');
+                              handleInputChange('nombre', parts[0] || '');
+                              handleInputChange('apellido', parts.slice(1).join(' ') || '');
+                            }}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          />
+                        ) : (
+                          <p className="text-lg font-semibold text-gray-900">{usuario?.name || 'No disponible'}</p>
+                        )}
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Mail size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Email</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-all">{usuario?.email || 'No disponible'}</p>
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                          <Mail size={14} />
+                          Email
+                        </label>
+                        <p className="text-base text-gray-900 break-all">{usuario?.email || 'No disponible'}</p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Phone size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Teléfono</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.phone || 'No disponible'}</p>
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                          <Phone size={14} />
+                          Teléfono
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="tel"
+                            value={formData.telefono}
+                            onChange={(e) => handleInputChange('telefono', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            placeholder="+57 300 123 4567"
+                          />
+                        ) : (
+                          <p className="text-base text-gray-900">{usuario?.phone || 'No disponible'}</p>
+                        )}
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-gray-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <MapPin size={14} className="lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Ubicación</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{usuario?.location || 'No disponible'}</p>
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                          <MapPin size={14} />
+                          Ubicación
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={formData.ubicacion}
+                            onChange={(e) => handleInputChange('ubicacion', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            placeholder="Ciudad, País"
+                          />
+                        ) : (
+                          <p className="text-base text-gray-900">{workerProfile?.location || usuario?.location || 'No disponible'}</p>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Información Profesional */}
-                <div className="space-y-3 lg:space-y-4 w-full max-w-full overflow-hidden">
-                  <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Información Profesional</h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-emerald-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Briefcase size={14} className="lg:w-4 lg:h-4 text-emerald-600 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Profesión</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">{workerProfile?.profession || 'No especificado'}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-blue-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Calendar size={14} className="lg:w-4 lg:h-4 text-blue-600 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Miembro desde</p>
-                        <p className="font-medium text-sm lg:text-base text-gray-900 break-words">
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                          <Calendar size={14} />
+                          Miembro desde
+                        </label>
+                        <p className="text-base text-gray-900">
                           {usuario?.created_at ? new Date(usuario.created_at).toLocaleDateString('es-CO', { 
                             day: 'numeric',
                             month: 'long', 
@@ -366,176 +478,331 @@ export default function PerfilWorkerPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-green-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Shield size={14} className="lg:w-4 lg:h-4 text-green-600 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Estado de la cuenta</p>
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle size={14} className="lg:w-4 lg:h-4 text-green-600 flex-shrink-0" />
-                          <p className="font-medium text-sm lg:text-base text-gray-900 break-words">Verificada</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 lg:space-x-3 p-2.5 lg:p-3 bg-yellow-50 rounded-lg w-full max-w-full overflow-hidden">
-                      <Award size={14} className="lg:w-4 lg:h-4 text-yellow-600 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs lg:text-sm text-gray-600 break-words">Calificación promedio</p>
-                        <div className="flex items-center space-x-2">
-                          <div className="flex items-center space-x-1">
-                            {renderStars(reviewStats.averageRating)}
+                  {/* Estado y Verificación */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <Shield className="text-emerald-600" size={24} />
+                      Estado de Cuenta
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Verificación</label>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="text-green-600" size={20} />
+                              <span className="font-semibold text-gray-900">Cuenta Verificada</span>
+                            </div>
                           </div>
-                          <p className="font-medium text-sm lg:text-base text-gray-900 break-words">
-                            {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : 'Sin calificaciones'}
-                          </p>
                         </div>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nivel de Satisfacción</label>
+                        <div className="flex items-center gap-3">
+                          <div className="text-3xl font-bold text-blue-600">{reviewStats.satisfaction}%</div>
+                          <div className="flex-1">
+                            <div className="w-full bg-blue-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all"
+                                style={{ width: `${reviewStats.satisfaction}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Servicios Totales</label>
+                        <p className="text-3xl font-bold text-purple-600">{workerProfile?.total_services || 0}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === 'servicios' && (
-            <div className="space-y-3 lg:space-y-4 mt-4 lg:mt-6">
-              <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-3 lg:mb-4 break-words">Mis Trabajos</h3>
-              
-              <div className="space-y-3 sm:space-y-4">
-                {serviciosRecientes && serviciosRecientes.length > 0 ? (
-                  serviciosRecientes.map((booking) => (
-                    <div key={booking.id} className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-100 w-full max-w-full overflow-hidden">
-                      {/* Layout vertical para <1160px, horizontal para pantallas más grandes */}
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 lg:gap-0 mb-2 lg:mb-3">
-                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base break-words flex-1">
-                          {booking.service?.title || 'Servicio'}
-                        </h4>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 w-fit ${
-                          booking.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                          booking.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 
-                          booking.status === 'scheduled' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {booking.status === 'completed' ? 'Completado' : 
-                           booking.status === 'in_progress' ? 'En Progreso' : 
-                           booking.status === 'scheduled' ? 'Agendado' : 'Cancelado'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-gray-600">
-                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4">
-                          <p className="break-words"><span className="font-medium">Cliente:</span> {booking.client?.name || 'N/A'}</p>
-                          <p className="break-words"><span className="font-medium">Fecha:</span> {booking.start_date}</p>
-                        </div>
-                        <p className="font-bold text-emerald-600 text-base sm:text-lg break-words">{formatPrice(Number(booking.total_price))}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 sm:py-12">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                      <Briefcase size={20} className="sm:w-6 sm:h-6 text-gray-400" />
-                    </div>
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">No tienes trabajos aún</h4>
-                    <p className="text-gray-600 text-xs sm:text-sm break-words">Completa tu perfil y comienza a recibir propuestas</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'reseñas' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Mis Reseñas</h3>
-
-              {/* Resumen de calificaciones */}
-              <div className="p-3 sm:p-4 bg-emerald-50 rounded-lg border border-emerald-100 w-full max-w-full overflow-hidden">
-                {/* Layout vertical para evitar cortes, horizontal en pantallas grandes */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-0">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base break-words">Resumen de Calificaciones</h4>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center space-x-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star 
-                            key={star} 
-                            size={14} 
-                            className={`sm:w-4 sm:h-4 flex-shrink-0 ${star <= reviewStats.averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+            {/* Tab: Información Profesional */}
+            {activeTab === 'profesional' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Información Profesional */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <Briefcase className="text-emerald-600" size={24} />
+                      Información Profesional
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Profesión</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={formData.profession}
+                            onChange={(e) => handleInputChange('profession', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            placeholder="Ej: Plomero, Electricista"
                           />
-                        ))}
+                        ) : (
+                          <p className="text-lg font-semibold text-gray-900">{workerProfile?.profession || 'No especificado'}</p>
+                        )}
                       </div>
-                      <span className="text-lg sm:text-xl font-bold text-gray-900 break-words">
-                        {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
-                      </span>
-                      <span className="text-xs sm:text-sm text-gray-600 break-words">({reviewStats.totalReviews} reseñas)</span>
-                    </div>
-                  </div>
-                  <div className="text-left lg:text-right flex-shrink-0">
-                    <div className="text-xl sm:text-2xl font-bold text-emerald-600 break-words">{reviewStats.satisfaction}%</div>
-                    <div className="text-xs sm:text-sm text-gray-600 break-words">Satisfacción</div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Lista de reseñas */}
-              <div className="space-y-3">
-                {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div key={review.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex items-start space-x-3 mb-3">
-                        <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                          {review.reviewer?.profile_picture_url ? (
-                            <img 
-                              src={review.reviewer.profile_picture_url} 
-                              alt={review.reviewer.name}
-                              className="w-full h-full rounded-full object-cover"
+
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                          <Award size={14} />
+                          Años de Experiencia
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={formData.experience_years}
+                            onChange={(e) => handleInputChange('experience_years', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                            min="0"
+                            max="50"
+                          />
+                        ) : (
+                          <p className="text-2xl font-bold text-blue-600">{workerProfile?.experience_years || 0} años</p>
+                        )}
+                      </div>
+
+                      {workerProfile?.hourly_rate && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                          <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
+                            <DollarSign size={14} />
+                            Tarifa por Hora
+                          </label>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={formData.hourly_rate}
+                              onChange={(e) => handleInputChange('hourly_rate', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                              placeholder="0"
                             />
                           ) : (
-                            <span className="text-white font-bold text-sm">
-                              {review.reviewer?.name?.substring(0, 2).toUpperCase() || 'US'}
-                            </span>
+                            <p className="text-2xl font-bold text-green-600">{formatPrice(Number(workerProfile.hourly_rate))}</p>
                           )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-semibold text-gray-900">{review.reviewer?.name || 'Usuario'}</h4>
-                            <span className="text-sm text-gray-500">{formatDate(review.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-1 mb-2">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star 
-                                key={star} 
-                                size={14} 
-                                className={star <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {review.comment && (
-                        <p className="text-gray-700 text-sm leading-relaxed pl-13">
-                          {review.comment}
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bio y Categorías */}
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <User className="text-emerald-600" size={24} />
+                      Descripción y Especialidades
+                    </h3>
+                    
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                      <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Biografía Profesional</label>
+                      {isEditing ? (
+                        <textarea
+                          value={formData.bio}
+                          onChange={(e) => handleInputChange('bio', e.target.value)}
+                          rows={6}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                          placeholder="Describe tu experiencia, especialidades y servicios que ofreces..."
+                        />
+                      ) : (
+                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {workerProfile?.bio || workerProfile?.profile_description || 'No hay descripción disponible'}
                         </p>
                       )}
                     </div>
-                  ))
+
+                    {/* Categorías */}
+                    {workerProfile?.categories && workerProfile.categories.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-3 block">Categorías de Servicio</label>
+                        <div className="flex flex-wrap gap-2">
+                          {workerProfile.categories.map((category: string, index: number) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 bg-white rounded-full text-sm font-medium text-orange-700 border border-orange-200"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Certificaciones */}
+                    {workerProfile?.certifications && workerProfile.certifications.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mb-3 block flex items-center gap-2">
+                          <Award size={14} />
+                          Certificaciones
+                        </label>
+                        <div className="space-y-2">
+                          {workerProfile.certifications.map((cert: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                              <CheckCircle className="text-indigo-600" size={16} />
+                              <span>{cert}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Portfolio/Trabajos Anteriores */}
+            {activeTab === 'portfolio' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <ImageIcon className="text-emerald-600" size={24} />
+                    Portfolio de Trabajos Anteriores
+                  </h3>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Subiendo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>Agregar Imagen</span>
+                      </>
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {portfolioImages.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                    <ImageIcon className="mx-auto text-gray-400 mb-4" size={48} />
+                    <p className="text-gray-600 mb-2">No hay imágenes en tu portfolio</p>
+                    <p className="text-sm text-gray-500">Agrega imágenes de tus trabajos anteriores para mostrar tu experiencia</p>
+                  </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Star size={24} className="text-gray-400" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Aún no tienes reseñas</h4>
-                    <p className="text-gray-600 text-sm">Completa tu primer trabajo para recibir calificaciones</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {portfolioImages.map((imageUrl, index) => (
+                      <div key={index} className="relative group aspect-square rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">
+                        <Image
+                          src={imageUrl}
+                          alt={`Trabajo anterior ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={32} />
+                      <span className="text-sm font-medium">Agregar más</span>
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
+            {/* Tab: Reseñas */}
+            {activeTab === 'reseñas' && (
+              <div className="space-y-6">
+                {/* Resumen de Reseñas */}
+                <div className="p-6 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                  <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3 text-lg">Resumen de Calificaciones</h4>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center">{renderStars(reviewStats.averageRating)}</div>
+                        <span className="text-3xl font-bold text-gray-900">
+                          {reviewStats.averageRating > 0 ? reviewStats.averageRating.toFixed(1) : '0.0'}
+                        </span>
+                        <span className="text-gray-600">({reviewStats.totalReviews} reseñas)</span>
+                      </div>
+                    </div>
+                    <div className="text-center md:text-right">
+                      <div className="text-4xl font-bold text-emerald-600">{reviewStats.satisfaction}%</div>
+                      <div className="text-sm text-gray-600">Satisfacción</div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Lista de Reseñas */}
+                <div className="space-y-4">
+                  {reviews.length > 0 ? (
+                    reviews.map((review: any) => (
+                      <div key={review.id} className="p-5 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            {review.reviewer?.profile_picture_url ? (
+                              <img 
+                                src={review.reviewer.profile_picture_url} 
+                                alt={review.reviewer.name}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-white font-bold text-sm">
+                                {review.reviewer?.name?.substring(0, 2).toUpperCase() || 'US'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                              <h4 className="font-semibold text-gray-900">{review.reviewer?.name || 'Usuario'}</h4>
+                              <span className="text-sm text-gray-500">{formatDate(review.created_at)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mb-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star 
+                                  key={star} 
+                                  size={16} 
+                                  className={star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} 
+                                />
+                              ))}
+                            </div>
+                            {review.comment && (
+                              <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                      <Star className="mx-auto text-gray-400 mb-4" size={48} />
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">Aún no tienes reseñas</h4>
+                      <p className="text-gray-600">Completa tu primer trabajo para recibir calificaciones</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
   );
-} 
+}

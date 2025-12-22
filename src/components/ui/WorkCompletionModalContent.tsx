@@ -96,10 +96,15 @@ export const WorkCompletionModalContent = ({
           setPin('');
         }, 3000);
       } else {
+        // PIN incorrecto - mostrar mensaje claro al usuario
         setError('PIN incorrecto. Verifica e intenta nuevamente.');
+        setPin(''); // Limpiar el PIN para que el usuario lo ingrese de nuevo
       }
-    } catch (error) {
-      setError('Error al completar el trabajo. Intenta nuevamente.');
+    } catch (error: any) {
+      // Capturar cualquier error inesperado
+      const errorMessage = error?.message || 'Error al completar el trabajo. Intenta nuevamente.';
+      setError(errorMessage);
+      setPin(''); // Limpiar el PIN
     } finally {
       setIsSubmitting(false);
     }

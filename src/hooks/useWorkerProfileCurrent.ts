@@ -128,12 +128,23 @@ export const useWorkerProfileCurrent = () => {
           }
         }),
         
-        // Cargar reviews recibidas
-        reviewsService.getByProfessional(user.id).then((response) => {
-          if (response.success && response.data) {
-            setReviews(response.data);
-          }
-        })
+        // Cargar reviews recibidas - primero obtener el professional_id
+        supabase
+          .from('professionals')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+          .then(({ data: professional }) => {
+            if (professional && professional.id) {
+              return reviewsService.getByProfessional(professional.id);
+            }
+            return { success: true, data: [], error: null };
+          })
+          .then((response) => {
+            if (response.success && response.data) {
+              setReviews(response.data);
+            }
+          })
       ]).catch(err => {
         console.warn('Error cargando datos secundarios:', err);
       });

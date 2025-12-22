@@ -78,20 +78,37 @@ export const useWorkerProfile = (workerId: string) => {
         console.log('⚠️ No se encontró perfil de trabajador para:', userProfile.user_id);
       }
 
-      // Cargar reseñas usando el user_id correcto
-      const { data: reviewsData } = await supabase
-        .from('reviews')
-        .select(`
-          *,
-          client:user_profiles!reviews_reviewer_id_fkey(name),
-          service:services(title)
-        `)
-        .eq('professional_id', userProfile.user_id)
-        .order('created_at', { ascending: false });
+      // Obtener el professional_id desde la tabla professionals
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', userProfile.user_id)
+        .maybeSingle();
 
-      if (reviewsData) {
-        console.log('✅ Reseñas encontradas:', reviewsData.length);
-        setReviews(reviewsData);
+      // Cargar reseñas usando el servicio que maneja mejor los errores
+      if (professional && professional.id) {
+        try {
+          const reviewsResponse = await reviewsService.getByProfessional(professional.id);
+          if (reviewsResponse.success && reviewsResponse.data) {
+            setReviews(reviewsResponse.data);
+            if (reviewsResponse.data.length > 0) {
+              console.log('✅ Reseñas encontradas:', reviewsResponse.data.length);
+            } else {
+              console.log('ℹ️ No hay reseñas para este trabajador');
+            }
+          } else {
+            // Si no hay éxito, establecer array vacío (caso normal cuando no hay reseñas)
+            setReviews([]);
+          }
+        } catch (reviewLoadError) {
+          // Si hay una excepción, simplemente establecer array vacío
+          console.warn('⚠️ Error al cargar reseñas (no crítico):', reviewLoadError);
+          setReviews([]);
+        }
+      } else {
+        // Si no hay professional_id, no hay reseñas
+        console.log('ℹ️ No se encontró professional_id, no hay reseñas');
+        setReviews([]);
       }
 
     } catch (err: any) {

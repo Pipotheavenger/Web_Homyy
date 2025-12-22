@@ -37,6 +37,7 @@ export const PaymentSuccessModal = ({
           amount={amount}
           paymentMethod={paymentMethod}
           transactionRef={transactionRef}
+          onClose={onClose}
         />
       </Suspense>
     </ModalStreaming>

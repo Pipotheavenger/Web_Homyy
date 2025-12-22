@@ -71,10 +71,16 @@ export default function WorkerDashboard() {
       if (response.success) {
         // Recargar datos después de completar exitosamente
         loadDashboardData();
+        return true;
+      } else {
+        // El mensaje de error ya está en response.error
+        // El componente WorkCompletionModalContent mostrará un mensaje apropiado
+        return false;
       }
-      return response.success;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error completing work:', error);
+      // No propagar el error como excepción, simplemente retornar false
+      // El componente mostrará un mensaje genérico de error
       return false;
     }
   };

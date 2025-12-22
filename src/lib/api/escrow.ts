@@ -220,9 +220,30 @@ export const escrowService = {
 
       console.log('Resultado de RPC:', result);
 
-      if (!result || !result.success) {
-        const errorMessage = result?.message || result?.error || 'Error al completar servicio';
-        console.error('Error en resultado de RPC:', result);
+      // Verificar si el resultado indica éxito
+      // La función RPC debería retornar un objeto con success: true en caso de éxito
+      const isSuccess = result && 
+                        typeof result === 'object' && 
+                        result.success === true &&
+                        Object.keys(result).length > 0;
+      
+      if (!isSuccess) {
+        // Si el resultado es un objeto vacío, null, undefined, o tiene success: false, es un error
+        let errorMessage = 'PIN incorrecto. Verifica e intenta nuevamente.';
+        
+        // Intentar extraer mensaje de error del resultado si existe
+        if (result && typeof result === 'object' && Object.keys(result).length > 0) {
+          errorMessage = result.message || result.error || result.error_message || errorMessage;
+        }
+        
+        // No loggear el objeto vacío en consola, solo el mensaje
+        if (result && typeof result === 'object' && Object.keys(result).length === 0) {
+          // Objeto vacío generalmente significa PIN incorrecto
+          console.error('PIN incorrecto: El resultado del RPC está vacío');
+        } else if (result && typeof result === 'object') {
+          console.error('Error en resultado de RPC:', result);
+        }
+        
         throw new Error(errorMessage);
       }
 

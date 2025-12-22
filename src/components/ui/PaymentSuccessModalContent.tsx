@@ -7,6 +7,7 @@ interface PaymentSuccessModalContentProps {
   amount: number;
   paymentMethod: string;
   transactionRef: string;
+  onClose?: () => void;
 }
 
 // Componente de checkmark animado - Carga inmediata
@@ -40,7 +41,7 @@ export const SuccessMessage = () => (
 );
 
 // Componente de detalles de transacción - Carga después
-export const TransactionDetails = ({ amount, paymentMethod, transactionRef }: PaymentSuccessModalContentProps) => {
+export const TransactionDetails = ({ amount, paymentMethod, transactionRef, onClose }: PaymentSuccessModalContentProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -132,6 +133,7 @@ export const TransactionDetails = ({ amount, paymentMethod, transactionRef }: Pa
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
+        onClick={onClose}
         className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
       >
         Entendido
@@ -155,13 +157,15 @@ export const PaymentSuccessHeader = () => (
 export const PaymentSuccessModalContent = ({
   amount,
   paymentMethod,
-  transactionRef
+  transactionRef,
+  onClose
 }: PaymentSuccessModalContentProps) => {
   return (
     <TransactionDetails
       amount={amount}
       paymentMethod={paymentMethod}
       transactionRef={transactionRef}
+      onClose={onClose}
     />
   );
 };
