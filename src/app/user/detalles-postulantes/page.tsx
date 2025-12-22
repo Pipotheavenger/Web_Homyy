@@ -75,62 +75,20 @@ function DetallesPostulantesContent() {
     );
   }
 
-  // Tipo para el formato esperado por ServiceDetails
-  type ServicioFormateado = {
-    id: string;
-    titulo: string;
-    descripcion: string;
-    categoria: string;
-    ubicacion: string;
-    fechaPublicacion: string;
-    fechaLimite: string;
-    estado: 'activo' | 'en_proceso' | 'completado';
-    postulantes: number;
-    progreso: number;
-    etapa: string;
-    horariosDisponibilidad: string[];
+  // Función para mapear el estado al formato esperado por ServiceDetails
+  const mapEstado = (status: string): 'activo' | 'en_proceso' | 'completado' => {
+    if (status === 'hired' || status === 'in_progress') return 'en_proceso';
+    if (status === 'completed' || status === 'completado') return 'completado';
+    return 'activo';
   };
 
-  // Función para mapear el servicio del hook al formato esperado por ServiceDetails
-  const mapServiceToServiceDetails = (servicioData: NonNullable<typeof servicio>): ServicioFormateado => {
-    // Mapear el estado del servicio
-    const mapEstado = (status: string): 'activo' | 'en_proceso' | 'completado' => {
-      if (status === 'hired' || status === 'in_progress') return 'en_proceso';
-      if (status === 'completed' || status === 'completado') return 'completado';
-      return 'activo';
-    };
-
-    // Calcular progreso basado en el estado
-    const calcularProgreso = (status: string): number => {
-      if (status === 'completed' || status === 'completado') return 100;
-      if (status === 'hired' || status === 'in_progress') return 50;
-      return 25;
-    };
-
-    // Obtener etapa
-    const obtenerEtapa = (status: string): string => {
-      if (status === 'completed' || status === 'completado') return 'Completado';
-      if (status === 'hired' || status === 'in_progress') return 'En Proceso';
-      return 'Buscando Trabajador';
-    };
-
-    return {
-      id: servicioData.id,
-      titulo: servicioData.titulo || '',
-      descripcion: servicioData.descripcion || '',
-      categoria: servicioData.categoria || 'Sin categoría',
-      ubicacion: servicioData.ubicacion || 'No especificada',
-      fechaPublicacion: servicioData.fechaPublicacion || '',
-      fechaLimite: servicioData.fechaLimite || '',
-      estado: mapEstado(servicioData.estado),
-      postulantes: servicioData.postulantes || postulantes.length,
-      progreso: calcularProgreso(servicioData.estado),
-      etapa: obtenerEtapa(servicioData.estado),
-      horariosDisponibilidad: servicioData.horariosDisponibilidad || ['No especificado']
-    };
-  };
-
-  const servicioFormateado = servicio ? mapServiceToServiceDetails(servicio) : null;
+  // Mapear el servicio del hook al formato esperado por ServiceDetails
+  const servicioFormateado = servicio ? {
+    ...servicio,
+    estado: mapEstado(servicio.estado),
+    progreso: servicio.progreso || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 100 : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 50 : 25),
+    etapa: servicio.etapa || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 'Completado' : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 'En Proceso' : 'Buscando Trabajador')
+  } : null;
 
   return (
     <Layout 
