@@ -145,7 +145,7 @@ export const useWorkerProfileCurrent = () => {
             setBookings(allBookings.slice(0, 5)); // Solo mostrar 5 recientes en UI
             
             // Calcular estadísticas de todos los bookings
-            let stats = {
+            const stats = {
               completed: allBookings.filter((b: any) => b.status === 'completed').length,
               in_progress: allBookings.filter((b: any) => b.status === 'in_progress').length,
               scheduled: allBookings.filter((b: any) => b.status === 'scheduled').length,

@@ -98,7 +98,7 @@ export const useProfile = () => {
             setBookings(allBookings);
             
             // Calcular estadísticas de todos los bookings
-            let stats = {
+            const stats = {
               completed: allBookings.filter((b: any) => b.status === 'completed').length,
               in_progress: allBookings.filter((b: any) => b.status === 'in_progress').length,
               scheduled: allBookings.filter((b: any) => b.status === 'scheduled').length,
@@ -150,7 +150,7 @@ export const useProfile = () => {
                 // Guardar TODOS los bookings para estadísticas
                 setBookings(directBookings);
                 
-                let stats = {
+                const stats = {
                   completed: directBookings.filter((b: any) => b.status === 'completed').length,
                   in_progress: directBookings.filter((b: any) => b.status === 'in_progress').length,
                   scheduled: directBookings.filter((b: any) => b.status === 'scheduled').length,

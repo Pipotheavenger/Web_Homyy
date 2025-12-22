@@ -299,7 +299,7 @@ export const applicationsService = {
       const { includeService = true, limit = 25 } = options ?? {};
 
       // FASE 1: Cargar aplicaciones básicas primero (sin join - más rápido)
-      let applicationsQuery = supabase
+      const applicationsQuery = supabase
         .from('applications')
         .select('id, service_id, worker_id, status, proposed_price, cover_letter, estimated_duration, created_at, updated_at')
         .eq('worker_id', userId)
