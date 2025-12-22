@@ -27,8 +27,8 @@ export const useNotificationCounts = () => {
 
     const loadUnreadCount = async () => {
       const response = await notificationService.getUnreadCount();
-      if (response.success && response.data !== null) {
-        setCounts(prev => ({ ...prev, unreadNotifications: response.data }));
+      if (response.success) {
+        setCounts(prev => ({ ...prev, unreadNotifications: response.data ?? 0 }));
       }
     };
 

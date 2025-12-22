@@ -107,7 +107,7 @@ export const serviceService = {
       // Si no se necesitan categorías ni escrow, retornar inmediatamente (más rápido)
       if (!includeCategories && !shouldIncludeEscrow) {
         return {
-          data: services.map(s => ({ ...s, category: null, escrow_pin: null, budget: s.escrow_amount || 0 })),
+          data: services.map(s => ({ ...s, category: undefined, escrow_pin: null, budget: s.escrow_amount || 0 })),
           error: null,
           success: true
         };
@@ -120,11 +120,13 @@ export const serviceService = {
         const categoryIds = [...new Set(services.map(s => s.category_id).filter(Boolean))];
         if (categoryIds.length > 0) {
           promises.push(
-            supabase
-              .from('categories')
-              .select('id, name, icon, color')
-              .in('id', categoryIds)
-              .then(({ data, error }) => ({ type: 'categories', data: error ? [] : (data || []), error }))
+            (async () => {
+              const { data, error } = await supabase
+                .from('categories')
+                .select('id, name, icon, color')
+                .in('id', categoryIds);
+              return { type: 'categories', data: error ? [] : (data || []), error };
+            })()
           );
         } else {
           promises.push(Promise.resolve({ type: 'categories', data: [] }));
@@ -135,11 +137,13 @@ export const serviceService = {
         const serviceIds = services.map(s => s.id);
         if (serviceIds.length > 0) {
           promises.push(
-            supabase
-              .from('escrow_transactions')
-              .select('service_id, completion_pin, amount')
-              .in('service_id', serviceIds)
-              .then(({ data, error }) => ({ type: 'escrow', data: error ? [] : (data || []), error }))
+            (async () => {
+              const { data, error } = await supabase
+                .from('escrow_transactions')
+                .select('service_id, completion_pin, amount')
+                .in('service_id', serviceIds);
+              return { type: 'escrow', data: error ? [] : (data || []), error };
+            })()
           );
         } else {
           promises.push(Promise.resolve({ type: 'escrow', data: [] }));
@@ -166,14 +170,14 @@ export const serviceService = {
       const servicesWithExtras = services.map(service => {
         const category = includeCategories
           ? categories.find(c => c.id === service.category_id)
-          : null;
+          : undefined;
         const escrow = shouldIncludeEscrow
           ? escrowData.find(e => e.service_id === service.id)
           : null;
 
         return {
           ...service,
-          category: category || null,
+          category: category || undefined,
           escrow_pin: escrow?.completion_pin || null,
           budget: escrow?.amount || service.escrow_amount || 0
         };
@@ -227,7 +231,7 @@ export const serviceService = {
       // Las relaciones se pueden cargar después si es necesario
       const basicServices = services.map(service => ({
         ...service,
-        category: null,
+        category: undefined,
         client: null,
         schedules: []
       }));
@@ -256,14 +260,14 @@ export const serviceService = {
       if (!service) throw new Error('Servicio no encontrado');
 
       // Obtener categoría separadamente
-      let category = null;
+      let category: Category | undefined = undefined;
       if (service.category_id) {
         const { data: cat } = await supabase
           .from('categories')
           .select('*')
           .eq('id', service.category_id)
           .single();
-        category = cat;
+        category = cat || undefined;
       }
 
       // Obtener schedules separadamente

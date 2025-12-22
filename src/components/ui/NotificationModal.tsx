@@ -30,7 +30,6 @@ const getNotificationIcon = (type: string, isCritical: boolean) => {
     // Mensajes
     new_message: <MessageCircle size={20} className="text-blue-500" />,
     new_client_message: <MessageCircle size={20} className="text-blue-500" />,
-    new_message: <MessageCircle size={20} className="text-blue-500" />,
     
     // Pagos
     payment_processed: <CheckCircle size={20} className="text-green-500" />,
