@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { dashboardKeys } from './queries/dashboardQueries';
 import { clearCachedData } from '@/lib/cache-utils';
 import { useAuth } from './useAuth';
+import type { Service } from '@/types/database';
 
 export const useDetallesPostulantes = () => {
   const router = useRouter();
@@ -16,7 +17,7 @@ export const useDetallesPostulantes = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [servicio, setServicio] = useState<any>(null);
+  const [servicio, setServicio] = useState<Service | null>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [preguntas, setPreguntas] = useState<any[]>([]);
   const [booking, setBooking] = useState<any>(null); // Booking para obtener precio pagado
@@ -78,7 +79,7 @@ export const useDetallesPostulantes = () => {
       
       serviceData.schedules = schedules || [];
 
-      setServicio(serviceData);
+      setServicio(serviceData as Service);
 
     } catch (error: any) {
       alert('Error al cargar servicio: ' + (error?.message || 'Error desconocido'));
