@@ -122,12 +122,12 @@ export default function WorkerDashboard() {
     }
   };
 
-  // Estadísticas con datos reales
+  // Estadísticas totales con datos reales
   const estadisticas = [
     {
-      titulo: 'Balance Actual',
-      valor: formatPrice(stats.balance),
-      cambio: stats.completedServices > 0 ? `+${stats.completedServices}` : '0',
+      titulo: 'Ganancias Totales',
+      valor: formatPrice(stats.totalEarnings),
+      cambio: stats.completedServices > 0 ? `${stats.completedServices} completados` : '0',
       icono: <DollarSign className="w-6 h-6 text-emerald-600" />,
       color: 'from-green-500 to-emerald-500'
     },
@@ -335,9 +335,9 @@ export default function WorkerDashboard() {
           </div>
 
           <div className="lg:col-span-1 min-w-0">
-            {/* Estadísticas del Mes */}
+            {/* Estadísticas Totales */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-hidden">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 break-words">Estadísticas del Mes</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 break-words">Estadísticas Totales</h3>
               <div className="space-y-3 sm:space-y-4">
                 {estadisticas.map((stat, index) => (
                   <div key={index} className="flex items-center space-x-2 sm:space-x-3 p-3 bg-gray-50 rounded-xl border border-gray-200 shadow-sm w-full max-w-full overflow-hidden">

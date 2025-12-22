@@ -40,7 +40,7 @@ export const workerStatsService = {
         .eq('user_id', user.id)
         .single();
 
-      // Obtener servicios completados por este trabajador
+      // Obtener servicios completados por este trabajador (excluir eliminados)
       const { data: completedServices, error: servicesError } = await supabase
         .from('services')
         .select(`
@@ -53,6 +53,7 @@ export const workerStatsService = {
           )
         `)
         .eq('status', 'completed')
+        .neq('status', 'deleted') // Excluir servicios eliminados
         .eq('applications.worker_id', user.id)
         .eq('applications.status', 'accepted');
 
@@ -84,7 +85,7 @@ export const workerStatsService = {
         console.error('Error fetching pending applications:', applicationsError);
       }
 
-      // Obtener servicios activos (in_progress)
+      // Obtener servicios activos (in_progress) - excluir eliminados
       const { data: activeServices, error: activeError } = await supabase
         .from('services')
         .select(`
@@ -96,6 +97,7 @@ export const workerStatsService = {
           )
         `)
         .eq('status', 'in_progress')
+        .neq('status', 'deleted') // Excluir servicios eliminados
         .eq('applications.worker_id', user.id)
         .eq('applications.status', 'accepted');
 

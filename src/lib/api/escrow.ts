@@ -209,16 +209,8 @@ export const escrowService = {
 
       if (rpcError) {
         console.error('Error en RPC completeWorkWithPin:', rpcError);
-        console.error('Detalles del error:', {
-          serviceId,
-          pin,
-          userId: user.id,
-          error: rpcError
-        });
         throw new Error('Error al completar servicio: ' + rpcError.message);
       }
-
-      console.log('Resultado de RPC:', result);
 
       // Verificar si el resultado indica éxito
       // La función RPC debería retornar un objeto con success: true en caso de éxito
@@ -231,21 +223,24 @@ export const escrowService = {
         // Si el resultado es un objeto vacío, null, undefined, o tiene success: false, es un error
         let errorMessage = 'PIN incorrecto. Verifica e intenta nuevamente.';
         
-        // Intentar extraer mensaje de error del resultado si existe
-        if (result && typeof result === 'object' && Object.keys(result).length > 0) {
-          errorMessage = result.message || result.error || result.error_message || errorMessage;
-        }
+        // Verificar si el resultado tiene contenido útil
+        const hasUsefulData = result && typeof result === 'object' && Object.keys(result).length > 0;
         
-        // No loggear el objeto vacío en consola, solo el mensaje
-        if (result && typeof result === 'object' && Object.keys(result).length === 0) {
-          // Objeto vacío generalmente significa PIN incorrecto
-          console.error('PIN incorrecto: El resultado del RPC está vacío');
-        } else if (result && typeof result === 'object') {
-          console.error('Error en resultado de RPC:', result);
+        // Intentar extraer mensaje de error del resultado si existe
+        if (hasUsefulData) {
+          errorMessage = result.message || result.error || result.error_message || errorMessage;
+          // Solo loggear si hay un mensaje de error explícito y útil
+          if (result.message || result.error || result.error_message) {
+            console.warn('PIN incorrecto:', result.message || result.error || result.error_message);
+          }
         }
+        // No loggear objetos vacíos {} ni resultados sin mensajes útiles en consola
         
         throw new Error(errorMessage);
       }
+
+      // Solo loggear en caso de éxito para debugging
+      console.log('✅ Servicio completado exitosamente con PIN');
 
       return {
         data: null,

@@ -7,6 +7,8 @@ export const useTrabajoDetalle = (serviceId: string) => {
   const router = useRouter();
   const [service, setService] = useState<any>(null);
   const [hasApplied, setHasApplied] = useState(false);
+  const [isSelected, setIsSelected] = useState(false); // Si el trabajador fue seleccionado
+  const [proposedPrice, setProposedPrice] = useState<number | null>(null); // Precio que pidió el trabajador
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -45,14 +47,31 @@ export const useTrabajoDetalle = (serviceId: string) => {
         setService(null);
       }
 
-      // Verificar si ya aplicó (en paralelo, sin bloquear)
+      // Verificar si ya aplicó y si fue seleccionado (en paralelo, sin bloquear)
       // Solo considerar aplicaciones que NO estén retiradas (withdrawn)
       applicationsService.getMyApplications().then(myApplicationsResponse => {
         if (myApplicationsResponse.success && myApplicationsResponse.data) {
-          const applied = myApplicationsResponse.data.some(
+          const myApplication = myApplicationsResponse.data.find(
             app => app.service_id === serviceId && app.status !== 'withdrawn'
           );
-          setHasApplied(applied);
+          
+          if (myApplication) {
+            setHasApplied(true);
+            
+            // Verificar si fue seleccionado (status accepted o si el servicio está hired/in_progress)
+            // Necesitamos verificar después de que el servicio se haya cargado
+            if (serviceResponse.success && serviceResponse.data) {
+              const serviceStatus = serviceResponse.data.status;
+              const selected = myApplication.status === 'accepted' || 
+                             serviceStatus === 'hired' || 
+                             serviceStatus === 'in_progress';
+              setIsSelected(selected);
+              
+              if (selected && myApplication.proposed_price) {
+                setProposedPrice(myApplication.proposed_price);
+              }
+            }
+          }
         }
       }).catch(err => {
         console.error('Error checking applications:', err);
@@ -152,6 +171,8 @@ export const useTrabajoDetalle = (serviceId: string) => {
   return {
     service,
     hasApplied,
+    isSelected,
+    proposedPrice,
     loading,
     isModalOpen,
     setIsModalOpen,

@@ -27,7 +27,7 @@ export const useWorkerDashboard = () => {
     return transformApplications(rawApplications);
   }, [rawApplications]);
 
-  // Calcular estadísticas
+  // Calcular estadísticas generales
   const stats = useMemo(() => {
     return calculateWorkerStats({
       profile: authProfile && authProfile.user_type === 'worker' ? authProfile : null,
@@ -35,6 +35,7 @@ export const useWorkerDashboard = () => {
       workerProfile: authProfile && authProfile.user_type === 'worker' ? authProfile : null,
     });
   }, [authProfile, rawApplications]);
+
 
   // Calcular userName
   const userName = useMemo(() => {
@@ -91,6 +92,7 @@ function transformApplications(applications: any[]) {
   return withServices.filter(app => 
     app.service &&
     app.service.status !== 'completed' &&
+    app.service.status !== 'deleted' && // Excluir servicios eliminados del frontend
     app.status !== 'withdrawn' &&
     app.status !== 'rejected'
   );

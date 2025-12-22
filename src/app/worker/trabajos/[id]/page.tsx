@@ -15,7 +15,9 @@ import {
   CheckCircle,
   Phone,
   Mail,
-  MessageSquare
+  MessageSquare,
+  Info,
+  KeyRound
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useUserType } from '@/contexts/UserTypeContext';
@@ -64,6 +66,8 @@ export default function DetalleTrabajoPage() {
   const {
     service,
     hasApplied,
+    isSelected,
+    proposedPrice,
     loading,
     isModalOpen,
     setIsModalOpen,
@@ -182,90 +186,129 @@ export default function DetalleTrabajoPage() {
               </div>
             </div>
 
-            {/* Sección de preguntas */}
-            <div className={`${colors.card} rounded-2xl p-6 border ${colors.border}`}>
-              <div className="flex items-center space-x-2 mb-4">
-                <MessageCircle size={20} className="text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-800">Preguntas y respuestas</h3>
-              </div>
-
-              {/* Formulario para nueva pregunta */}
-              <div className="mb-6">
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Escribe tu pregunta sobre este trabajo..."
-                    value={nuevaPregunta}
-                    onChange={(e) => setNuevaPregunta(e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
-                    onKeyPress={(e) => e.key === 'Enter' && !submittingQuestion && handleEnviarPregunta()}
-                    disabled={submittingQuestion}
-                  />
-                  <button
-                    onClick={handleEnviarPregunta}
-                    disabled={!nuevaPregunta.trim() || submittingQuestion}
-                    className="px-4 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-                  >
-                    {submittingQuestion ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      <Send size={16} />
-                    )}
-                  </button>
+            {/* Sección de preguntas - Solo mostrar si NO está seleccionado */}
+            {!isSelected && (
+              <div className={`${colors.card} rounded-2xl p-6 border ${colors.border}`}>
+                <div className="flex items-center space-x-2 mb-4">
+                  <MessageCircle size={20} className="text-orange-500" />
+                  <h3 className="text-lg font-semibold text-gray-800">Preguntas y respuestas</h3>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Esta pregunta será pública y visible para todos</p>
-              </div>
 
-              {/* Lista de preguntas */}
-              <div className="space-y-4">
-                {loadingQuestions ? (
-                  <div className="text-center py-8">
-                    <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Cargando preguntas...</p>
+                {/* Formulario para nueva pregunta */}
+                <div className="mb-6">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Escribe tu pregunta sobre este trabajo..."
+                      value={nuevaPregunta}
+                      onChange={(e) => setNuevaPregunta(e.target.value)}
+                      className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-300 outline-none"
+                      onKeyPress={(e) => e.key === 'Enter' && !submittingQuestion && handleEnviarPregunta()}
+                      disabled={submittingQuestion}
+                    />
+                    <button
+                      onClick={handleEnviarPregunta}
+                      disabled={!nuevaPregunta.trim() || submittingQuestion}
+                      className="px-4 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    >
+                      {submittingQuestion ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        <Send size={16} />
+                      )}
+                    </button>
                   </div>
-                ) : questions.length > 0 ? (
-                  questions.map((question) => (
-                    <div key={question.id} className="border border-gray-200 rounded-xl p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <MessageSquare size={16} className="text-blue-500" />
-                          <span className="text-sm font-medium text-gray-800">
-                            {question.user?.name || 'Usuario'}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-500">{getTimeAgo(question.created_at)}</span>
-                      </div>
-                      <p className="text-gray-700 mb-3">{question.question}</p>
-                      
-                      {question.answer && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <User size={16} className="text-green-600" />
-                            <span className="text-sm font-medium text-green-800">Respuesta del cliente</span>
-                          </div>
-                          <p className="text-green-700 text-sm">{question.answer}</p>
-                        </div>
-                      )}
-                      
-                      {!question.answer && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <Clock size={16} className="text-yellow-600" />
-                            <span className="text-sm text-yellow-700">Esperando respuesta del cliente</span>
-                          </div>
-                        </div>
-                      )}
+                  <p className="text-xs text-gray-500 mt-2">Esta pregunta será pública y visible para todos</p>
+                </div>
+
+                {/* Lista de preguntas */}
+                <div className="space-y-4">
+                  {loadingQuestions ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto"></div>
+                      <p className="text-sm text-gray-500 mt-2">Cargando preguntas...</p>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <MessageCircle size={48} className="text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600">No hay preguntas aún</p>
-                    <p className="text-sm text-gray-500 mt-1">Sé el primero en preguntar sobre este trabajo</p>
+                  ) : questions.length > 0 ? (
+                    questions.map((question) => (
+                      <div key={question.id} className="border border-gray-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <MessageSquare size={16} className="text-blue-500" />
+                            <span className="text-sm font-medium text-gray-800">
+                              {question.user?.name || 'Usuario'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500">{getTimeAgo(question.created_at)}</span>
+                        </div>
+                        <p className="text-gray-700 mb-3">{question.question}</p>
+                        
+                        {question.answer && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <User size={16} className="text-green-600" />
+                              <span className="text-sm font-medium text-green-800">Respuesta del cliente</span>
+                            </div>
+                            <p className="text-green-700 text-sm">{question.answer}</p>
+                          </div>
+                        )}
+                        
+                        {!question.answer && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <div className="flex items-center space-x-2">
+                              <Clock size={16} className="text-yellow-600" />
+                              <span className="text-sm text-yellow-700">Esperando respuesta del cliente</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageCircle size={48} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-600">No hay preguntas aún</p>
+                      <p className="text-sm text-gray-500 mt-1">Sé el primero en preguntar sobre este trabajo</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Información cuando está seleccionado */}
+            {isSelected && (
+              <div className={`${colors.card} rounded-2xl p-6 border ${colors.border} space-y-6`}>
+                {/* Precio que pidió */}
+                {proposedPrice !== null && (
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                      <DollarSign size={20} className="text-orange-500" />
+                      <span>Precio que propusiste</span>
+                    </h3>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {formatPriceUtil(proposedPrice)}
+                    </p>
                   </div>
                 )}
+
+                {/* Mensajes informativos */}
+                <div className="space-y-4">
+                  {/* Mensaje sobre PIN de finalización */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
+                    <KeyRound size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-800">
+                      <span className="font-semibold">Recuerda:</span> Cuando termines el trabajo, deberás ingresar el PIN de finalización que te proporcionará el cliente.
+                    </p>
+                  </div>
+
+                  {/* Mensaje sobre comunicación por chat */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3">
+                    <MessageCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-green-800">
+                      Puedes comunicarte con el cliente en la sección de <span className="font-semibold">chats</span>.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar con información del cliente */}

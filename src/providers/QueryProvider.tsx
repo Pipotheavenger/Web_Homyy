@@ -9,18 +9,18 @@ export function QueryProvider({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Cache más agresivo para mejor rendimiento
-            staleTime: 2 * 60 * 1000, // 2 minutos
-            // Mantener datos en caché por 10 minutos
-            gcTime: 10 * 60 * 1000,
+            // Siempre refrescar datos para dashboards y perfiles
+            staleTime: 0, // Considerar datos como obsoletos inmediatamente
+            // Mantener datos en memoria por tiempo mínimo
+            gcTime: 1 * 60 * 1000, // 1 minuto
             // Reintentar 1 vez en caso de error
             retry: 1,
-            // NO refetch en background cuando la ventana recupera el foco (más rápido)
-            refetchOnWindowFocus: false,
-            // NO refetch automático en reconexión (más rápido)
-            refetchOnReconnect: false,
-            // NO refetch automático al montar si los datos están frescos
-            refetchOnMount: false,
+            // Refrescar cuando la ventana recupera el foco (datos frescos)
+            refetchOnWindowFocus: true,
+            // Refrescar automático en reconexión
+            refetchOnReconnect: true,
+            // Siempre refrescar al montar para datos actualizados
+            refetchOnMount: true,
           },
         },
       })

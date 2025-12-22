@@ -19,6 +19,7 @@ export const useDetallesPostulantes = () => {
   const [servicio, setServicio] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [preguntas, setPreguntas] = useState<any[]>([]);
+  const [booking, setBooking] = useState<any>(null); // Booking para obtener precio pagado
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [selectedSort, setSelectedSort] = useState('reciente');
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export const useDetallesPostulantes = () => {
       loadServiceDetails();
       loadApplications();
       loadPreguntas();
+      loadBooking();
     } else {
       setLoading(false);
     }
@@ -115,6 +117,27 @@ export const useDetallesPostulantes = () => {
       }
     } catch (error) {
       console.error('Error loading questions:', error);
+    }
+  };
+
+  const loadBooking = async () => {
+    if (!serviceId) return;
+
+    try {
+      // Buscar booking relacionado con este servicio
+      const { data: bookingData, error: bookingError } = await supabase
+        .from('bookings')
+        .select('id, total_price, created_at, status, payment_status')
+        .eq('service_id', serviceId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!bookingError && bookingData) {
+        setBooking(bookingData);
+      }
+    } catch (error) {
+      console.error('Error loading booking:', error);
     }
   };
 
@@ -261,6 +284,7 @@ export const useDetallesPostulantes = () => {
         // Recargar datos
         await loadServiceDetails();
         await loadApplications();
+        await loadBooking();
         
         alert(`Trabajador seleccionado exitosamente. PIN de finalización: ${response.data?.pin}`);
         
@@ -370,6 +394,7 @@ export const useDetallesPostulantes = () => {
     servicio: servicioFormatted,
     postulantes: filteredPostulantes,
     preguntas,
+    booking, // Booking para obtener precio pagado
     selectedFilter,
     selectedSort,
     selectedCandidate,

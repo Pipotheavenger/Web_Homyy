@@ -84,6 +84,7 @@ export const applicationsService = {
         .from('services')
         .select('user_id, status')
         .eq('id', data.service_id)
+        .neq('status', 'deleted') // Excluir servicios eliminados
         .single();
 
       if (serviceError) throw new Error('Servicio no encontrado');
@@ -196,9 +197,10 @@ export const applicationsService = {
       if (!user) throw new Error('Usuario no autenticado');
 
       // Verificar que el usuario es dueño del servicio
+      // Excluir servicios eliminados (aunque el dueño los puede ver para historial)
       const { data: service, error: serviceError } = await supabase
         .from('services')
-        .select('user_id')
+        .select('user_id, status')
         .eq('id', serviceId)
         .single();
 
@@ -233,10 +235,36 @@ export const applicationsService = {
             .eq('user_id', app.worker_id)
             .single();
 
+          // Obtener rating y total_services actualizado desde la tabla professionals
+          let currentRating = workerProfile?.rating || 0;
+          let currentTotalServices = workerProfile?.total_services || 0;
+          const { data: professional } = await supabase
+            .from('professionals')
+            .select('rating, total_services')
+            .eq('user_id', app.worker_id)
+            .maybeSingle();
+
+          // Usar los valores de professionals si están disponibles (más actualizados)
+          if (professional) {
+            if (professional.rating !== undefined && professional.rating !== null) {
+              currentRating = Number(professional.rating);
+            }
+            if (professional.total_services !== undefined && professional.total_services !== null) {
+              currentTotalServices = Number(professional.total_services);
+            }
+          }
+
+          // Actualizar worker_profile con los valores más recientes de professionals
+          const updatedWorkerProfile = workerProfile ? {
+            ...workerProfile,
+            rating: currentRating,
+            total_services: currentTotalServices
+          } : null;
+
           return {
             ...app,
             worker: workerUser,
-            worker_profile: workerProfile
+            worker_profile: updatedWorkerProfile
           };
         })
       );
@@ -311,10 +339,12 @@ export const applicationsService = {
       }
 
       // Query optimizada: solo campos necesarios, sin joins anidados
+      // Excluir servicios eliminados (eliminación lógica - status 'deleted')
       const { data: services, error: servicesError } = await supabase
         .from('services')
         .select('id, title, description, location, status, created_at, worker_final_amount, escrow_amount')
-        .in('id', serviceIds);
+        .in('id', serviceIds)
+        .neq('status', 'deleted'); // Excluir servicios eliminados del frontend
 
       if (servicesError) {
         console.warn('Error cargando servicios para aplicaciones:', servicesError);

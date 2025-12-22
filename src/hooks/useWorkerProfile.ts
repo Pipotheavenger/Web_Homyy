@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { workerService, reviewsService } from '@/lib/services';
 
@@ -17,6 +17,31 @@ export const useWorkerProfile = (workerId: string) => {
       setLoading(false);
     }
   }, [workerId]);
+
+  // Función para refrescar solo las reseñas (útil para actualizar sin recargar todo)
+  const refreshReviews = useCallback(async () => {
+    if (!worker?.user_id) return;
+    
+    try {
+      // Obtener el professional_id desde la tabla professionals
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', worker.user_id)
+        .maybeSingle();
+
+      // Cargar reseñas usando el servicio
+      if (professional && professional.id) {
+        const reviewsResponse = await reviewsService.getByProfessional(professional.id);
+        if (reviewsResponse.success && reviewsResponse.data) {
+          setReviews(reviewsResponse.data);
+          console.log('✅ Reseñas actualizadas:', reviewsResponse.data.length);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Error al actualizar reseñas:', error);
+    }
+  }, [worker?.user_id]);
 
   const loadWorkerData = async () => {
     if (!workerId) {
@@ -188,6 +213,7 @@ export const useWorkerProfile = (workerId: string) => {
     formatDate,
     getTimeAgo,
     getStarClass,
-    loadWorkerData
+    loadWorkerData,
+    refreshReviews
   };
 };

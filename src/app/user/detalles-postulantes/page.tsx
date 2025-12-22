@@ -8,7 +8,8 @@ import { PostulanteCard } from '@/components/ui/PostulanteCard';
 import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
 import { CancelServiceModal } from '@/components/ui/CancelServiceModal';
 import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
-import { ChevronDown, ChevronUp, MessageCircle, Users, Star, MapPin, Calendar, Clock, DollarSign, Phone, Mail, CheckCircle, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageCircle, Users, Star, MapPin, Calendar, Clock, DollarSign, Phone, Mail, CheckCircle, User, Info } from 'lucide-react';
+import { formatPrice } from '@/lib/utils/empty-state-helpers';
 
 function DetallesPostulantesContent() {
   const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false); // Colapsado por defecto
@@ -18,6 +19,7 @@ function DetallesPostulantesContent() {
     servicio,
     postulantes,
     preguntas,
+    booking,
     selectedCandidate,
     showConfirmationModal,
     candidateToConfirm,
@@ -140,76 +142,28 @@ function DetallesPostulantesContent() {
 
                 {/* Detalles del trabajador */}
                 <div className="p-6 space-y-6">
-                  {/* Información de contacto */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                        <MapPin size={20} className="text-purple-500" />
-                        <span>Ubicación</span>
-                      </h3>
-                      <p className="text-gray-600 pl-6">{selectedWorker.ubicacion}</p>
-
-                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                        <Clock size={20} className="text-purple-500" />
-                        <span>Experiencia</span>
-                      </h3>
-                      <p className="text-gray-600 pl-6">{selectedWorker.experiencia} años de experiencia</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                        <Phone size={20} className="text-purple-500" />
-                        <span>Contacto</span>
-                      </h3>
-                      <div className="pl-6 space-y-2">
-                        <p className="text-gray-600">{selectedWorker.telefono}</p>
-                        <p className="text-gray-600">{selectedWorker.email}</p>
-                      </div>
-
-                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                        <DollarSign size={20} className="text-purple-500" />
-                        <span>Precio Propuesto</span>
-                      </h3>
-                      <p className="text-2xl font-bold text-purple-600 pl-6">
-                        ${selectedWorker.precio.toLocaleString()}
-                      </p>
-                    </div>
+                  {/* Precio pagado */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                      <DollarSign size={20} className="text-purple-500" />
+                      <span>Precio Pagado</span>
+                    </h3>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {booking?.total_price 
+                        ? formatPrice(booking.total_price)
+                        : servicio?.escrow_amount 
+                          ? formatPrice(servicio.escrow_amount)
+                          : formatPrice(selectedWorker.precio)
+                      }
+                    </p>
                   </div>
 
-                  {/* Carta de presentación */}
-                  {selectedWorker.coverLetter && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                        <MessageCircle size={20} className="text-purple-500" />
-                        <span>Carta de Presentación</span>
-                      </h3>
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <p className="text-gray-700 leading-relaxed">{selectedWorker.coverLetter}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Duración estimada */}
-                  {selectedWorker.estimatedDuration && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                        <Clock size={20} className="text-purple-500" />
-                        <span>Duración Estimada</span>
-                      </h3>
-                      <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                        <p className="text-purple-800 font-medium">{selectedWorker.estimatedDuration}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Botón para ver perfil completo */}
-                  <div className="pt-4">
-                    <button
-                      onClick={() => handleVerPerfil(selectedWorker.workerId)}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-                    >
-                      Ver Perfil Completo
-                    </button>
+                  {/* Mensaje informativo */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
+                    <Info size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-800">
+                      Puedes comunicarte con el trabajador en la sección de <span className="font-semibold">chats</span>.
+                    </p>
                   </div>
                 </div>
               </div>

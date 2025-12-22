@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { serviceService, statsService, categoryService, workerService } from '@/lib/services';
 import type { Service, Category } from '@/types/database';
 import { useAuth } from '../useAuth';
-import { getCachedData, setCachedData } from '@/lib/cache-utils';
 
 // Query keys para organización
 export const dashboardKeys = {
@@ -16,7 +15,7 @@ export const dashboardKeys = {
 
 /**
  * Query para obtener servicios del usuario
- * OPTIMIZADO: Caché local + query rápida sin joins
+ * Siempre refresca datos frescos desde la base de datos
  */
 export function useUserServices(userId: string | undefined, enabled: boolean = true) {
   return useQuery({
@@ -24,26 +23,7 @@ export function useUserServices(userId: string | undefined, enabled: boolean = t
     queryFn: async () => {
       if (!userId) return null;
       
-      // Intentar obtener del caché local primero (instantáneo)
-      const cacheKey = `user_services_${userId}`;
-      const cached = getCachedData<Service[]>(cacheKey, 1 * 60 * 1000); // 1 minuto TTL
-      if (cached) {
-        // Retornar datos en caché inmediatamente, pero actualizar en background
-        setTimeout(() => {
-          serviceService.getUserServices({
-            includeCategories: false,
-            includeEscrow: false,
-            userId,
-          }).then(response => {
-            if (response.success && response.data) {
-              setCachedData(cacheKey, response.data);
-            }
-          }).catch(() => {}); // Ignorar errores en background update
-        }, 0);
-        return cached;
-      }
-      
-      // Si no hay caché, cargar desde Supabase
+      // Cargar siempre desde Supabase (sin caché manual)
       const response = await serviceService.getUserServices({
         includeCategories: false,
         includeEscrow: false,
@@ -51,16 +31,13 @@ export function useUserServices(userId: string | undefined, enabled: boolean = t
       });
       if (!response.success) throw new Error(response.error || 'Error al cargar servicios');
       
-      const data = response.data || [];
-      // Guardar en caché
-      setCachedData(cacheKey, data);
-      return data;
+      return response.data || [];
     },
     enabled: enabled && !!userId,
-    staleTime: 1 * 60 * 1000, // 1 minuto - datos más frescos
-    gcTime: 5 * 60 * 1000,
-    // Mostrar datos en caché mientras se actualiza
-    placeholderData: (previousData) => previousData,
+    staleTime: 0, // Siempre considerar datos como obsoletos
+    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
+    refetchOnMount: true, // Siempre refrescar al montar
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 
@@ -106,68 +83,50 @@ export function useDashboardStats(
       return null;
     },
     enabled: enabled && !!userId && !!userType,
-    staleTime: 3 * 60 * 1000, // 3 minutos
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0, // Siempre considerar datos como obsoletos
+    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
+    refetchOnMount: true, // Siempre refrescar al montar
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 
 /**
  * Query para obtener categorías
- * OPTIMIZADO: Caché local + caché largo (categorías raramente cambian)
+ * Siempre refresca datos frescos desde la base de datos
  */
 export function useCategories(enabled: boolean = true) {
   return useQuery({
     queryKey: dashboardKeys.categories(),
     queryFn: async () => {
-      // Intentar obtener del caché local primero
-      const cached = getCachedData<Category[]>('categories', 30 * 60 * 1000); // 30 minutos TTL
-      if (cached) {
-        return cached;
-      }
-      
       const response = await categoryService.getAll();
       if (!response.success) throw new Error(response.error || 'Error al cargar categorías');
-      const data = response.data || [];
-      
-      // Guardar en caché local
-      setCachedData('categories', data);
-      return data;
+      return response.data || [];
     },
     enabled,
-    staleTime: 30 * 60 * 1000, // 30 minutos - categorías raramente cambian
-    gcTime: 60 * 60 * 1000, // 1 hora en caché
-    // Mostrar datos en caché mientras se actualiza
-    placeholderData: (previousData) => previousData,
+    staleTime: 0, // Siempre considerar datos como obsoletos
+    gcTime: 5 * 60 * 1000, // Mantener en memoria solo 5 minutos
+    refetchOnMount: true, // Siempre refrescar al montar
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 
 /**
  * Query para obtener top workers
- * OPTIMIZADO: Caché local + solo los primeros 5
+ * Siempre refresca datos frescos desde la base de datos
  */
 export function useTopWorkers(enabled: boolean = true) {
   return useQuery({
     queryKey: dashboardKeys.topWorkers(),
     queryFn: async () => {
-      // Intentar obtener del caché local primero
-      const cached = getCachedData<any[]>('top_workers', 5 * 60 * 1000); // 5 minutos TTL
-      if (cached) {
-        return cached;
-      }
-      
       const response = await workerService.getAll({ is_available: true, limit: 5 });
       if (!response.success) throw new Error(response.error || 'Error al cargar profesionales');
-      const data = Array.isArray(response.data) ? response.data.slice(0, 5) : [];
-      
-      // Guardar en caché local
-      setCachedData('top_workers', data);
-      return data;
+      return Array.isArray(response.data) ? response.data.slice(0, 5) : [];
     },
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 15 * 60 * 1000,
-    // Mostrar datos en caché mientras se actualiza
-    placeholderData: (previousData) => previousData,
+    staleTime: 0, // Siempre considerar datos como obsoletos
+    gcTime: 2 * 60 * 1000, // Mantener en memoria solo 2 minutos
+    refetchOnMount: true, // Siempre refrescar al montar
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 
@@ -244,8 +203,10 @@ export function useReviewedServices(
       return reviewed;
     },
     enabled: enabled && !!userId && serviceIds.length > 0,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0, // Siempre considerar datos como obsoletos
+    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
+    refetchOnMount: true, // Siempre refrescar al montar
+    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 

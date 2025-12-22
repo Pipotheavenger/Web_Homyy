@@ -39,8 +39,18 @@ function PerfilProfesionalPageContent() {
     error,
     formatDate,
     getTimeAgo,
-    getStarClass
+    getStarClass,
+    refreshReviews
   } = useWorkerProfile(workerId || '');
+
+  // Refrescar reseñas cuando se cambia al tab de reseñas
+  useEffect(() => {
+    if (activeTab === 'reseñas' && worker?.user_id) {
+      // Refrescar solo las reseñas cuando se cambia al tab
+      refreshReviews();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // Solo depender de activeTab para evitar loops
 
   // Cargar imágenes del portfolio cuando se carga el perfil
   useEffect(() => {

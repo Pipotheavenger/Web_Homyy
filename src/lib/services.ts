@@ -72,6 +72,7 @@ export const serviceService = {
       const includeEscrow = options?.includeEscrow ?? false; // Por defecto false para velocidad
 
       // OPTIMIZADO: Query simple y rápida - solo servicios básicos
+      // Excluir servicios con status 'deleted' (eliminación lógica - solo se ocultan del frontend)
       const { data: services, error: servicesError } = await supabase
         .from('services')
         .select(`
@@ -88,6 +89,7 @@ export const serviceService = {
           worker_final_amount
         `)
         .eq('user_id', userId)
+        .neq('status', 'deleted') // Excluir servicios eliminados del frontend
         .order('created_at', { ascending: false })
         .limit(50); // Limitar resultados para mejor rendimiento
 
@@ -189,6 +191,7 @@ export const serviceService = {
   async getAvailableServices(): Promise<ApiResponse<Service[]>> {
     try {
       // Consulta simple y rápida: solo servicios básicos primero
+      // Excluir servicios eliminados (eliminación lógica)
       const { data: services, error: servicesError } = await supabase
         .from('services')
         .select(`
@@ -205,6 +208,7 @@ export const serviceService = {
           worker_final_amount
         `)
         .eq('status', 'active')
+        .neq('status', 'deleted') // Excluir servicios eliminados del frontend
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -369,43 +373,11 @@ export const serviceService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Primero eliminar todas las aplicaciones relacionadas al servicio
-      const { error: applicationsError } = await supabase
-        .from('applications')
-        .delete()
-        .eq('service_id', id);
-
-      if (applicationsError) {
-        console.warn('Error eliminando aplicaciones relacionadas:', applicationsError);
-        // No fallar si hay error eliminando aplicaciones, continuar con el servicio
-      }
-
-      // Eliminar schedules relacionados
-      const { error: schedulesError } = await supabase
-        .from('service_schedules')
-        .delete()
-        .eq('service_id', id);
-
-      if (schedulesError) {
-        console.warn('Error eliminando horarios relacionados:', schedulesError);
-        // No fallar si hay error eliminando schedules, continuar con el servicio
-      }
-
-      // Eliminar preguntas relacionadas
-      const { error: questionsError } = await supabase
-        .from('service_questions')
-        .delete()
-        .eq('service_id', id);
-
-      if (questionsError) {
-        console.warn('Error eliminando preguntas relacionadas:', questionsError);
-        // No fallar si hay error eliminando preguntas, continuar con el servicio
-      }
-
-      // Finalmente eliminar el servicio
+      // Eliminación lógica: solo cambiar el status a 'deleted' para ocultarlo del frontend
+      // NO eliminamos aplicaciones, schedules, preguntas ni el servicio de la base de datos
       const { error } = await supabase
         .from('services')
-        .delete()
+        .update({ status: 'deleted' })
         .eq('id', id)
         .eq('user_id', user.id);
 
@@ -422,6 +394,7 @@ export const serviceService = {
 
   async search(filters: ServiceFilters): Promise<ApiResponse<Service[]>> {
     try {
+      // Excluir servicios eliminados del frontend (eliminación lógica)
       let query = supabase
         .from('services')
         .select(`
@@ -429,7 +402,8 @@ export const serviceService = {
           category:categories(*),
           client:user_profiles!services_user_id_fkey(name, profile_picture_url)
         `)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .neq('status', 'deleted'); // Excluir servicios eliminados
 
       if (filters.category_id) query = query.eq('category_id', filters.category_id);
       if (filters.location) query = query.ilike('location', `%${filters.location}%`);
