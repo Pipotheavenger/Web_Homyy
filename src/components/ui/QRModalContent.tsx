@@ -84,25 +84,25 @@ const PaymentInfo = ({ metodoPago }: { metodoPago: string }) => (
     className="bg-gradient-to-r from-purple-50/80 to-pink-50/80 border border-purple-200/30 rounded-lg p-2 mt-2"
   >
     <p className="text-[10px] text-purple-700 font-medium mb-1">
-      Información del pago: Sebastián Valencia - 3212681034
+      Información del pago: Hommy - 0091102879
     </p>
     {metodoPago.toLowerCase() === 'nequi' && (
       <>
         <p className="text-[10px] text-purple-600">
-          Número: <strong>321-268-1034</strong>
+          Llave BreB: <strong>0091102879</strong>
         </p>
         <p className="text-[10px] text-purple-600">
-          Nombre: <strong>Sebastián Valencia</strong>
+          Nombre: <strong>Paola Medina</strong>
         </p>
       </>
     )}
     {metodoPago.toLowerCase() === 'daviplata' && (
       <>
         <p className="text-[10px] text-purple-600">
-          Número: <strong>300-123-4567</strong>
+          Llave BreB: <strong>0091102879</strong>
         </p>
         <p className="text-[10px] text-purple-600">
-          Nombre: <strong>Sebastián Valencia</strong>
+          Nombre: <strong>Paola Medina</strong>
         </p>
       </>
     )}
