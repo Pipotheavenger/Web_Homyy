@@ -91,10 +91,8 @@ function DetallesPostulantesContent() {
     horariosDisponibilidad: string[];
   };
 
-  // Función para mapear Service al formato esperado por ServiceDetails
-  const mapServiceToServiceDetails: (service: Service | null) => ServicioFormateado | null = (service) => {
-    if (!service) return null;
-
+  // Función para mapear el servicio del hook al formato esperado por ServiceDetails
+  const mapServiceToServiceDetails = (servicioData: NonNullable<typeof servicio>): ServicioFormateado => {
     // Mapear el estado del servicio
     const mapEstado = (status: string): 'activo' | 'en_proceso' | 'completado' => {
       if (status === 'hired' || status === 'in_progress') return 'en_proceso';
@@ -116,30 +114,23 @@ function DetallesPostulantesContent() {
       return 'Buscando Trabajador';
     };
 
-    // Formatear horarios desde schedules
-    const horariosDisponibilidad = (service.schedules || []).map(schedule => {
-      const startTime = schedule.start_time ? new Date(schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
-      const endTime = schedule.end_time ? new Date(schedule.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
-      return `${startTime} - ${endTime}`;
-    });
-
     return {
-      id: service.id,
-      titulo: service.title || '',
-      descripcion: service.description || '',
-      categoria: service.category?.name || service.category_id || 'Sin categoría',
-      ubicacion: service.location || 'No especificada',
-      fechaPublicacion: service.created_at ? new Date(service.created_at).toLocaleDateString('es-ES') : '',
-      fechaLimite: service.updated_at ? new Date(service.updated_at).toLocaleDateString('es-ES') : '',
-      estado: mapEstado(service.status),
-      postulantes: postulantes.length,
-      progreso: calcularProgreso(service.status),
-      etapa: obtenerEtapa(service.status),
-      horariosDisponibilidad: horariosDisponibilidad.length > 0 ? horariosDisponibilidad : ['No especificado']
-    } as ServicioFormateado;
+      id: servicioData.id,
+      titulo: servicioData.titulo || '',
+      descripcion: servicioData.descripcion || '',
+      categoria: servicioData.categoria || 'Sin categoría',
+      ubicacion: servicioData.ubicacion || 'No especificada',
+      fechaPublicacion: servicioData.fechaPublicacion || '',
+      fechaLimite: servicioData.fechaLimite || '',
+      estado: mapEstado(servicioData.estado),
+      postulantes: servicioData.postulantes || postulantes.length,
+      progreso: calcularProgreso(servicioData.estado),
+      etapa: obtenerEtapa(servicioData.estado),
+      horariosDisponibilidad: servicioData.horariosDisponibilidad || ['No especificado']
+    };
   };
 
-  const servicioFormateado = mapServiceToServiceDetails(servicio as Service | null);
+  const servicioFormateado = servicio ? mapServiceToServiceDetails(servicio) : null;
 
   return (
     <Layout 
