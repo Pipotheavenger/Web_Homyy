@@ -20,7 +20,7 @@ type ServicioFormateado = {
   ubicacion: string;
   fechaPublicacion: string;
   fechaLimite: string;
-  estado: string;
+  estado: 'activo' | 'en_proceso' | 'completado';
   postulantes: number;
   progreso: number;
   etapa: string;
@@ -99,10 +99,19 @@ function DetallesPostulantesContent() {
 
   // Mapear el servicio del hook al formato esperado por ServiceDetails
   const servicioFormateado: ServicioFormateado | null = servicio ? {
-    ...servicio,
+    id: servicio.id,
+    titulo: servicio.titulo,
+    descripcion: servicio.descripcion,
+    categoria: servicio.categoria,
+    ubicacion: servicio.ubicacion,
+    fechaPublicacion: servicio.fechaPublicacion,
+    fechaLimite: servicio.fechaLimite,
     estado: mapEstado(servicio.estado),
+    postulantes: servicio.postulantes,
     progreso: servicio.progreso || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 100 : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 50 : 25),
-    etapa: servicio.etapa || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 'Completado' : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 'En Proceso' : 'Buscando Trabajador')
+    etapa: servicio.etapa || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 'Completado' : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 'En Proceso' : 'Buscando Trabajador'),
+    horariosDisponibilidad: servicio.horariosDisponibilidad,
+    escrow_amount: servicio.escrow_amount ?? null
   } : null;
 
   return (
