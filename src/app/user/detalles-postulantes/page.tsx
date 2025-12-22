@@ -8,9 +8,25 @@ import { PostulanteCard } from '@/components/ui/PostulanteCard';
 import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
 import { CancelServiceModal } from '@/components/ui/CancelServiceModal';
 import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
-import { ChevronDown, ChevronUp, MessageCircle, Users, Star, MapPin, Calendar, Clock, DollarSign, Phone, Mail, CheckCircle, User, Info } from 'lucide-react';
-import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
-import type { Service } from '@/types/database';
+import { ChevronDown, ChevronUp, MessageCircle, Users, Star, CheckCircle, User, Info, DollarSign } from 'lucide-react';
+import { formatPrice } from '@/lib/utils/empty-state-helpers';
+
+// Tipo para el servicio formateado que retorna el hook
+type ServicioFormateado = {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  categoria: string;
+  ubicacion: string;
+  fechaPublicacion: string;
+  fechaLimite: string;
+  estado: string;
+  postulantes: number;
+  progreso: number;
+  etapa: string;
+  horariosDisponibilidad: string[];
+  escrow_amount: number | null;
+};
 
 function DetallesPostulantesContent() {
   const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false); // Colapsado por defecto
@@ -31,7 +47,6 @@ function DetallesPostulantesContent() {
     handleSelectCandidate,
     handleConfirmSelection,
     handleCloseModal,
-    handleDeselectCandidate,
     handleCancelService,
     handleConfirmCancelService,
     handleCloseCancelModal,
@@ -83,7 +98,7 @@ function DetallesPostulantesContent() {
   };
 
   // Mapear el servicio del hook al formato esperado por ServiceDetails
-  const servicioFormateado = servicio ? {
+  const servicioFormateado: ServicioFormateado | null = servicio ? {
     ...servicio,
     estado: mapEstado(servicio.estado),
     progreso: servicio.progreso || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 100 : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 50 : 25),
@@ -171,7 +186,9 @@ function DetallesPostulantesContent() {
                         ? formatPrice(booking.total_price)
                         : servicio?.escrow_amount 
                           ? formatPrice(servicio.escrow_amount)
-                          : formatPrice(selectedWorker.precio)
+                          : selectedWorker?.precio 
+                            ? formatPrice(selectedWorker.precio)
+                            : formatPrice(0)
                       }
                     </p>
                   </div>
@@ -316,7 +333,7 @@ function DetallesPostulantesContent() {
         isOpen={showCancelServiceModal}
         onClose={handleCloseCancelModal}
         onConfirm={handleConfirmCancelService}
-        serviceTitle={servicio.titulo}
+        serviceTitle={servicio?.titulo || ''}
       />
     </Layout>
   );

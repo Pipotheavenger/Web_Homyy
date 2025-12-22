@@ -52,7 +52,7 @@ export const useDetallesPostulantes = () => {
       // Query directa simple sin relaciones
       const { data: serviceData, error: serviceError } = await supabase
         .from('services')
-        .select('*')
+        .select('*, escrow_amount, worker_final_amount')
         .eq('id', serviceId)
         .single();
 
@@ -388,7 +388,8 @@ export const useDetallesPostulantes = () => {
            servicio.status === 'completed' ? 'Completado' : 'Activo',
     horariosDisponibilidad: servicio.schedules?.map((s: any) => 
       `${s.date_available}: ${s.start_time} - ${s.end_time}`
-    ) || []
+    ) || [],
+    escrow_amount: servicio.escrow_amount || null
   } : null;
 
   return {
