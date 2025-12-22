@@ -9,7 +9,8 @@ import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
 import { CancelServiceModal } from '@/components/ui/CancelServiceModal';
 import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
 import { ChevronDown, ChevronUp, MessageCircle, Users, Star, MapPin, Calendar, Clock, DollarSign, Phone, Mail, CheckCircle, User, Info } from 'lucide-react';
-import { formatPrice } from '@/lib/utils/empty-state-helpers';
+import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
+import type { Service } from '@/types/database';
 
 function DetallesPostulantesContent() {
   const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false); // Colapsado por defecto
@@ -74,6 +75,56 @@ function DetallesPostulantesContent() {
     );
   }
 
+  // Función para mapear Service al formato esperado por ServiceDetails
+  const mapServiceToServiceDetails = (service: Service | null) => {
+    if (!service) return null;
+
+    // Mapear el estado del servicio
+    const mapEstado = (status: string): 'activo' | 'en_proceso' | 'completado' => {
+      if (status === 'hired' || status === 'in_progress') return 'en_proceso';
+      if (status === 'completed' || status === 'completado') return 'completado';
+      return 'activo';
+    };
+
+    // Calcular progreso basado en el estado
+    const calcularProgreso = (status: string): number => {
+      if (status === 'completed' || status === 'completado') return 100;
+      if (status === 'hired' || status === 'in_progress') return 50;
+      return 25;
+    };
+
+    // Obtener etapa
+    const obtenerEtapa = (status: string): string => {
+      if (status === 'completed' || status === 'completado') return 'Completado';
+      if (status === 'hired' || status === 'in_progress') return 'En Proceso';
+      return 'Buscando Trabajador';
+    };
+
+    // Formatear horarios desde schedules
+    const horariosDisponibilidad = (service.schedules || []).map(schedule => {
+      const startTime = schedule.start_time ? new Date(schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+      const endTime = schedule.end_time ? new Date(schedule.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `${startTime} - ${endTime}`;
+    });
+
+    return {
+      id: service.id,
+      titulo: service.title || '',
+      descripcion: service.description || '',
+      categoria: service.category?.name || service.category_id || 'Sin categoría',
+      ubicacion: service.location || 'No especificada',
+      fechaPublicacion: service.created_at ? new Date(service.created_at).toLocaleDateString('es-ES') : '',
+      fechaLimite: service.updated_at ? new Date(service.updated_at).toLocaleDateString('es-ES') : '',
+      estado: mapEstado(service.status),
+      postulantes: postulantes.length,
+      progreso: calcularProgreso(service.status),
+      etapa: obtenerEtapa(service.status),
+      horariosDisponibilidad: horariosDisponibilidad.length > 0 ? horariosDisponibilidad : ['No especificado']
+    };
+  };
+
+  const servicioFormateado = mapServiceToServiceDetails(servicio);
+
   return (
     <Layout 
       title={hasSelectedWorker ? "Trabajador Seleccionado" : "Detalles de Postulantes"} 
@@ -85,20 +136,22 @@ function DetallesPostulantesContent() {
           /* Vista cuando hay trabajador seleccionado */
           <div className="space-y-6">
             {/* Información del servicio */}
-            <ServiceDetails 
-              servicio={servicio} 
-              getEstadoColor={(estado) => {
-                switch (estado) {
-                  case 'aprobado':
-                    return 'bg-green-100 text-green-800 border-green-200';
-                  case 'rechazado':
-                    return 'bg-red-100 text-red-800 border-red-200';
-                  default:
-                    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                }
-              }}
-              onCancelService={handleCancelService}
-            />
+            {servicioFormateado && (
+              <ServiceDetails 
+                servicio={servicioFormateado} 
+                getEstadoColor={(estado) => {
+                  switch (estado) {
+                    case 'aprobado':
+                      return 'bg-green-100 text-green-800 border-green-200';
+                    case 'rechazado':
+                      return 'bg-red-100 text-red-800 border-red-200';
+                    default:
+                      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                  }
+                }}
+                onCancelService={handleCancelService}
+              />
+            )}
 
             {/* Perfil del trabajador seleccionado */}
             {selectedWorker && (
@@ -173,20 +226,22 @@ function DetallesPostulantesContent() {
           /* Vista original cuando no hay trabajador seleccionado */
           <div className="space-y-6">
             {/* Información del servicio */}
-            <ServiceDetails 
-              servicio={servicio} 
-              getEstadoColor={(estado) => {
-                switch (estado) {
-                  case 'aprobado':
-                    return 'bg-green-100 text-green-800 border-green-200';
-                  case 'rechazado':
-                    return 'bg-red-100 text-red-800 border-red-200';
-                  default:
-                    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                }
-              }}
-              onCancelService={handleCancelService}
-            />
+            {servicioFormateado && (
+              <ServiceDetails 
+                servicio={servicioFormateado} 
+                getEstadoColor={(estado) => {
+                  switch (estado) {
+                    case 'aprobado':
+                      return 'bg-green-100 text-green-800 border-green-200';
+                    case 'rechazado':
+                      return 'bg-red-100 text-red-800 border-red-200';
+                    default:
+                      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                  }
+                }}
+                onCancelService={handleCancelService}
+              />
+            )}
 
             {/* Panel de preguntas públicas - Colapsado por defecto */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30">
