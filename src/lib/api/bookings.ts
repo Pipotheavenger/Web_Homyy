@@ -154,11 +154,12 @@ export const bookingsService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Cargar bookings - usar left join para incluir servicios incluso si están deleted
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
-          service:services(id, title, description, location),
+          service:services(id, title, description, location, status),
           worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(profession, rating, total_services)
         `)

@@ -27,8 +27,9 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkerProfileCurrent } from '@/hooks/useWorkerProfileCurrent';
 import { supabase } from '@/lib/supabase';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { PhoneVerificationModal } from '@/components/ui/PhoneVerificationModal';
 
 export default function PerfilWorkerPage() {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function PerfilWorkerPage() {
     serviciosRecientes,
     reviews,
     reviewStats,
+    bookingStats,
     loading,
     error,
     setIsEditing,
@@ -49,12 +51,62 @@ export default function PerfilWorkerPage() {
     handleCancel,
     handleInputChange,
     formatPrice,
-    formatDate
+    formatDate,
+    loadWorkerProfileData
   } = useWorkerProfileCurrent();
 
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [loadingPortfolio, setLoadingPortfolio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+
+  // Cargar imágenes del portfolio al montar el componente
+  useEffect(() => {
+    const loadPortfolioImages = async () => {
+      if (!usuario?.user_id) return;
+      
+      setLoadingPortfolio(true);
+      try {
+        const { data: files, error: listError } = await supabase.storage
+          .from('worker-portfolio')
+          .list(usuario.user_id, {
+            limit: 100,
+            offset: 0,
+          });
+
+        if (listError) {
+          console.log('No se encontraron imágenes en el portfolio:', listError);
+          setPortfolioImages([]);
+          return;
+        }
+
+        if (files && files.length > 0) {
+          // Obtener URLs públicas de las imágenes (máximo 5)
+          const imageUrls = files
+            .filter(file => file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+            .slice(0, 5) // Limitar a 5 imágenes
+            .map(file => {
+              const { data: { publicUrl } } = supabase.storage
+                .from('worker-portfolio')
+                .getPublicUrl(`${usuario.user_id}/${file.name}`);
+              return publicUrl;
+            });
+          
+          setPortfolioImages(imageUrls);
+        }
+      } catch (err) {
+        console.error('Error cargando portfolio:', err);
+        setPortfolioImages([]);
+      } finally {
+        setLoadingPortfolio(false);
+      }
+    };
+
+    if (usuario?.user_id) {
+      loadPortfolioImages();
+    }
+  }, [usuario?.user_id]);
 
   const handleLogout = async () => {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
@@ -70,6 +122,12 @@ export default function PerfilWorkerPage() {
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validar cantidad máxima (5 imágenes)
+    if (portfolioImages.length >= 5) {
+      alert('Solo puedes tener máximo 5 imágenes en tu portfolio');
+      return;
+    }
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
@@ -101,20 +159,18 @@ export default function PerfilWorkerPage() {
         });
 
       if (uploadError) {
-        // Si el bucket no existe, intentamos crearlo o mostrar mensaje
         console.error('Error subiendo imagen:', uploadError);
-        // Por ahora, usamos una URL local como placeholder
-        const localUrl = URL.createObjectURL(file);
-        setPortfolioImages([...portfolioImages, localUrl]);
-        alert('Imagen agregada (almacenamiento local). Contacta al administrador para configurar el almacenamiento en la nube.');
-      } else {
-        // Obtener URL pública de la imagen
-        const { data: { publicUrl } } = supabase.storage
-          .from('worker-portfolio')
-          .getPublicUrl(fileName);
-        
-        setPortfolioImages([...portfolioImages, publicUrl]);
+        alert('Error al subir la imagen. Por favor intenta de nuevo.');
+        return;
       }
+
+      // Obtener URL pública de la imagen
+      const { data: { publicUrl } } = supabase.storage
+        .from('worker-portfolio')
+        .getPublicUrl(fileName);
+      
+      setPortfolioImages([...portfolioImages, publicUrl]);
+      alert('Imagen agregada exitosamente');
     } catch (err: any) {
       console.error('Error:', err);
       alert('Error al subir la imagen: ' + err.message);
@@ -126,7 +182,104 @@ export default function PerfilWorkerPage() {
     }
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor selecciona una imagen válida');
+      return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen debe ser menor a 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Crear un nombre único para el archivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `profile-pictures/${user.id}/${Date.now()}.${fileExt}`;
+
+      // Subir imagen a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('user-uploads')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true // Permitir sobrescribir si ya existe
+        });
+
+      if (uploadError) {
+        console.error('Error subiendo imagen:', uploadError);
+        alert('Error al subir la imagen. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Obtener URL pública de la imagen
+      const { data: { publicUrl } } = supabase.storage
+        .from('user-uploads')
+        .getPublicUrl(fileName);
+
+      // Actualizar el perfil con la nueva URL de la imagen
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ profile_picture_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Error actualizando perfil:', updateError);
+        alert('Error al actualizar el perfil. Por favor intenta de nuevo.');
+        return;
+      }
+
+      // Recargar los datos del perfil
+      await loadWorkerProfileData();
+      alert('Foto de perfil actualizada exitosamente');
+    } catch (err: any) {
+      console.error('Error:', err);
+      alert('Error al subir la imagen: ' + err.message);
+    } finally {
+      setUploadingImage(false);
+      // Limpiar el input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = async (index: number) => {
+    const imageUrl = portfolioImages[index];
+    
+    // Extraer el path del archivo desde la URL
+    try {
+      // La URL de Supabase Storage tiene el formato: https://...supabase.co/storage/v1/object/public/bucket-name/path
+      const urlParts = imageUrl.split('/storage/v1/object/public/');
+      if (urlParts.length === 2) {
+        const pathParts = urlParts[1].split('/');
+        const bucketName = pathParts[0];
+        const filePath = pathParts.slice(1).join('/');
+        
+        // Eliminar del storage
+        const { error: deleteError } = await supabase.storage
+          .from(bucketName)
+          .remove([filePath]);
+        
+        if (deleteError) {
+          console.error('Error eliminando imagen del storage:', deleteError);
+          // Continuar eliminando del estado aunque falle en storage
+        }
+      }
+    } catch (err) {
+      console.error('Error procesando eliminación:', err);
+    }
+    
+    // Eliminar del estado
     setPortfolioImages(portfolioImages.filter((_, i) => i !== index));
   };
 
@@ -215,7 +368,7 @@ export default function PerfilWorkerPage() {
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="w-28 h-28 md:w-32 md:h-32 bg-white rounded-2xl flex items-center justify-center shadow-2xl ring-4 ring-white/50">
+                <div className="w-28 h-28 md:w-32 md:h-32 bg-white rounded-2xl flex items-center justify-center shadow-2xl ring-4 ring-white/50 overflow-hidden">
                   {usuario?.profile_picture_url ? (
                     <img
                       src={usuario.profile_picture_url}
@@ -227,12 +380,29 @@ export default function PerfilWorkerPage() {
                       {usuario?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                     </span>
                   )}
+                  {uploadingImage && (
+                    <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    </div>
+                  )}
                 </div>
-                {isEditing && (
-                  <button className="absolute bottom-0 right-0 bg-emerald-500 text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors">
-                    <Camera size={16} />
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => {
+                      const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
+                      handleProfilePictureUpload(event);
+                    };
+                    input.click();
+                  }}
+                  disabled={uploadingImage}
+                  className="absolute bottom-0 right-0 bg-emerald-500 text-white p-2 rounded-full shadow-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Cambiar foto de perfil"
+                >
+                  <Camera size={16} />
+                </button>
               </div>
 
               {/* Información Principal */}
@@ -319,7 +489,7 @@ export default function PerfilWorkerPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-600">Completados</p>
-                <p className="text-2xl font-bold text-gray-900">{serviciosRecientes?.filter((s: any) => s.status === 'completed').length || 0}</p>
+                <p className="text-2xl font-bold text-gray-900">{bookingStats?.completed || 0}</p>
               </div>
             </div>
           </div>
@@ -331,7 +501,7 @@ export default function PerfilWorkerPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-600">En Proceso</p>
-                <p className="text-2xl font-bold text-gray-900">{serviciosRecientes?.filter((s: any) => s.status === 'in_progress').length || 0}</p>
+                <p className="text-2xl font-bold text-gray-900">{bookingStats?.in_progress || 0}</p>
               </div>
             </div>
           </div>
@@ -501,6 +671,39 @@ export default function PerfilWorkerPage() {
                       </div>
 
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
+                              <Phone size={14} />
+                              Verificación de Móvil
+                            </label>
+                            <div className="flex items-center gap-2">
+                              {usuario?.movil_verificado ? (
+                                <>
+                                  <CheckCircle className="text-green-600" size={18} />
+                                  <span className="font-semibold text-gray-900">Móvil Verificado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <X className="text-gray-400" size={18} />
+                                  <span className="font-semibold text-gray-600">No Verificado</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {!usuario?.movil_verificado && (
+                            <button
+                              onClick={() => setShowPhoneVerification(true)}
+                              className="ml-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-sm flex items-center gap-2"
+                            >
+                              <Phone size={16} />
+                              Verificar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nivel de Satisfacción</label>
                         <div className="flex items-center gap-3">
                           <div className="text-3xl font-bold text-blue-600">{reviewStats.satisfaction}%</div>
@@ -666,7 +869,7 @@ export default function PerfilWorkerPage() {
                   </h3>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
+                    disabled={uploadingImage || portfolioImages.length >= 5}
                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploadingImage ? (
@@ -677,7 +880,7 @@ export default function PerfilWorkerPage() {
                     ) : (
                       <>
                         <Upload size={18} />
-                        <span>Agregar Imagen</span>
+                        <span>Agregar Imagen ({portfolioImages.length}/5)</span>
                       </>
                     )}
                   </button>
@@ -690,11 +893,16 @@ export default function PerfilWorkerPage() {
                   />
                 </div>
 
-                {portfolioImages.length === 0 ? (
+                {loadingPortfolio ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Cargando portfolio...</p>
+                  </div>
+                ) : portfolioImages.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                     <ImageIcon className="mx-auto text-gray-400 mb-4" size={48} />
                     <p className="text-gray-600 mb-2">No hay imágenes en tu portfolio</p>
-                    <p className="text-sm text-gray-500">Agrega imágenes de tus trabajos anteriores para mostrar tu experiencia</p>
+                    <p className="text-sm text-gray-500">Agrega imágenes de tus trabajos anteriores para mostrar tu experiencia (máximo 5)</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -714,14 +922,16 @@ export default function PerfilWorkerPage() {
                         </button>
                       </div>
                     ))}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingImage}
-                      className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
-                    >
-                      <Plus size={32} />
-                      <span className="text-sm font-medium">Agregar más</span>
-                    </button>
+                    {portfolioImages.length < 5 && (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
+                      >
+                        <Plus size={32} />
+                        <span className="text-sm font-medium">Agregar más</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -803,6 +1013,16 @@ export default function PerfilWorkerPage() {
           </div>
         </div>
       </div>
+
+      <PhoneVerificationModal
+        isOpen={showPhoneVerification}
+        onClose={() => setShowPhoneVerification(false)}
+        phoneNumber={usuario?.phone || ''}
+        userType="worker"
+        onVerified={async () => {
+          await loadWorkerProfileData();
+        }}
+      />
     </Layout>
   );
 }

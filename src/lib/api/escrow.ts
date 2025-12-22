@@ -117,15 +117,26 @@ export const escrowService = {
 
       if (appError) throw new Error('Aplicación no encontrada o ya procesada');
 
-      // Obtener porcentaje de comisión
+      // Obtener porcentaje de comisión de la base de datos
       const { data: commissionSetting } = await supabase
         .from('system_settings')
         .select('value')
         .eq('key', 'commission_percentage')
         .single();
 
-      const commissionPercentage = commissionSetting?.value ? 
-        parseFloat(commissionSetting.value) : 10;
+      let commissionPercentage = 10; // Por defecto
+      if (commissionSetting?.value) {
+        // El valor puede venir como string JSON, string numérico o número directo
+        if (typeof commissionSetting.value === 'string') {
+          try {
+            commissionPercentage = JSON.parse(commissionSetting.value);
+          } catch {
+            commissionPercentage = parseFloat(commissionSetting.value) || 10;
+          }
+        } else {
+          commissionPercentage = commissionSetting.value;
+        }
+      }
 
       // Calcular precio final con comisión
       const finalPrice = originalPrice * (1 + commissionPercentage / 100);
@@ -200,6 +211,13 @@ export const escrowService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Obtener el servicio para acceder a las imágenes antes de completarlo
+      const { data: serviceData } = await supabase
+        .from('services')
+        .select('images')
+        .eq('id', serviceId)
+        .single();
+
       // Usar función RPC para completar servicio con PIN
       const { data: result, error: rpcError } = await supabase.rpc('complete_service_with_pin', {
         service_uuid: serviceId,
@@ -237,6 +255,40 @@ export const escrowService = {
         // No loggear objetos vacíos {} ni resultados sin mensajes útiles en consola
         
         throw new Error(errorMessage);
+      }
+
+      // ✅ NUEVO: Borrar imágenes del servicio del storage después de completarlo
+      if (serviceData?.images && Array.isArray(serviceData.images) && serviceData.images.length > 0) {
+        try {
+          const deletePromises = serviceData.images.map(async (imageUrl: string) => {
+            // Extraer el path del archivo desde la URL
+            // Formato: https://...supabase.co/storage/v1/object/public/user-uploads/service-images/user_id/filename
+            if (imageUrl.includes('/storage/v1/object/public/')) {
+              const urlParts = imageUrl.split('/storage/v1/object/public/');
+              if (urlParts.length === 2) {
+                const pathParts = urlParts[1].split('/');
+                const bucketName = pathParts[0];
+                const filePath = pathParts.slice(1).join('/');
+                
+                // Solo borrar si es de service-images
+                if (filePath.startsWith('service-images/')) {
+                  const { error: deleteError } = await supabase.storage
+                    .from(bucketName)
+                    .remove([filePath]);
+                  
+                  if (deleteError) {
+                    console.warn('Error eliminando imagen del storage:', deleteError);
+                  }
+                }
+              }
+            }
+          });
+          
+          await Promise.allSettled(deletePromises);
+        } catch (err) {
+          console.warn('Error al borrar imágenes del servicio:', err);
+          // No fallar la operación si falla el borrado de imágenes
+        }
       }
 
       // Solo loggear en caso de éxito para debugging

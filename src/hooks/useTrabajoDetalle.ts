@@ -159,11 +159,10 @@ export const useTrabajoDetalle = (serviceId: string) => {
         await loadQuestions(); // Recargar preguntas
         return true;
       } else {
-        alert('Error al enviar pregunta: ' + response.error);
+        // El error será manejado por el componente
         return false;
       }
     } catch (error) {
-      alert('Error al enviar la pregunta');
       return false;
     }
   };

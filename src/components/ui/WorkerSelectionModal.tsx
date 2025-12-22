@@ -35,7 +35,7 @@ export const WorkerSelectionModal = ({
 }: WorkerSelectionModalProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { calculateInflatedPrice, formatPrice } = useCommission();
+  const { calculateInflatedPrice, calculateCommissionAmount, formatPrice } = useCommission();
 
   const handleConfirm = async () => {
     setIsConfirming(true);

@@ -12,6 +12,17 @@ export const useWorkerProfileCurrent = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [bookingStats, setBookingStats] = useState<{
+    completed: number;
+    in_progress: number;
+    scheduled: number;
+    cancelled: number;
+  }>({
+    completed: 0,
+    in_progress: 0,
+    scheduled: 0,
+    cancelled: 0
+  });
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -48,7 +59,7 @@ export const useWorkerProfileCurrent = () => {
         // Cargar perfil básico del usuario (crítico)
         supabase
           .from('user_profiles')
-          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance')
+          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado')
           .eq('user_id', user.id)
           .single(),
         
@@ -74,6 +85,9 @@ export const useWorkerProfileCurrent = () => {
         ? workerProfileResult.value.data
         : null;
 
+      // Si hay total_services en worker_profiles, usarlo como referencia
+      // pero también cargaremos los bookings para estadísticas precisas
+
       // ✅ OPTIMIZACIÓN: Formatear y mostrar datos INMEDIATAMENTE
       const formattedUser = {
         id: userProfile.id,
@@ -87,17 +101,8 @@ export const useWorkerProfileCurrent = () => {
         user_type: userProfile.user_type,
         birth_date: userProfile.birth_date,
         is_active: userProfile.is_active,
-        // Campos adicionales para compatibilidad
-        location: workerData?.location || 'Bogotá, Colombia',
-        calificacion: workerData?.rating || 0,
-        serviciosCompletados: workerData?.total_services || 0,
-        serviciosActivos: 0,
         balance: userProfile.balance || 0,
-        preferencias: {
-          notificaciones: true,
-          emailMarketing: false,
-          privacidad: true
-        }
+        movil_verificado: userProfile.movil_verificado || false
       };
 
       setUsuario(formattedUser);
@@ -116,15 +121,120 @@ export const useWorkerProfileCurrent = () => {
         hourly_rate: workerData?.hourly_rate?.toString() || ''
       });
 
+      // Inicializar estadísticas con total_services del perfil si está disponible
+      // Esto asegura que se muestre el número correcto mientras se cargan los bookings
+      if (workerData?.total_services !== undefined && workerData.total_services > 0) {
+        setBookingStats({
+          completed: workerData.total_services,
+          in_progress: 0,
+          scheduled: 0,
+          cancelled: 0
+        });
+      }
+
       // ✅ Quitar loading lo antes posible
       setLoading(false);
 
       // ✅ OPTIMIZACIÓN: Cargar datos secundarios en segundo plano (no bloquea UI)
       Promise.allSettled([
         // Cargar bookings como trabajador
-        bookingsService.getMyBookingsAsWorker().then((response) => {
+        bookingsService.getMyBookingsAsWorker().then(async (response) => {
           if (response.success && response.data) {
-            setBookings(response.data.slice(0, 5));
+            // Guardar todos los bookings para estadísticas
+            const allBookings = response.data || [];
+            setBookings(allBookings.slice(0, 5)); // Solo mostrar 5 recientes en UI
+            
+            // Calcular estadísticas de todos los bookings
+            let stats = {
+              completed: allBookings.filter((b: any) => b.status === 'completed').length,
+              in_progress: allBookings.filter((b: any) => b.status === 'in_progress').length,
+              scheduled: allBookings.filter((b: any) => b.status === 'scheduled').length,
+              cancelled: allBookings.filter((b: any) => b.status === 'cancelled').length
+            };
+            
+            // También contar servicios completados desde escrow_transactions (más confiable)
+            // porque algunos servicios pueden estar marcados como "deleted" pero tener escrow completado
+            try {
+              const { data: completedEscrows } = await supabase
+                .from('escrow_transactions')
+                .select('service_id')
+                .eq('worker_id', user.id)
+                .eq('status', 'completada');
+              
+              if (completedEscrows && completedEscrows.length > 0) {
+                // Usar el máximo entre bookings completados y escrows completados
+                stats.completed = Math.max(stats.completed, completedEscrows.length);
+              }
+            } catch (err) {
+              console.warn('Error contando escrows completados:', err);
+            }
+            
+            // También contar servicios completados desde applications (puede que algunos servicios se completen sin booking)
+            try {
+              const { data: completedServices } = await supabase
+                .from('services')
+                .select(`
+                  id,
+                  applications!inner(
+                    worker_id,
+                    status
+                  )
+                `)
+                .eq('status', 'completed')
+                .neq('status', 'deleted')
+                .eq('applications.worker_id', user.id)
+                .eq('applications.status', 'accepted');
+              
+              if (completedServices && completedServices.length > 0) {
+                // Usar el máximo entre todos los métodos de conteo
+                stats.completed = Math.max(stats.completed, completedServices.length);
+              }
+            } catch (err) {
+              console.warn('Error contando servicios completados:', err);
+            }
+            
+            // Si aún es 0, usar total_services del perfil como respaldo (debe ser la fuente más confiable)
+            if (stats.completed === 0 && workerData?.total_services > 0) {
+              stats.completed = workerData.total_services;
+            } else if (stats.completed > 0 && workerData?.total_services !== stats.completed) {
+              // Si hay discrepancia, usar el máximo entre ambos
+              stats.completed = Math.max(stats.completed, workerData?.total_services || 0);
+            }
+            
+            setBookingStats(stats);
+          } else {
+            // Si falla cargar bookings, intentar contar desde servicios completados
+            try {
+              const { data: completedServices } = await supabase
+                .from('services')
+                .select(`
+                  id,
+                  applications!inner(
+                    worker_id,
+                    status
+                  )
+                `)
+                .eq('status', 'completed')
+                .neq('status', 'deleted')
+                .eq('applications.worker_id', user.id)
+                .eq('applications.status', 'accepted');
+              
+              const fallbackStats = {
+                completed: completedServices?.length || workerData?.total_services || 0,
+                in_progress: 0,
+                scheduled: 0,
+                cancelled: 0
+              };
+              setBookingStats(fallbackStats);
+            } catch (err) {
+              // Último recurso: usar total_services del perfil
+              setBookingStats({
+                completed: workerData?.total_services || 0,
+                in_progress: 0,
+                scheduled: 0,
+                cancelled: 0
+              });
+            }
           }
         }),
         
@@ -202,12 +312,13 @@ export const useWorkerProfileCurrent = () => {
 
   const handleCancel = () => {
     if (usuario) {
+      const nameParts = (usuario.name || '').split(' ');
       setFormData({
-        nombre: usuario.nombre || '',
-        apellido: usuario.apellido || '',
+        nombre: nameParts[0] || '',
+        apellido: nameParts.slice(1).join(' ') || '',
         email: usuario.email || '',
-        telefono: usuario.telefono || '',
-        ubicacion: usuario.ubicacion || '',
+        telefono: usuario.phone || '',
+        ubicacion: workerProfile?.location || '',
         profession: workerProfile?.profession || '',
         bio: workerProfile?.bio || '',
         experience_years: workerProfile?.experience_years?.toString() || '',
@@ -241,6 +352,7 @@ export const useWorkerProfileCurrent = () => {
     serviciosRecientes: bookings || [],
     reviews: reviews || [],
     reviewStats,
+    bookingStats,
     loading,
     error,
     setIsEditing,

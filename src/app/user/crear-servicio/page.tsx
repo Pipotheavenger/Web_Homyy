@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Camera, X } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useCreateService } from '@/hooks/useCreateService';
 import { Calendar } from '@/components/ui/Calendar';
@@ -21,6 +21,8 @@ export default function CrearServicioPage() {
     categories,
     error,
     success,
+    serviceImages,
+    uploadingImages,
     setFechaSeleccionada,
     setHoraInicio,
     setHoraFinal,
@@ -29,7 +31,9 @@ export default function CrearServicioPage() {
     handleSubmit,
     agregarHorario,
     eliminarHorario,
-    getTodayString
+    getTodayString,
+    handleImageUpload,
+    removeImage
   } = useCreateService();
 
   const nextMonth = () => {
@@ -147,6 +151,67 @@ export default function CrearServicioPage() {
                       className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-300 bg-white text-gray-900 placeholder-gray-400 font-medium resize-none ${focusedField === 'descripcion' ? 'border-[#743fc6] focus:ring-[#743fc6]/20' : 'border-gray-200 hover:border-gray-300'} focus:ring-4 focus:outline-none`}
                     />
                   </div>
+                </div>
+
+                {/* Imágenes del Servicio (Opcional) */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Fotos del Servicio <span className="text-gray-500 font-normal">(Opcional - Máximo 5)</span>
+                  </label>
+                  
+                  {/* Preview de imágenes */}
+                  {serviceImages.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
+                      {serviceImages.map((url, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Imagen ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Botón para subir imágenes */}
+                  {serviceImages.length < 5 && (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {uploadingImages ? (
+                          <>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mb-2"></div>
+                            <p className="text-sm text-gray-600">Subiendo imágenes...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-600">
+                              <span className="font-semibold text-purple-600">Haz clic para subir</span> o arrastra imágenes aquí
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {serviceImages.length}/5 imágenes • Máximo 5MB por imagen
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files)}
+                        disabled={uploadingImages || serviceImages.length >= 5}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 {/* Categoría */}

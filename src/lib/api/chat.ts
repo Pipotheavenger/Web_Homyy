@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import type { ApiResponse } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
+import { validateSensitiveData } from '@/lib/utils/sensitive-data-validator';
 
 // =====================================================
 // TIPOS PARA CHAT
@@ -18,6 +19,7 @@ export interface Chat {
   // Relaciones
   booking?: {
     id: string;
+    status?: string;
     service: {
       title: string;
     };
@@ -45,6 +47,8 @@ export interface ChatMessage {
   message_type: 'text' | 'image' | 'document';
   is_read: boolean;
   created_at: string;
+  original_message?: string | null;
+  is_blocked?: boolean;
   // Relaciones
   sender?: {
     id: string;
@@ -114,9 +118,11 @@ export const chatService = {
       }
 
       // Verificar que el booking tiene un estado que permite chat
-      const validStatuses = ['scheduled', 'in_progress', 'completed'];
+      // Solo permitir chats para servicios activos (scheduled o in_progress)
+      // Los servicios completados o cancelados no permiten chat
+      const validStatuses = ['scheduled', 'in_progress'];
       if (!validStatuses.includes(booking.status)) {
-        throw new Error('El chat solo está disponible para servicios contratados');
+        throw new Error('El chat solo está disponible para servicios activos');
       }
 
       // Buscar chat existente
@@ -180,17 +186,104 @@ export const chatService = {
 
   /**
    * Obtener todas las conversaciones del usuario actual
+   * Solo muestra chats de servicios activos (scheduled o in_progress)
+   * Los chats de servicios completados o cancelados se ocultan
    */
   async getMyChats(): Promise<ApiResponse<Chat[]>> {
     try {
       const user = await getAuthenticatedUser();
 
-      // ✅ OPTIMIZACIÓN: Cargar chats básicos primero (más rápido)
+      // ✅ OPTIMIZACIÓN: Filtrar directamente en la query usando inner join
+      // Solo obtener chats de servicios activos (scheduled o in_progress)
+      // Primero obtener TODOS los bookings del usuario para debuggear
+      const { data: allBookings, error: allBookingsError } = await supabase
+        .from('bookings')
+        .select('id, status, client_id, worker_id, completed_at')
+        .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      console.log('[CHAT SERVICE] TODOS los bookings del usuario:', allBookings?.length);
+      if (allBookings) {
+        allBookings.forEach((booking, index) => {
+          console.log(`[CHAT SERVICE] Booking ${index + 1}:`, {
+            id: booking.id,
+            status: booking.status,
+            completed_at: booking.completed_at,
+            client_id: booking.client_id,
+            worker_id: booking.worker_id
+          });
+        });
+      }
+
+      // SOLUCIÓN: Verificar el estado del SERVICIO relacionado, no solo el booking
+      // Los servicios sí se actualizan a 'completed' cuando se finalizan
+      // Obtener bookings con sus servicios relacionados y filtrar por estado del servicio
+      const { data: bookingsWithServices, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          status,
+          completed_at,
+          service:services!inner(
+            id,
+            status
+          )
+        `)
+        .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`);
+
+      console.log('[CHAT SERVICE] Bookings con servicios:', bookingsWithServices?.length);
+
+      if (bookingsError) {
+        console.error('[CHAT SERVICE] Error obteniendo bookings con servicios:', bookingsError);
+        throw bookingsError;
+      }
+
+      // Filtrar solo bookings donde el servicio NO esté completado o cancelado
+      const activeBookings = bookingsWithServices?.filter(booking => {
+        const service = Array.isArray(booking.service) ? booking.service[0] : booking.service;
+        const serviceStatus = service?.status;
+        const isServiceActive = serviceStatus !== 'completed' && serviceStatus !== 'cancelled';
+        
+        console.log(`[CHAT SERVICE] Booking ${booking.id}:`, {
+          booking_status: booking.status,
+          service_status: serviceStatus,
+          is_active: isServiceActive
+        });
+        
+        return isServiceActive;
+      }) || [];
+
+      console.log('[CHAT SERVICE] Bookings activos encontrados (filtrando por servicio):', activeBookings.length);
+      
+      // Verificar si hay bookings con status activo pero completed_at no nulo
+      const inconsistentBookings = allBookings?.filter(b => 
+        (b.status === 'scheduled' || b.status === 'in_progress') && b.completed_at !== null
+      );
+      if (inconsistentBookings && inconsistentBookings.length > 0) {
+        console.warn('[CHAT SERVICE] ⚠️ Bookings inconsistentes (status activo pero completed_at no nulo):', inconsistentBookings);
+      }
+
+      // Si no hay bookings activos, retornar vacío
+      if (activeBookings.length === 0) {
+        console.log('[CHAT SERVICE] No hay bookings activos, retornando lista vacía');
+        return {
+          data: [],
+          error: null,
+          success: true
+        };
+      }
+
+      const activeBookingIds = activeBookings.map(b => b.id);
+      console.log('[CHAT SERVICE] IDs de bookings activos:', activeBookingIds);
+
+      // Ahora obtener solo los chats de esos bookings activos
+      // IMPORTANTE: No usar .or() aquí porque ya estamos filtrando por booking_id
+      // que pertenece a bookings activos del usuario
       const { data: chats, error } = await supabase
         .from('chats')
         .select(`
           *,
-          booking:bookings(
+          booking:bookings!inner(
             id,
             status,
             service:services(title)
@@ -198,13 +291,42 @@ export const chatService = {
           client:user_profiles!chats_client_id_fkey(id, name, email, profile_picture_url),
           worker:user_profiles!chats_worker_id_fkey(id, name, email, profile_picture_url)
         `)
-        .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`)
+        .in('booking_id', activeBookingIds)
         .order('last_message_at', { ascending: false, nullsFirst: false })
         .limit(20); // Limitar a 20 chats más recientes para carga rápida
 
-      if (error) throw error;
+      console.log('[CHAT SERVICE] Chats obtenidos:', chats?.length, chats);
+
+      if (error) {
+        console.error('[CHAT SERVICE] Error obteniendo chats:', error);
+        throw error;
+      }
 
       if (!chats || chats.length === 0) {
+        console.log('[CHAT SERVICE] No hay chats, retornando lista vacía');
+        return {
+          data: [],
+          error: null,
+          success: true
+        };
+      }
+
+      // Verificación adicional por seguridad: filtrar cualquier chat que no tenga booking activo
+      const activeChats = chats.filter(chat => {
+        const booking = Array.isArray(chat.booking) ? chat.booking[0] : chat.booking;
+        const bookingStatus = booking?.status;
+        const isActive = bookingStatus === 'scheduled' || bookingStatus === 'in_progress';
+        
+        if (!isActive) {
+          console.warn('[CHAT SERVICE] Filtrando chat inactivo:', chat.id, 'Status:', bookingStatus);
+        }
+        
+        return isActive;
+      });
+
+      console.log('[CHAT SERVICE] Chats activos después del filtro:', activeChats.length);
+
+      if (activeChats.length === 0) {
         return {
           data: [],
           error: null,
@@ -213,7 +335,7 @@ export const chatService = {
       }
 
       // ✅ OPTIMIZACIÓN: Calcular mensajes no leídos en una sola query usando agregación
-      const chatIds = chats.map(chat => chat.id);
+      const chatIds = activeChats.map(chat => chat.id);
       
       // Obtener todos los conteos de mensajes no leídos en paralelo
       const { data: unreadCounts, error: unreadError } = await supabase
@@ -237,7 +359,7 @@ export const chatService = {
       }
 
       // Combinar chats con conteos de no leídos
-      const chatsWithUnread = chats.map(chat => ({
+      const chatsWithUnread = activeChats.map(chat => ({
         ...chat,
         unread_count: unreadMap.get(chat.id) || 0
       }));
@@ -331,13 +453,18 @@ export const chatService = {
         throw new Error('No tienes permiso para enviar mensajes en este chat');
       }
 
-      // Crear el mensaje
+      // Validar información sensible
+      const validation = validateSensitiveData(data.message);
+
+      // Crear el mensaje guardando el mensaje original y la flag de bloqueado
       const { data: message, error } = await supabase
         .from('chat_messages')
         .insert({
           chat_id: data.chat_id,
           sender_id: user.id,
-          message: data.message.trim(),
+          message: validation.displayMessage, // Mensaje a mostrar (bloqueado o original)
+          original_message: validation.originalMessage, // Mensaje original siempre guardado
+          is_blocked: validation.isBlocked, // Flag de bloqueado
           message_type: data.message_type || 'text',
           is_read: false
         })
@@ -349,17 +476,25 @@ export const chatService = {
 
       if (error) throw error;
 
-      // Actualizar el chat con el último mensaje
+      // Actualizar el chat con el último mensaje (mostrar mensaje bloqueado si aplica)
       await supabase
         .from('chats')
         .update({
-          last_message: data.message.trim(),
+          last_message: validation.displayMessage,
           last_message_at: new Date().toISOString()
         })
         .eq('id', data.chat_id);
 
+      // Retornar el mensaje con los campos correctos
+      const messageWithValidation = {
+        ...message,
+        message: validation.displayMessage,
+        original_message: validation.originalMessage,
+        is_blocked: validation.isBlocked
+      };
+
       return {
-        data: message,
+        data: messageWithValidation,
         error: null,
         success: true
       };
@@ -425,6 +560,8 @@ export const chatService = {
             .eq('user_id', payload.new.sender_id)
             .single();
 
+          // El mensaje ya viene reemplazado de la BD si contenía datos sensibles
+          // porque el reemplazo se hace antes de insertar
           callback({
             ...(payload.new as ChatMessage),
             sender: sender || undefined

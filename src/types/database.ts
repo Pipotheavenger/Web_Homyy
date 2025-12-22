@@ -51,6 +51,7 @@ export interface Service {
   category_id: string | null;
   location: string | null;
   status: string; // varchar(50) según el esquema
+  images?: string[]; // Array de URLs de imágenes
   created_at: string;
   updated_at: string;
   // Campos para el sistema de escrow y PIN
@@ -149,6 +150,7 @@ export interface CreateServiceData {
   category_id: string;
   location?: string;
   status?: string;
+  images?: string[]; // Array de URLs de imágenes (máximo 5)
   schedules?: {
     date: string; // YYYY-MM-DD - se mapea a date_available en la BD
     start_time: string; // HH:MM

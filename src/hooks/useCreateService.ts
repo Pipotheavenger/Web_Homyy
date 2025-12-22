@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { serviceService, categoryService } from '@/lib/services';
 import type { Category } from '@/types/database';
 import { capitalizeText, capitalizeProperName, capitalizeFirstLetter } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface Horario {
   id: string;
@@ -37,6 +38,8 @@ export const useCreateService = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [serviceImages, setServiceImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Cargar categorías al montar el componente
   useEffect(() => {
@@ -102,6 +105,7 @@ export const useCreateService = () => {
         category_id: formData.categoria,
         location: `Bogotá, ${formData.barrio}`,
         status: 'active',
+        images: serviceImages.length > 0 ? serviceImages : undefined,
         schedules: horarios.map(horario => ({
           date: horario.fecha,
           start_time: horario.horaInicio,
@@ -175,6 +179,71 @@ export const useCreateService = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    // Validar cantidad máxima
+    if (serviceImages.length + files.length > 5) {
+      setError('Solo puedes subir hasta 5 imágenes');
+      return;
+    }
+
+    setUploadingImages(true);
+    setError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Validar tipo de archivo
+        if (!file.type.startsWith('image/')) {
+          throw new Error('Solo se permiten archivos de imagen');
+        }
+
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error('Cada imagen debe ser menor a 5MB');
+        }
+
+        // Crear un nombre único para el archivo
+        const fileExt = file.name.split('.').pop();
+        const fileName = `service-images/${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        // Subir imagen a Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('user-uploads')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Obtener URL pública de la imagen
+        const { data: { publicUrl } } = supabase.storage
+          .from('user-uploads')
+          .getPublicUrl(fileName);
+
+        return publicUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setServiceImages(prev => [...prev, ...uploadedUrls]);
+    } catch (err: any) {
+      console.error('Error subiendo imágenes:', err);
+      setError(err.message || 'Error al subir las imágenes');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setServiceImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   return {
     formData,
     fechaSeleccionada,
@@ -194,6 +263,10 @@ export const useCreateService = () => {
     handleSubmit,
     agregarHorario,
     eliminarHorario,
-    getTodayString
+    getTodayString,
+    serviceImages,
+    uploadingImages,
+    handleImageUpload,
+    removeImage
   };
 }; 

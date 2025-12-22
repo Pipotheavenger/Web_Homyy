@@ -83,6 +83,7 @@ export const serviceService = {
           category_id,
           location,
           status,
+          images,
           created_at,
           updated_at,
           escrow_amount,
@@ -202,6 +203,7 @@ export const serviceService = {
           category_id,
           location,
           status,
+          images,
           created_at,
           updated_at,
           escrow_amount,
@@ -312,7 +314,8 @@ export const serviceService = {
           description: serviceData.description,
           category_id: serviceData.category_id,
           location: serviceData.location || null,
-          status: serviceData.status || 'active'
+          status: serviceData.status || 'active',
+          images: serviceData.images || []
         })
         .select()
         .single();

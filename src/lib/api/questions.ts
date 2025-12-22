@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { validateSensitiveData } from '@/lib/utils/sensitive-data-validator';
 
 export interface ServiceQuestion {
   id: string;
@@ -10,6 +11,9 @@ export interface ServiceQuestion {
   is_public: boolean;
   created_at: string;
   updated_at: string;
+  original_question?: string | null;
+  original_answer?: string | null;
+  is_blocked?: boolean;
   user?: {
     name: string;
     profile_picture_url?: string;
@@ -97,12 +101,17 @@ export const questionsService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Validar información sensible
+      const validation = validateSensitiveData(data.question);
+
       const { data: question, error } = await supabase
         .from('service_questions')
         .insert({
           service_id: data.service_id,
           user_id: user.id,
-          question: data.question,
+          question: validation.displayMessage, // Mensaje a mostrar (bloqueado o original)
+          original_question: validation.originalMessage, // Mensaje original siempre guardado
+          is_blocked: validation.isBlocked, // Flag de bloqueado
           is_public: data.is_public !== undefined ? data.is_public : true
         })
         .select()
@@ -110,8 +119,16 @@ export const questionsService = {
 
       if (error) throw error;
 
+      // Retornar la pregunta con los campos correctos
+      const questionWithValidation = {
+        ...question,
+        question: validation.displayMessage,
+        original_question: validation.originalMessage,
+        is_blocked: validation.isBlocked
+      };
+
       return {
-        data: question,
+        data: questionWithValidation,
         error: null,
         success: true
       };
@@ -132,10 +149,22 @@ export const questionsService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
+      // Validar información sensible
+      const validation = validateSensitiveData(data.answer);
+
+      // Obtener la pregunta actual para mantener el estado de bloqueo si ya estaba bloqueada
+      const { data: currentQuestion } = await supabase
+        .from('service_questions')
+        .select('is_blocked')
+        .eq('id', questionId)
+        .single();
+
       const { data: question, error } = await supabase
         .from('service_questions')
         .update({
-          answer: data.answer,
+          answer: validation.displayMessage, // Mensaje a mostrar (bloqueado o original)
+          original_answer: validation.originalMessage, // Mensaje original siempre guardado
+          is_blocked: validation.isBlocked || currentQuestion?.is_blocked || false, // Flag de bloqueado (mantener si pregunta estaba bloqueada)
           answered_at: new Date().toISOString()
         })
         .eq('id', questionId)
@@ -144,8 +173,16 @@ export const questionsService = {
 
       if (error) throw error;
 
+      // Retornar la pregunta con los campos correctos
+      const questionWithValidation = {
+        ...question,
+        answer: validation.displayMessage,
+        original_answer: validation.originalMessage,
+        is_blocked: validation.isBlocked || currentQuestion?.is_blocked || false
+      };
+
       return {
-        data: question,
+        data: questionWithValidation,
         error: null,
         success: true
       };

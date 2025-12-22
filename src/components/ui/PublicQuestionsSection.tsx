@@ -50,7 +50,7 @@ export const PublicQuestionsSection: React.FC<PublicQuestionsSectionProps> = ({
         setAnswerText('');
         setAnsweringQuestion(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al responder pregunta:', error);
     } finally {
       setSubmittingAnswer(false);

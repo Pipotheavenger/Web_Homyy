@@ -87,14 +87,14 @@ export default function DetalleTrabajoPage() {
   const [submittingQuestion, setSubmittingQuestion] = useState(false);
 
   const handleEnviarPregunta = async () => {
-    if (nuevaPregunta.trim() && !submittingQuestion) {
-      setSubmittingQuestion(true);
-      const success = await handleSubmitQuestion(nuevaPregunta);
-      if (success) {
-        setNuevaPregunta('');
-      }
-      setSubmittingQuestion(false);
+    if (!nuevaPregunta.trim() || submittingQuestion) return;
+
+    setSubmittingQuestion(true);
+    const success = await handleSubmitQuestion(nuevaPregunta);
+    if (success) {
+      setNuevaPregunta('');
     }
+    setSubmittingQuestion(false);
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -161,6 +161,25 @@ export default function DetalleTrabajoPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Galería de imágenes */}
+              {service.images && service.images.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Fotos del Servicio</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {service.images.map((imageUrl: string, index: number) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-orange-400 transition-colors">
+                        <img
+                          src={imageUrl}
+                          alt={`Imagen ${index + 1} del servicio`}
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => window.open(imageUrl, '_blank')}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
