@@ -241,7 +241,7 @@ export function containsSensitiveData(text: string): boolean {
   
   // Verificar si hay números en palabras
   let hasNumberWords = false;
-  let numberWordsFound: string[] = [];
+  const numberWordsFound: string[] = [];
   
   for (let i = 0; i < words.length; i++) {
     const word = words[i];

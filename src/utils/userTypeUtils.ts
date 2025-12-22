@@ -4,8 +4,7 @@ import {
   Briefcase, 
   DollarSign, 
   User, 
-  MessageCircle,
-  Home
+  MessageCircle
 } from 'lucide-react';
 
 export interface NavigationItem {
@@ -167,7 +166,8 @@ export const getPageConfig = (userType: UserType, page: string): PageConfig => {
     }
   };
 
-  return (baseConfig[userType] as any)[page] || baseConfig[userType].dashboard;
+  const userConfig = baseConfig[userType] as Record<string, PageConfig>;
+  return userConfig[page] || baseConfig[userType].dashboard;
 };
 
 export const getStatusConfig = (userType: UserType) => {
