@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle, Clock } from 'lucide-react';
 import Image from 'next/image';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface QRModalContentProps {
   metodoPago: string;
@@ -51,7 +52,7 @@ export const QRCodeSection = ({ metodoPago }: { metodoPago: string }) => (
       <div className="w-40 h-40 bg-white rounded-xl mx-auto mb-3 flex items-center justify-center shadow-lg border-2 border-gray-200 overflow-hidden">
         <div className="w-full h-full flex items-center justify-center p-1">
           <Image
-            src="/nequi.jpg"
+            src={ASSETS_CONFIG.nequi}
             alt="Código QR para pago"
             width={140}
             height={140}

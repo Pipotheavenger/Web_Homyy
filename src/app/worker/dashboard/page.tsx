@@ -8,6 +8,7 @@ import { useWorkerDashboard } from '@/hooks/useWorkerDashboard';
 import { WorkCompletionModal } from '@/components/ui/WorkCompletionModal';
 import { escrowService, applicationsService } from '@/lib/services';
 import Image from 'next/image';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 export default function WorkerDashboard() {
   const router = useRouter();
@@ -184,7 +185,7 @@ export default function WorkerDashboard() {
           {/* Imagen - Posicionada debajo del contenido en <1280px, a la derecha en pantallas más grandes */}
           <div className="absolute bottom-0 left-1/2 xl:left-auto xl:right-0 -translate-x-1/2 xl:translate-x-0 h-auto xl:h-full flex items-end justify-center xl:justify-end w-full xl:w-auto z-0">
             <Image 
-              src="/Banner.png" 
+              src={ASSETS_CONFIG.banner} 
               alt="Trabajadores" 
               width={300}
               height={300}

@@ -8,6 +8,7 @@ import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { supabase } from '@/lib/supabase';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -118,7 +119,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
             <div className="flex items-center space-x-3">
               <div className="bg-white/20 rounded-xl flex items-center justify-center p-2 w-10 h-10">
                 <img
-                  src="/Logo.svg"
+                  src={ASSETS_CONFIG.logo.svg}
                   alt="Logo Hommy"
                   width={28}
                   height={28}

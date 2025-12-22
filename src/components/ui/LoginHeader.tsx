@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface LoginHeaderProps {
   showSlogan?: boolean;
@@ -13,7 +13,7 @@ export const LoginHeader = ({ showSlogan = true }: LoginHeaderProps) => {
       <div className="relative group">
         {!imageError ? (
           <img
-            src="/Logo.svg" 
+            src={ASSETS_CONFIG.logo.svg} 
             alt="Logo Hommy" 
             width={80} 
             height={80} 

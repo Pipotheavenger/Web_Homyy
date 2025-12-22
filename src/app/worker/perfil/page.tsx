@@ -691,10 +691,10 @@ export default function PerfilWorkerPage() {
                               )}
                             </div>
                           </div>
-                          {!usuario?.movil_verificado && (
+                          {false && !usuario?.movil_verificado && (
                             <button
                               onClick={() => setShowPhoneVerification(true)}
-                              className="ml-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-sm flex items-center gap-2"
+                              className="ml-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-sm flex items-center gap-2 hidden"
                             >
                               <Phone size={16} />
                               Verificar

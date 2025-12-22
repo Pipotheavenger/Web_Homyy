@@ -7,6 +7,7 @@ import { NavigationItem } from '@/utils/userTypeUtils';
 import { LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface SidebarProps {
   navigationItems: NavigationItem[];
@@ -135,7 +136,7 @@ const Logo: React.FC<LogoProps> = ({ collapsed, imageError, onImageError, onImag
     <div className={`bg-white/20 rounded-xl flex items-center justify-center p-1 ${containerSize}`}>
       {!imageError ? (
         <img
-          src="/Logo.svg" 
+          src={ASSETS_CONFIG.logo.svg} 
           alt="Logo Hommy" 
           width={size} 
           height={size}

@@ -548,10 +548,10 @@ export default function PerfilPage() {
                               )}
                             </div>
                           </div>
-                          {!usuario?.movil_verificado && (
+                          {false && !usuario?.movil_verificado && (
                             <button
                               onClick={() => setShowPhoneVerification(true)}
-                              className="ml-2 lg:ml-4 px-3 py-1.5 lg:px-4 lg:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-xs lg:text-sm flex items-center gap-1.5 lg:gap-2 flex-shrink-0"
+                              className="ml-2 lg:ml-4 px-3 py-1.5 lg:px-4 lg:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-xs lg:text-sm flex items-center gap-1.5 lg:gap-2 flex-shrink-0 hidden"
                             >
                               <Phone size={14} className="lg:w-4 lg:h-4" />
                               <span className="hidden sm:inline">Verificar</span>

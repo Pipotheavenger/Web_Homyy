@@ -6,6 +6,7 @@ import { UserType } from '@/contexts/UserTypeContext';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { MobileMenu } from '@/components/ui/MobileMenu';
 import { NavigationItem } from '@/utils/userTypeUtils';
+import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface HeaderProps {
   title: string;
@@ -55,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center space-x-2">
                 <div className={`${userType === 'worker' ? 'bg-emerald-500/20' : 'bg-purple-500/20'} rounded-lg flex items-center justify-center p-1.5`}>
                   <img
-                    src="/Logo.svg" 
+                    src={ASSETS_CONFIG.logo.svg} 
                     alt="Logo Hommy" 
                     width={24} 
                     height={24}
