@@ -92,7 +92,7 @@ function DetallesPostulantesContent() {
   };
 
   // Función para mapear Service al formato esperado por ServiceDetails
-  const mapServiceToServiceDetails = (service: Service | null): ServicioFormateado | null => {
+  const mapServiceToServiceDetails: (service: Service | null) => ServicioFormateado | null = (service) => {
     if (!service) return null;
 
     // Mapear el estado del servicio
@@ -136,10 +136,10 @@ function DetallesPostulantesContent() {
       progreso: calcularProgreso(service.status),
       etapa: obtenerEtapa(service.status),
       horariosDisponibilidad: horariosDisponibilidad.length > 0 ? horariosDisponibilidad : ['No especificado']
-    };
+    } as ServicioFormateado;
   };
 
-  const servicioFormateado = mapServiceToServiceDetails(servicio);
+  const servicioFormateado = mapServiceToServiceDetails(servicio as Service | null);
 
   return (
     <Layout 
