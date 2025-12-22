@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Bell, Check, Trash2, AlertCircle, CheckCircle, MessageCircle, DollarSign, Calendar, Clock, User, FileCheck, ShieldAlert, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,7 +26,7 @@ const getNotificationIcon = (type: string, isCritical: boolean) => {
     return <ShieldAlert size={20} className="text-red-500" />;
   }
 
-  const iconMap: Record<string, JSX.Element> = {
+  const iconMap: Record<string, ReactElement> = {
     // Mensajes
     new_message: <MessageCircle size={20} className="text-blue-500" />,
     new_client_message: <MessageCircle size={20} className="text-blue-500" />,
