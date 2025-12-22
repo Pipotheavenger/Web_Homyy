@@ -75,8 +75,24 @@ function DetallesPostulantesContent() {
     );
   }
 
+  // Tipo para el formato esperado por ServiceDetails
+  type ServicioFormateado = {
+    id: string;
+    titulo: string;
+    descripcion: string;
+    categoria: string;
+    ubicacion: string;
+    fechaPublicacion: string;
+    fechaLimite: string;
+    estado: 'activo' | 'en_proceso' | 'completado';
+    postulantes: number;
+    progreso: number;
+    etapa: string;
+    horariosDisponibilidad: string[];
+  };
+
   // Función para mapear Service al formato esperado por ServiceDetails
-  const mapServiceToServiceDetails = (service: Service | null) => {
+  const mapServiceToServiceDetails = (service: Service | null): ServicioFormateado | null => {
     if (!service) return null;
 
     // Mapear el estado del servicio
