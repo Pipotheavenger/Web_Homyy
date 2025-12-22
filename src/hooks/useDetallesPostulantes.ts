@@ -389,7 +389,8 @@ export const useDetallesPostulantes = () => {
     horariosDisponibilidad: servicio.schedules?.map((s: any) => 
       `${s.date_available}: ${s.start_time} - ${s.end_time}`
     ) || [],
-    escrow_amount: servicio.escrow_amount || null
+    escrow_amount: servicio.escrow_amount || null,
+    images: servicio.images || []
   } : null;
 
   return {

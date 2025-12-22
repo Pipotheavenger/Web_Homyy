@@ -13,6 +13,7 @@ interface Servicio {
   progreso: number;
   etapa: string;
   horariosDisponibilidad: string[];
+  images?: string[];
 }
 
 interface ServiceDetailsProps {
@@ -113,6 +114,26 @@ export const ServiceDetails = ({ servicio, getEstadoColor, onCancelService }: Se
         </div>
         <p className="text-xs text-gray-600 font-medium">Etapa: {servicio.etapa}</p>
       </div>
+
+      {/* Galería de imágenes */}
+      {servicio.images && servicio.images.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-gray-800 mb-3">Fotos del Servicio</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {servicio.images.map((imageUrl: string, index: number) => (
+              <div key={index} className="relative aspect-square rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-400 transition-colors group">
+                <img
+                  src={imageUrl}
+                  alt={`Imagen ${index + 1} del servicio`}
+                  className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => window.open(imageUrl, '_blank')}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Horarios de disponibilidad */}
       <div className="bg-gradient-to-r from-blue-50/60 to-purple-50/60 rounded-xl p-4 border border-blue-200/30">

@@ -26,6 +26,7 @@ type ServicioFormateado = {
   etapa: string;
   horariosDisponibilidad: string[];
   escrow_amount: number | null;
+  images?: string[];
 };
 
 function DetallesPostulantesContent() {
@@ -111,7 +112,8 @@ function DetallesPostulantesContent() {
     progreso: servicio.progreso || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 100 : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 50 : 25),
     etapa: servicio.etapa || (servicio.estado === 'completed' || servicio.estado === 'completado' ? 'Completado' : servicio.estado === 'hired' || servicio.estado === 'in_progress' ? 'En Proceso' : 'Buscando Trabajador'),
     horariosDisponibilidad: servicio.horariosDisponibilidad,
-    escrow_amount: servicio.escrow_amount ?? null
+    escrow_amount: servicio.escrow_amount ?? null,
+    images: servicio.images || []
   } : null;
 
   return (
