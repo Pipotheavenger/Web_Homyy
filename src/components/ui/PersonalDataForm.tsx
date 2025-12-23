@@ -32,6 +32,7 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<PersonalData>>({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleInputChange = (field: keyof PersonalData, value: string) => {
     setFormData(prev => ({
@@ -317,6 +318,40 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
             </div>
           </div>
 
+          {/* Términos y condiciones */}
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-sm text-gray-700 leading-relaxed cursor-pointer">
+                Al marcar esta casilla, confirmo que he leído, entendido y acepto los{' '}
+                <a 
+                  href="/terminos-y-condiciones" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 font-semibold hover:text-purple-700 hover:underline"
+                >
+                  Términos y Condiciones
+                </a>
+                {' '}y la{' '}
+                <a 
+                  href="/terminos-y-condiciones#politica-privacidad" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-600 font-semibold hover:text-purple-700 hover:underline"
+                >
+                  Política de Privacidad
+                </a>
+                {' '}de Hommy. Asimismo, autorizo el tratamiento de mis datos personales de acuerdo con lo establecido en la Ley 1581 de 2012 y sus decretos reglamentarios.
+              </label>
+            </div>
+          </div>
+
           {/* Botones */}
           <div className="flex gap-4 pt-6">
             <button
@@ -329,7 +364,7 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }:
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !acceptedTerms}
               className="flex-1 py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading && (

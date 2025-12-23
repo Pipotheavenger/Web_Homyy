@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import {
   Users,
   DollarSign,
@@ -16,7 +17,8 @@ import {
   ChevronRight,
   Eye,
   Edit,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute';
 import { adminService } from '@/lib/services';
@@ -34,7 +36,7 @@ export default function AdminDashboardPage() {
 
 function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'transactions' | 'services'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'transactions' | 'services' | 'terms'>('stats');
   const [showCommissionSettings, setShowCommissionSettings] = useState(false);
   const { commissionPercentage } = useCommission();
   const [stats, setStats] = useState<any>(null);
@@ -201,7 +203,8 @@ function AdminDashboard() {
               { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
               { id: 'users', label: 'Usuarios', icon: Users },
               { id: 'transactions', label: 'Transacciones', icon: DollarSign },
-              { id: 'services', label: 'Servicios', icon: Briefcase }
+              { id: 'services', label: 'Servicios', icon: Briefcase },
+              { id: 'terms', label: 'Términos', icon: FileText }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -515,6 +518,9 @@ function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Términos y Condiciones */}
+        {activeTab === 'terms' && <TermsEditor />}
 
         {/* Servicios */}
         {activeTab === 'services' && (
@@ -882,6 +888,128 @@ function Pagination({
               <ChevronRight size={20} />
             </button>
           </nav>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente de editor de términos y condiciones
+function TermsEditor() {
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    loadTerms();
+  }, []);
+
+  const loadTerms = async () => {
+    setLoading(true);
+    try {
+      const { termsService } = await import('@/lib/api/terms');
+      const response = await termsService.getTerms();
+      
+      if (response.success && response.data) {
+        setContent(response.data.content);
+      } else {
+        setContent('<h2>Términos y Condiciones</h2><p>Empieza a escribir aquí...</p>');
+      }
+    } catch (error) {
+      console.error('Error al cargar términos:', error);
+      setMessage({ type: 'error', text: 'Error al cargar los términos' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage(null);
+    
+    try {
+      const { termsService } = await import('@/lib/api/terms');
+      const response = await termsService.updateTerms(content);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: '✓ Términos guardados exitosamente' });
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setMessage({ type: 'error', text: 'Error: ' + (response.error || 'No se pudo guardar') });
+      }
+    } catch (error: any) {
+      console.error('Error al guardar términos:', error);
+      setMessage({ type: 'error', text: 'Error al guardar: ' + error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Editor de Términos y Condiciones</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Edita el contenido que se mostrará en la página de términos y condiciones
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Settings size={18} />
+                <span>Guardar Cambios</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Mensaje de estado */}
+        {message && (
+          <div className={`mb-4 p-4 rounded-xl ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Editor */}
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="mt-6">
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Pega aquí el contenido de tus términos y condiciones desde Word. Puedes usar los botones de arriba para dar formato."
+            />
+          </div>
+        )}
+
+        {/* Instrucciones */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <h3 className="font-semibold text-blue-900 mb-2">💡 Instrucciones:</h3>
+          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+            <li>Copia el contenido desde Word y pégalo directamente en el editor</li>
+            <li>Usa los botones de la barra de herramientas para dar formato (negrita, cursiva, listas, etc.)</li>
+            <li>El formato se mantendrá tal como lo veas aquí</li>
+            <li>Haz clic en "Guardar Cambios" cuando termines</li>
+          </ul>
         </div>
       </div>
     </div>
