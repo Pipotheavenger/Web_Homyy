@@ -91,6 +91,7 @@ export const TimeSelector = ({
             Seleccionar {type === 'inicio' ? 'hora de inicio' : 'hora final'}
           </h4>
           <button
+            type="button"
             onClick={() => type === 'inicio' ? setShowClockInicio(false) : setShowClockFinal(false)}
             className="text-gray-400 hover:text-gray-600"
           >
@@ -104,6 +105,7 @@ export const TimeSelector = ({
             {horasDisponibles.map((hora) => (
               <button
                 key={hora}
+                type="button"
                 onClick={() => handleTimeSelect(hora)}
                 className={`p-2 text-sm rounded-lg transition-all duration-200 ${
                   currentTime === hora
@@ -233,6 +235,7 @@ export const TimeSelector = ({
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onEliminarHorario(horario.id)}
                   className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
                   title="Eliminar horario"
@@ -256,6 +259,7 @@ export const TimeSelector = ({
           ].map((horario, index) => (
             <button
               key={index}
+              type="button"
               onClick={() => {
                 onHoraInicioChange(horario.inicio);
                 onHoraFinalChange(horario.final);
