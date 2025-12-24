@@ -18,13 +18,15 @@ import {
   Eye,
   Edit,
   Settings,
-  FileText
+  FileText,
+  Bell
 } from 'lucide-react';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute';
 import { adminService } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
 import { CommissionSettings } from '@/components/ui/CommissionSettings';
 import { useCommission } from '@/hooks/useCommission';
+import { NotificationsSettingsTab } from '@/components/admin/NotificationsSettingsTab';
 
 export default function AdminDashboardPage() {
   return (
@@ -36,7 +38,7 @@ export default function AdminDashboardPage() {
 
 function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'transactions' | 'services' | 'terms'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'transactions' | 'services' | 'terms' | 'notifications'>('stats');
   const [showCommissionSettings, setShowCommissionSettings] = useState(false);
   const { commissionPercentage } = useCommission();
   const [stats, setStats] = useState<any>(null);
@@ -204,7 +206,8 @@ function AdminDashboard() {
               { id: 'users', label: 'Usuarios', icon: Users },
               { id: 'transactions', label: 'Transacciones', icon: DollarSign },
               { id: 'services', label: 'Servicios', icon: Briefcase },
-              { id: 'terms', label: 'Términos', icon: FileText }
+              { id: 'terms', label: 'Términos', icon: FileText },
+              { id: 'notifications', label: 'Notificaciones', icon: Bell }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -579,6 +582,11 @@ function AdminDashboard() {
               />
             )}
           </div>
+        )}
+
+        {/* Pestaña de Notificaciones */}
+        {activeTab === 'notifications' && (
+          <NotificationsSettingsTab />
         )}
 
       </div>

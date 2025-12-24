@@ -59,7 +59,7 @@ export const useWorkerProfileCurrent = () => {
         // Cargar perfil básico del usuario (crítico)
         supabase
           .from('user_profiles')
-          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado')
+          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado, whatsapp_notifications_enabled')
           .eq('user_id', user.id)
           .single(),
         
@@ -102,7 +102,8 @@ export const useWorkerProfileCurrent = () => {
         birth_date: userProfile.birth_date,
         is_active: userProfile.is_active,
         balance: userProfile.balance || 0,
-        movil_verificado: userProfile.movil_verificado || false
+        movil_verificado: userProfile.movil_verificado || false,
+        whatsapp_notifications_enabled: userProfile.whatsapp_notifications_enabled ?? true
       };
 
       setUsuario(formattedUser);

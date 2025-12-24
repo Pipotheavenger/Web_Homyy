@@ -2,6 +2,54 @@ import { notificationService, type NotificationType } from '@/lib/api/notificati
 import { supabase } from '@/lib/supabase';
 
 /**
+ * Verificar si un tipo de notificación está habilitado
+ */
+async function isNotificationTypeEnabled(notificationType: NotificationType): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('notification_settings')
+      .select('enabled')
+      .eq('notification_type', notificationType)
+      .single();
+
+    if (error || !data) {
+      // Si no existe la configuración, asumir que está habilitado (comportamiento por defecto)
+      return true;
+    }
+
+    return data.enabled === true;
+  } catch (error) {
+    console.error('Error verificando configuración de notificación:', error);
+    // En caso de error, permitir la notificación por defecto
+    return true;
+  }
+}
+
+/**
+ * Verificar si SMS Auth está habilitado
+ */
+async function isSmsAuthEnabled(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'sms_auth_enabled')
+      .single();
+
+    if (error || !data?.value) {
+      // Si no existe la configuración, asumir que está habilitado (comportamiento por defecto)
+      return true;
+    }
+
+    return data.value.enabled === true;
+  } catch (error) {
+    console.error('Error verificando configuración de SMS Auth:', error);
+    // En caso de error, permitir SMS Auth por defecto
+    return true;
+  }
+}
+
+/**
  * Funciones helper para crear notificaciones automáticamente
  * Estas funciones se llaman desde el backend o mediante funciones RPC
  */
@@ -17,11 +65,24 @@ interface CreateNotificationParams {
 
 /**
  * Crear una notificación para un usuario
+ * También envía por WhatsApp si está habilitado
  */
 export const createNotification = async (params: CreateNotificationParams) => {
   try {
+    // Verificar si este tipo de notificación está habilitado
+    const isEnabled = await isNotificationTypeEnabled(params.type);
+    if (!isEnabled) {
+      console.log(`⚠️ Notificación ${params.type} está deshabilitada, omitiendo...`);
+      return { 
+        success: true, 
+        skipped: true,
+        message: 'Notificación deshabilitada por configuración' 
+      };
+    }
+
     console.log('📝 Intentando crear notificación:', params);
     
+    // Crear la notificación en la base de datos
     const response = await notificationService.createNotification({
       user_id: params.userId,
       type: params.type,
@@ -40,6 +101,48 @@ export const createNotification = async (params: CreateNotificationParams) => {
         error: response.error || 'Error desconocido al crear notificación' 
       };
     }
+
+    // Si la notificación se creó exitosamente, intentar enviar por WhatsApp
+    // Esto se hace en segundo plano, no bloquea si falla
+    // Nota: Esta verificación debe hacerse en el servidor, por ahora solo logueamos
+    // La integración real se hará desde el servidor cuando se creen las notificaciones
+    (async () => {
+      try {
+        // Verificar si el usuario tiene WhatsApp habilitado
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('movil_verificado, whatsapp_notifications_enabled, phone')
+          .eq('user_id', params.userId)
+          .single();
+
+        if (userProfile?.movil_verificado && userProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
+          // Construir mensaje para WhatsApp
+          const whatsappMessage = `🔔 ${params.title}\n\n${params.message}`;
+          
+          // Llamar a la API route para enviar WhatsApp (desde el servidor)
+          const whatsappResponse = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: params.userId,
+              message: whatsappMessage,
+            }),
+          });
+
+          if (whatsappResponse.ok) {
+            console.log('✅ WhatsApp enviado exitosamente para notificación:', params.type);
+          } else {
+            const errorData = await whatsappResponse.json();
+            console.warn('⚠️ Error enviando WhatsApp (no crítico):', errorData.error);
+          }
+        }
+      } catch (whatsappError) {
+        // No fallar la creación de notificación si WhatsApp falla
+        console.warn('⚠️ Error enviando WhatsApp (no crítico):', whatsappError);
+      }
+    })();
     
     return response;
   } catch (error) {

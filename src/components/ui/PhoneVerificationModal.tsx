@@ -72,27 +72,36 @@ export const PhoneVerificationModal = ({
         throw new Error('Usuario no autenticado');
       }
 
-      // Usar updateUser para actualizar el teléfono del usuario actual
-      // Esto enviará automáticamente un OTP para verificar el cambio
-      const { error: updateError } = await supabase.auth.updateUser({
-        phone: normalizedPhone
+      // Obtener el token de sesión para autenticación
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sesión no disponible');
+      }
+
+      // Enviar OTP usando la API de Infobip
+      const response = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        credentials: 'include', // Incluir cookies para autenticación
+        body: JSON.stringify({
+          phoneNumber: normalizedPhone,
+        }),
       });
 
-      if (updateError) {
-        throw updateError;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al enviar el código de verificación');
       }
 
       setStep('verify');
       setSuccess(false);
     } catch (err: any) {
       console.error('Error enviando PIN:', err);
-      
-      // Manejar errores específicos de configuración de SMS
-      if (err.message?.includes('Unable to get SMS provider') || err.message?.includes('SMS provider')) {
-        setError('El sistema de verificación por SMS no está configurado. Por favor, contacta al administrador o configura un proveedor de SMS (Twilio, MessageBird, etc.) en Supabase.');
-      } else {
-        setError(err.message || 'Error al enviar el código de verificación. Por favor verifica que el número de teléfono sea correcto.');
-      }
+      setError('Códigos temporalmente fuera de servicio, contacta a soporte.');
     } finally {
       setLoading(false);
     }
@@ -108,51 +117,33 @@ export const PhoneVerificationModal = ({
     setError(null);
 
     try {
-      // Obtener el usuario actual antes de verificar el OTP
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error('Usuario no autenticado');
+      // Obtener el token de sesión para autenticación
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Sesión no disponible');
+      }
 
       // Normalizar el número de teléfono para verificación
       const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-      // Verificar el OTP usando phone_change como tipo (ya que actualizamos el teléfono)
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        phone: normalizedPhone,
-        token: pin,
-        type: 'phone_change', // Tipo correcto para verificación de cambio de teléfono
+      // Verificar el OTP usando la API
+      const response = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        credentials: 'include', // Incluir cookies para autenticación
+        body: JSON.stringify({
+          phoneNumber: normalizedPhone,
+          otpCode: pin,
+        }),
       });
 
-      if (verifyError) {
-        throw verifyError;
-      }
+      const data = await response.json();
 
-      // Si la verificación creó una nueva sesión, restaurar la sesión original
-      // Esto es necesario porque verifyOtp puede cambiar la sesión
-      const { data: { user: newUser } } = await supabase.auth.getUser();
-      if (newUser && newUser.id !== currentUser.id) {
-        // Si cambió el usuario, necesitamos restaurar la sesión original
-        // Por ahora, simplemente actualizamos el estado de verificación
-        // En producción, podrías necesitar manejar esto de manera más sofisticada
-      }
-
-      // Actualizar el estado de verificación en la base de datos
-      // movil_verificado está en user_profiles para todos los usuarios
-      const { error: updateError } = await supabase
-        .from('user_profiles')
-        .update({ movil_verificado: true })
-        .eq('user_id', currentUser.id);
-      
-      // Si es worker, también actualizar worker_profiles para mantener consistencia
-      if (userType === 'worker') {
-        await supabase
-          .from('worker_profiles')
-          .update({ movil_verificado: true })
-          .eq('user_id', currentUser.id);
-      }
-
-      if (updateError) {
-        console.error('Error actualizando estado de verificación:', updateError);
-        // No lanzamos error aquí porque el OTP ya fue verificado
+      if (!response.ok) {
+        throw new Error(data.error || 'Código inválido');
       }
 
       setSuccess(true);
@@ -212,18 +203,6 @@ export const PhoneVerificationModal = ({
                 <div className="flex-1">
                   <p className="text-red-700 text-sm font-medium mb-1">Error</p>
                   <p className="text-red-600 text-sm">{error}</p>
-                  {error.includes('SMS provider') && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
-                      <p className="text-xs text-red-600 mb-2">
-                        <strong>Nota:</strong> Para habilitar la verificación por SMS, necesitas configurar un proveedor de SMS en Supabase:
-                      </p>
-                      <ul className="text-xs text-red-600 space-y-1 list-disc list-inside">
-                        <li>Ve al Dashboard de Supabase → Authentication → Providers</li>
-                        <li>Configura un proveedor de SMS (Twilio, MessageBird, Vonage, etc.)</li>
-                        <li>Una vez configurado, podrás verificar tu número de teléfono</li>
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
