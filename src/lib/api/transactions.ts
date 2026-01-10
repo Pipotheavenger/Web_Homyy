@@ -127,6 +127,13 @@ export const transactionsService = {
    */
   async updateStatus(id: string, status: 'pendiente' | 'completado' | 'rechazado') {
     try {
+      // Obtener la transacción antes de actualizar para verificar el estado anterior
+      const { data: oldTransaction } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+
       const { data: transaction, error } = await supabase
         .from('transactions')
         .update({ status })
@@ -135,6 +142,25 @@ export const transactionsService = {
         .single();
 
       if (error) throw error;
+
+      // Si el status cambió a 'completado' y antes no estaba completado, enviar notificación
+      if (status === 'completado' && oldTransaction && oldTransaction.status !== 'completado') {
+        try {
+          // Determinar si es cliente (recarga) o trabajador (retiro)
+          const isClient = transaction.type === 'recarga';
+          
+          const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
+          await notifyPaymentProcessed(
+            transaction.user_id,
+            transaction.amount,
+            transaction.id,
+            isClient
+          );
+        } catch (notifError) {
+          // No fallar la actualización si la notificación falla
+          console.warn('⚠️ Error enviando notificación de pago procesado:', notifError);
+        }
+      }
 
       return {
         data: transaction,

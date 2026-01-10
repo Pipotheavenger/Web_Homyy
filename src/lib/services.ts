@@ -337,6 +337,17 @@ export const serviceService = {
         if (scheduleError) throw scheduleError;
       }
 
+      // Enviar notificación de servicio creado
+      try {
+        console.log('📢 Intentando enviar notificación de servicio creado:', { userId: user.id, serviceTitle: data.title, serviceId: data.id });
+        const { notifyServiceCreated } = await import('@/lib/utils/notificationHelpers');
+        const notifResult = await notifyServiceCreated(user.id, data.title, data.id);
+        console.log('📢 Resultado de notificación:', notifResult);
+      } catch (notifError) {
+        // No fallar la creación del servicio si la notificación falla
+        console.error('❌ Error enviando notificación de servicio creado:', notifError);
+      }
+
       return { data, error: null, success: true };
     } catch (error) {
       return {
@@ -432,17 +443,10 @@ export const serviceService = {
 export const workerService = {
   async getAll(filters?: { is_available?: boolean; is_verified?: boolean; limit?: number }): Promise<ApiResponse<any[]>> {
     try {
+      // Primero obtener los worker_profiles
       let query = supabase
         .from('worker_profiles')
-        .select(`
-          *,
-          user:user_profiles!worker_profiles_user_id_fkey(
-            name,
-            email,
-            phone,
-            profile_picture_url
-          )
-        `)
+        .select('*')
         .order('rating', { ascending: false });
 
       if (filters?.is_available !== undefined) {
@@ -458,7 +462,40 @@ export const workerService = {
       const { data: workers, error } = await query;
       if (error) throw error;
 
-      return { data: workers || [], error: null, success: true };
+      if (!workers || workers.length === 0) {
+        return { data: [], error: null, success: true };
+      }
+
+      // Obtener los user_ids únicos
+      const userIds = [...new Set(workers.map(w => w.user_id).filter(Boolean))];
+      
+      if (userIds.length === 0) {
+        return { data: [], error: null, success: true };
+      }
+
+      // Cargar los user_profiles correspondientes
+      const { data: userProfiles, error: userError } = await supabase
+        .from('user_profiles')
+        .select('user_id, name, email, phone, profile_picture_url')
+        .in('user_id', userIds);
+
+      if (userError) {
+        console.warn('Error cargando user_profiles:', userError);
+      }
+
+      // Crear un mapa de user_id -> user_profile
+      const userProfileMap = new Map();
+      (userProfiles || []).forEach(profile => {
+        userProfileMap.set(profile.user_id, profile);
+      });
+
+      // Combinar workers con sus user_profiles
+      const workersWithUsers = workers.map(worker => ({
+        ...worker,
+        user: userProfileMap.get(worker.user_id) || null
+      }));
+
+      return { data: workersWithUsers, error: null, success: true };
     } catch (error) {
       return {
         data: null,

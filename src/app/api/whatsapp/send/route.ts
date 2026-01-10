@@ -55,16 +55,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear cliente de Supabase
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // Crear cliente de Supabase con service_role para bypass RLS
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    
+    if (!supabaseServiceKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY no está configurada');
+      return NextResponse.json(
+        { error: 'Configuración de servidor no disponible' },
+        { status: 500 }
+      );
+    }
 
-    // Obtener información del usuario
-    const { data: userProfile, error: profileError } = await supabaseClient
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    // Obtener información del usuario (incluyendo nombre y teléfono)
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
-      .select('phone, movil_verificado, whatsapp_notifications_enabled')
+      .select('phone, whatsapp_notifications_enabled, name')
       .eq('user_id', userId)
       .single();
 
@@ -72,14 +85,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Usuario no encontrado' },
         { status: 404 }
-      );
-    }
-
-    // Verificar que el móvil esté verificado y WhatsApp esté habilitado
-    if (!userProfile.movil_verificado) {
-      return NextResponse.json(
-        { error: 'Móvil no verificado' },
-        { status: 400 }
       );
     }
 
@@ -97,9 +102,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Obtener el nombre del usuario para personalizar el mensaje
+    const userName = userProfile.name || 'Usuario';
+    
     // Normalizar y limpiar el número de teléfono
     const normalizedPhone = normalizePhoneNumber(userProfile.phone);
     const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
+
+    // Validar que tenemos los datos necesarios
+    if (!phoneForInfobip) {
+      return NextResponse.json(
+        { error: 'Número de teléfono no válido' },
+        { status: 400 }
+      );
+    }
+
+    console.log('📱 Datos del usuario para WhatsApp:');
+    console.log('  - User ID:', userId);
+    console.log('  - Nombre:', userName);
+    console.log('  - Teléfono original:', userProfile.phone);
+    console.log('  - Teléfono normalizado:', normalizedPhone);
+    console.log('  - Teléfono para Infobip:', phoneForInfobip);
 
     // Asegurar que la URL tenga el protocolo https://
     let baseUrl = infobipBaseUrl;
@@ -111,11 +134,17 @@ export async function POST(request: NextRequest) {
     // IMPORTANTE: Necesitas crear un template en Infobip con placeholders para el mensaje
     // Ejemplo de template: "Notificación Hommy: {{1}}"
     
-    const templateName = process.env.INFOBIP_WHATSAPP_TEMPLATE_NAME || 'notification_template';
-    const templateLanguage = process.env.INFOBIP_WHATSAPP_TEMPLATE_LANGUAGE || 'es';
+    // Usar template "notificacion" (forzar "notificacion" en lugar de usar variable de entorno)
+    const templateName = 'notificacion';
+    // El template requiere "es_CO" (español Colombia), no solo "es"
+    let templateLanguage = process.env.INFOBIP_WHATSAPP_TEMPLATE_LANGUAGE || 'es_CO';
+    if (templateLanguage === 'es') {
+      templateLanguage = 'es_CO'; // Forzar es_CO si está configurado como "es"
+    }
     
-    // Para el template, enviamos el mensaje completo como un solo placeholder
-    // Ajusta según la estructura de tu template en Infobip
+    // Template "notificacion": "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
+    // El placeholder {{1}} es el nombre del usuario
+    // El mensaje personalizado se incluye en el placeholder
     const payload = {
       messages: [
         {
@@ -125,7 +154,7 @@ export async function POST(request: NextRequest) {
             templateName: templateName,
             templateData: {
               body: {
-                placeholders: [message] // Template debe tener {{1}} para el mensaje
+                placeholders: [userName] // Nombre del usuario como placeholder {{1}}
               }
             },
             language: templateLanguage
@@ -182,3 +211,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

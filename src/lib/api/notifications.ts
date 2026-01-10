@@ -5,47 +5,20 @@ import type { ApiResponse } from '@/types/database';
 // TIPOS PARA NOTIFICACIONES
 // =====================================================
 
+// Solo notificaciones VITALES MÍNIMAS
 export type NotificationType = 
-  // Clientes
-  | 'new_professional_applied'
-  | 'professional_cancelled_application'
-  | 'no_applications_reminder'
-  | 'new_message'
-  | 'professional_responded_proposal'
-  | 'professional_confirmed_attendance'
-  | 'professional_on_the_way'
-  | 'service_completed'
-  | 'confirm_completion_reminder'
+  // Vitales - Pagos
   | 'payment_processed'
-  | 'payment_issue'
-  | 'refund_processed'
-  | 'rate_professional_reminder'
-  | 'professional_responded_review'
-  // Profesionales
-  | 'new_service_available'
-  | 'urgent_service_nearby'
-  | 'client_viewed_profile'
-  | 'client_selected_you'
-  | 'client_rejected_application'
-  | 'application_expiring_soon'
-  | 'new_client_message'
-  | 'client_modified_service'
-  | 'service_upcoming_reminder'
-  | 'client_confirmed_completion'
-  | 'client_requested_modifications'
   | 'payment_released'
-  | 'payment_in_transit'
-  | 'bank_account_issue'
-  | 'account_verification_approved'
-  | 'account_verification_rejected'
-  | 'milestone_achieved'
-  | 'new_review_received'
-  // Críticas (ambos)
+  | 'payment_issue'
+  // Vitales - Servicios
+  | 'service_created'
+  | 'new_professional_applied'
+  | 'client_selected_you'
   | 'service_cancelled'
-  | 'dispute_opened'
-  | 'security_update_required'
-  | 'account_suspended'
-  | 'terms_updated';
+  | 'service_completed'
+  // Vitales - Chat
+  | 'new_message';
 
 export interface Notification {
   id: string;

@@ -25,7 +25,6 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { PhoneVerificationModal } from '@/components/ui/PhoneVerificationModal';
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -48,7 +47,6 @@ export default function PerfilPage() {
     loadProfileData
   } = useProfile();
   
-  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useState<HTMLInputElement | null>(null)[0];
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
@@ -469,34 +467,17 @@ export default function PerfilPage() {
                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
                           <Phone size={14} />
                           Teléfono
-                          {usuario?.movil_verificado && (
-                            <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
-                              <CheckCircle size={12} />
-                              Verificado
-                            </span>
-                          )}
                         </label>
                         {isEditing ? (
                           <input
                             type="tel"
                             value={formData.telefono}
                             onChange={(e) => handleInputChange('telefono', e.target.value)}
-                            disabled={usuario?.movil_verificado}
-                            className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                              usuario?.movil_verificado 
-                                ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                                : ''
-                            }`}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="+57 300 123 4567"
                           />
                         ) : (
                           <p className="text-base text-gray-900">{usuario?.telefono || 'No disponible'}</p>
-                        )}
-                        {isEditing && usuario?.movil_verificado && (
-                          <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-                            <Shield size={12} />
-                            El teléfono está verificado y no puede ser editado
-                          </p>
                         )}
                       </div>
 
@@ -554,42 +535,8 @@ export default function PerfilPage() {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
-                              <Phone size={14} />
-                              Verificación de Móvil
-                            </label>
-                            <div className="flex items-center gap-2">
-                              {usuario?.movil_verificado ? (
-                                <>
-                                  <CheckCircle className="text-green-600" size={18} />
-                                  <span className="font-semibold text-gray-900">Móvil Verificado</span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="text-gray-400" size={18} />
-                                  <span className="font-semibold text-gray-600">No Verificado</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {!usuario?.movil_verificado && (
-                            <button
-                              onClick={() => setShowPhoneVerification(true)}
-                              className="ml-2 lg:ml-4 px-3 py-1.5 lg:px-4 lg:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-xs lg:text-sm flex items-center gap-1.5 lg:gap-2 flex-shrink-0"
-                            >
-                              <Phone size={14} className="lg:w-4 lg:h-4" />
-                              <span className="hidden sm:inline">Verificar</span>
-                              <span className="sm:hidden">Verif.</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Toggle de Notificaciones WhatsApp - Solo visible si el móvil está verificado */}
-                      {usuario?.movil_verificado && (
+                      {/* Toggle de Notificaciones WhatsApp - Siempre visible */}
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -643,7 +590,7 @@ export default function PerfilPage() {
                             </button>
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Balance Actual</label>
@@ -766,15 +713,6 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      <PhoneVerificationModal
-        isOpen={showPhoneVerification}
-        onClose={() => setShowPhoneVerification(false)}
-        phoneNumber={usuario?.telefono || ''}
-        userType="user"
-        onVerified={async () => {
-          await loadProfileData(true); // Forzar recarga completa
-        }}
-      />
     </Layout>
   );
 }

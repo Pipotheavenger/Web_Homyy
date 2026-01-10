@@ -25,29 +25,6 @@ async function isNotificationTypeEnabled(notificationType: NotificationType): Pr
   }
 }
 
-/**
- * Verificar si SMS Auth está habilitado
- */
-async function isSmsAuthEnabled(): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'sms_auth_enabled')
-      .single();
-
-    if (error || !data?.value) {
-      // Si no existe la configuración, asumir que está habilitado (comportamiento por defecto)
-      return true;
-    }
-
-    return data.value.enabled === true;
-  } catch (error) {
-    console.error('Error verificando configuración de SMS Auth:', error);
-    // En caso de error, permitir SMS Auth por defecto
-    return true;
-  }
-}
 
 /**
  * Funciones helper para crear notificaciones automáticamente
@@ -64,11 +41,52 @@ interface CreateNotificationParams {
 }
 
 /**
+ * Lista de tipos de notificaciones VITALES MÍNIMAS que se envían por WhatsApp
+ * Solo estas notificaciones críticas/vitales se enviarán por WhatsApp
+ */
+const IMPORTANT_NOTIFICATIONS_FOR_WHATSAPP: NotificationType[] = [
+  // Vitales - Pagos
+  'payment_processed',
+  'payment_released',
+  'payment_issue',
+  // Vitales - Servicios
+  'service_created',
+  'new_professional_applied',
+  'client_selected_you',
+  'service_cancelled',
+  'service_completed',
+  // Vitales - Chat
+  'new_message',
+];
+
+/**
+ * Verificar si una notificación es importante y debe enviarse por WhatsApp
+ */
+function isImportantNotificationForWhatsApp(type: NotificationType, isCritical?: boolean): boolean {
+  // Si está marcada como crítica, siempre es importante
+  if (isCritical) return true;
+  
+  // Verificar si está en la lista de notificaciones importantes
+  return IMPORTANT_NOTIFICATIONS_FOR_WHATSAPP.includes(type);
+}
+
+/**
  * Crear una notificación para un usuario
- * También envía por WhatsApp si está habilitado
+ * Solo permite crear notificaciones vitales mínimas
+ * También envía por WhatsApp si es una notificación importante y está habilitado
  */
 export const createNotification = async (params: CreateNotificationParams) => {
   try {
+    // Verificar que solo se creen notificaciones vitales
+    if (!isImportantNotificationForWhatsApp(params.type, params.isCritical)) {
+      console.log(`⚠️ Notificación ${params.type} no es vital, omitiendo...`);
+      return { 
+        success: true, 
+        skipped: true,
+        message: 'Solo se permiten notificaciones vitales mínimas' 
+      };
+    }
+
     // Verificar si este tipo de notificación está habilitado
     const isEnabled = await isNotificationTypeEnabled(params.type);
     if (!isEnabled) {
@@ -82,69 +100,52 @@ export const createNotification = async (params: CreateNotificationParams) => {
 
     console.log('📝 Intentando crear notificación:', params);
     
-    // Crear la notificación en la base de datos
-    const response = await notificationService.createNotification({
-      user_id: params.userId,
-      type: params.type,
-      title: params.title,
-      message: params.message,
-      metadata: params.metadata || {},
-      is_critical: params.isCritical || false
-    });
+    // Crear la notificación usando la API route del servidor (bypass RLS)
+    try {
+      const apiResponse = await fetch('/api/notifications/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: params.userId,
+          type: params.type,
+          title: params.title,
+          message: params.message,
+          metadata: params.metadata || {},
+          isCritical: params.isCritical || false
+        }),
+      });
 
-    console.log('📝 Respuesta de createNotification:', response);
-    
-    if (!response.success) {
-      console.error('❌ Error en respuesta:', response.error);
+      const result = await apiResponse.json();
+
+      if (!apiResponse.ok) {
+        console.error('❌ Error en API de notificaciones:', result.error);
+        return { 
+          success: false, 
+          error: result.error || 'Error desconocido al crear notificación' 
+        };
+      }
+
+      if (result.skipped) {
+        return { 
+          success: true, 
+          skipped: true,
+          message: result.message 
+        };
+      }
+
+      return {
+        success: true,
+        data: result.data
+      };
+    } catch (fetchError) {
+      console.error('❌ Error al llamar API de notificaciones:', fetchError);
       return { 
         success: false, 
-        error: response.error || 'Error desconocido al crear notificación' 
+        error: fetchError instanceof Error ? fetchError.message : 'Error al crear notificación' 
       };
     }
-
-    // Si la notificación se creó exitosamente, intentar enviar por WhatsApp
-    // Esto se hace en segundo plano, no bloquea si falla
-    // Nota: Esta verificación debe hacerse en el servidor, por ahora solo logueamos
-    // La integración real se hará desde el servidor cuando se creen las notificaciones
-    (async () => {
-      try {
-        // Verificar si el usuario tiene WhatsApp habilitado
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('movil_verificado, whatsapp_notifications_enabled, phone')
-          .eq('user_id', params.userId)
-          .single();
-
-        if (userProfile?.movil_verificado && userProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
-          // Construir mensaje para WhatsApp
-          const whatsappMessage = `🔔 ${params.title}\n\n${params.message}`;
-          
-          // Llamar a la API route para enviar WhatsApp (desde el servidor)
-          const whatsappResponse = await fetch('/api/whatsapp/send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: params.userId,
-              message: whatsappMessage,
-            }),
-          });
-
-          if (whatsappResponse.ok) {
-            console.log('✅ WhatsApp enviado exitosamente para notificación:', params.type);
-          } else {
-            const errorData = await whatsappResponse.json();
-            console.warn('⚠️ Error enviando WhatsApp (no crítico):', errorData.error);
-          }
-        }
-      } catch (whatsappError) {
-        // No fallar la creación de notificación si WhatsApp falla
-        console.warn('⚠️ Error enviando WhatsApp (no crítico):', whatsappError);
-      }
-    })();
-    
-    return response;
   } catch (error) {
     console.error('❌ Excepción al crear notificación:', error);
     const errorMessage = error instanceof Error 
@@ -154,47 +155,8 @@ export const createNotification = async (params: CreateNotificationParams) => {
   }
 };
 
-/**
- * Crear notificación cuando un profesional aplica a un servicio (CLIENTE)
- */
-export const notifyNewProfessionalApplication = async (
-  clientId: string,
-  professionalName: string,
-  serviceTitle: string,
-  applicationId: string
-) => {
-  return createNotification({
-    userId: clientId,
-    type: 'new_professional_applied',
-    title: 'Nueva aplicación',
-    message: `${professionalName} aplicó a tu solicitud de ${serviceTitle}`,
-    metadata: {
-      application_id: applicationId,
-      service_title: serviceTitle,
-      professional_name: professionalName
-    }
-  });
-};
-
-/**
- * Crear notificación cuando un profesional cancela su aplicación (CLIENTE)
- */
-export const notifyProfessionalCancelledApplication = async (
-  clientId: string,
-  professionalName: string,
-  serviceTitle: string
-) => {
-  return createNotification({
-    userId: clientId,
-    type: 'professional_cancelled_application',
-    title: 'Aplicación cancelada',
-    message: `${professionalName} ya no está disponible para tu servicio de ${serviceTitle}`,
-    metadata: {
-      service_title: serviceTitle,
-      professional_name: professionalName
-    }
-  });
-};
+// Funciones de notificaciones no vitales eliminadas
+// Solo se mantienen las notificaciones vitales mínimas
 
 /**
  * Crear notificación cuando un cliente selecciona a un profesional (PROFESIONAL)
@@ -219,30 +181,7 @@ export const notifyClientSelectedYou = async (
   });
 };
 
-/**
- * Crear notificación cuando llega un nuevo mensaje
- */
-export const notifyNewMessage = async (
-  userId: string,
-  senderName: string,
-  chatId: string,
-  messagePreview: string
-) => {
-  // Determinar el tipo de notificación según el rol del usuario
-  // Para clientes: 'new_message', para profesionales: 'new_client_message'
-  const notificationType: 'new_message' | 'new_client_message' = 'new_message';
-  
-  return createNotification({
-    userId,
-    type: notificationType,
-    title: 'Nuevo mensaje',
-    message: `${senderName}: ${messagePreview.substring(0, 50)}${messagePreview.length > 50 ? '...' : ''}`,
-    metadata: {
-      chat_id: chatId,
-      sender_name: senderName
-    }
-  });
-};
+// Función de notificación de mensajes eliminada (no es vital)
 
 /**
  * Crear notificación cuando se completa un servicio
@@ -340,67 +279,41 @@ export const notifyServiceCancelled = async (
 };
 
 /**
- * Crear notificación cuando hay un nuevo servicio disponible (PROFESIONAL)
+ * Crear notificación cuando un cliente crea un servicio
  */
-export const notifyNewServiceAvailable = async (
-  workerId: string,
+export const notifyServiceCreated = async (
+  clientId: string,
   serviceTitle: string,
-  serviceId: string,
-  location: string
+  serviceId: string
 ) => {
   return createNotification({
-    userId: workerId,
-    type: 'new_service_available',
-    title: 'Nueva oportunidad',
-    message: `Nueva solicitud de ${serviceTitle} en ${location}`,
+    userId: clientId,
+    type: 'service_created',
+    title: 'Servicio creado',
+    message: `Tu servicio "${serviceTitle}" ha sido publicado exitosamente`,
     metadata: {
       service_id: serviceId,
-      service_title: serviceTitle,
-      location
+      service_title: serviceTitle
     }
   });
 };
 
 /**
- * Crear notificación cuando un profesional confirma asistencia (CLIENTE)
+ * Crear notificación cuando un profesional aplica a un servicio (CLIENTE)
  */
-export const notifyProfessionalConfirmedAttendance = async (
+export const notifyNewProfessionalApplication = async (
   clientId: string,
   professionalName: string,
   serviceTitle: string,
-  dateTime: string,
-  bookingId: string
+  applicationId: string
 ) => {
   return createNotification({
     userId: clientId,
-    type: 'professional_confirmed_attendance',
-    title: 'Confirmación de asistencia',
-    message: `${professionalName} confirmó para ${dateTime}`,
+    type: 'new_professional_applied',
+    title: 'Nueva aplicación',
+    message: `${professionalName} aplicó a tu solicitud de ${serviceTitle}`,
     metadata: {
-      booking_id: bookingId,
-      service_title: serviceTitle,
-      professional_name: professionalName,
-      date_time: dateTime
-    }
-  });
-};
-
-/**
- * Crear notificación cuando un profesional está en camino (CLIENTE)
- */
-export const notifyProfessionalOnTheWay = async (
-  clientId: string,
-  professionalName: string,
-  serviceTitle: string,
-  bookingId: string
-) => {
-  return createNotification({
-    userId: clientId,
-    type: 'professional_on_the_way',
-    title: 'En camino',
-    message: `${professionalName} está en camino a tu ubicación`,
-    metadata: {
-      booking_id: bookingId,
+      application_id: applicationId,
       service_title: serviceTitle,
       professional_name: professionalName
     }
@@ -408,67 +321,23 @@ export const notifyProfessionalOnTheWay = async (
 };
 
 /**
- * Crear notificación cuando se recibe una nueva calificación
+ * Crear notificación cuando llega un nuevo mensaje (si la app no está abierta)
  */
-export const notifyNewReview = async (
+export const notifyNewMessage = async (
   userId: string,
-  reviewerName: string,
-  rating: number,
-  serviceTitle: string
+  senderName: string,
+  chatId: string,
+  messagePreview: string
 ) => {
   return createNotification({
     userId,
-    type: 'new_review_received',
-    title: 'Nueva calificación',
-    message: `${reviewerName} te calificó con ${rating} estrellas${serviceTitle ? ` por "${serviceTitle}"` : ''}`,
+    type: 'new_message',
+    title: 'Nuevo mensaje',
+    message: `${senderName}: ${messagePreview.substring(0, 50)}${messagePreview.length > 50 ? '...' : ''}`,
     metadata: {
-      reviewer_name: reviewerName,
-      rating,
-      service_title: serviceTitle
+      chat_id: chatId,
+      sender_name: senderName
     }
-  });
-};
-
-/**
- * Crear notificación cuando se aprueba/rechaza la verificación de cuenta
- */
-export const notifyAccountVerification = async (
-  userId: string,
-  approved: boolean
-) => {
-  return createNotification({
-    userId,
-    type: approved ? 'account_verification_approved' : 'account_verification_rejected',
-    title: approved ? 'Verificación aprobada' : 'Verificación rechazada',
-    message: approved
-      ? 'Tu cuenta ha sido verificada exitosamente'
-      : 'Tu solicitud de verificación fue rechazada. Revisa los documentos y vuelve a intentar.',
-    isCritical: !approved
-  });
-};
-
-/**
- * Crear notificación de recordatorio (sin aplicaciones, confirmar finalización, etc.)
- */
-export const notifyReminder = async (
-  userId: string,
-  type: 'no_applications_reminder' | 'confirm_completion_reminder' | 'rate_professional_reminder' | 'service_upcoming_reminder',
-  message: string,
-  metadata?: Record<string, any>
-) => {
-  const titles = {
-    no_applications_reminder: 'Recordatorio',
-    confirm_completion_reminder: 'Pendiente de confirmación',
-    rate_professional_reminder: 'Califica tu experiencia',
-    service_upcoming_reminder: 'Servicio próximo'
-  };
-
-  return createNotification({
-    userId,
-    type,
-    title: titles[type],
-    message,
-    metadata: metadata || {}
   });
 };
 

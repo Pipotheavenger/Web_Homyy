@@ -30,7 +30,6 @@ import { useWorkerProfileCurrent } from '@/hooks/useWorkerProfileCurrent';
 import { supabase } from '@/lib/supabase';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { PhoneVerificationModal } from '@/components/ui/PhoneVerificationModal';
 
 export default function PerfilWorkerPage() {
   const router = useRouter();
@@ -60,7 +59,6 @@ export default function PerfilWorkerPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
 
@@ -612,34 +610,17 @@ export default function PerfilWorkerPage() {
                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
                           <Phone size={14} />
                           Teléfono
-                          {usuario?.movil_verificado && (
-                            <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1">
-                              <CheckCircle size={12} />
-                              Verificado
-                            </span>
-                          )}
                         </label>
                         {isEditing ? (
                           <input
                             type="tel"
                             value={formData.telefono}
                             onChange={(e) => handleInputChange('telefono', e.target.value)}
-                            disabled={usuario?.movil_verificado}
-                            className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
-                              usuario?.movil_verificado 
-                                ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                                : ''
-                            }`}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                             placeholder="+57 300 123 4567"
                           />
                         ) : (
                           <p className="text-base text-gray-900">{usuario?.phone || 'No disponible'}</p>
-                        )}
-                        {isEditing && usuario?.movil_verificado && (
-                          <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
-                            <Shield size={12} />
-                            El teléfono está verificado y no puede ser editado
-                          </p>
                         )}
                       </div>
 
@@ -697,41 +678,8 @@ export default function PerfilWorkerPage() {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
-                              <Phone size={14} />
-                              Verificación de Móvil
-                            </label>
-                            <div className="flex items-center gap-2">
-                              {usuario?.movil_verificado ? (
-                                <>
-                                  <CheckCircle className="text-green-600" size={18} />
-                                  <span className="font-semibold text-gray-900">Móvil Verificado</span>
-                                </>
-                              ) : (
-                                <>
-                                  <X className="text-gray-400" size={18} />
-                                  <span className="font-semibold text-gray-600">No Verificado</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {!usuario?.movil_verificado && (
-                            <button
-                              onClick={() => setShowPhoneVerification(true)}
-                              className="ml-4 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-sm flex items-center gap-2"
-                            >
-                              <Phone size={16} />
-                              Verificar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Toggle de Notificaciones WhatsApp - Solo visible si el móvil está verificado */}
-                      {usuario?.movil_verificado && (
+                      {/* Toggle de Notificaciones WhatsApp - Siempre visible */}
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                         <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -787,7 +735,7 @@ export default function PerfilWorkerPage() {
                             </button>
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
                         <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Nivel de Satisfacción</label>
@@ -1100,17 +1048,6 @@ export default function PerfilWorkerPage() {
         </div>
       </div>
 
-      <PhoneVerificationModal
-        isOpen={showPhoneVerification}
-        onClose={() => setShowPhoneVerification(false)}
-        phoneNumber={usuario?.phone || ''}
-        userType="worker"
-        onVerified={async () => {
-          // Forzar recarga completa del perfil
-          setLoading(true);
-          await loadWorkerProfileData();
-        }}
-      />
     </Layout>
   );
 }

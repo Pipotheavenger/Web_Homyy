@@ -82,7 +82,7 @@ export const applicationsService = {
       // Verificar que el servicio existe y no es del mismo usuario
       const { data: service, error: serviceError } = await supabase
         .from('services')
-        .select('user_id, status')
+        .select('user_id, status, title')
         .eq('id', data.service_id)
         .neq('status', 'deleted') // Excluir servicios eliminados
         .single();
@@ -172,6 +172,30 @@ export const applicationsService = {
 
       if (!application) {
         throw new Error('No se pudo crear la aplicación');
+      }
+
+      // Enviar notificación al cliente cuando un profesional aplica
+      try {
+        // Obtener el nombre del trabajador
+        const { data: workerProfile } = await supabase
+          .from('user_profiles')
+          .select('name')
+          .eq('user_id', user.id)
+          .single();
+
+        const professionalName = workerProfile?.name || 'Un profesional';
+        const serviceTitle = service.title || 'tu servicio';
+
+        const { notifyNewProfessionalApplication } = await import('@/lib/utils/notificationHelpers');
+        await notifyNewProfessionalApplication(
+          service.user_id, // clientId
+          professionalName,
+          serviceTitle,
+          application.id
+        );
+      } catch (notifError) {
+        // No fallar la creación de la aplicación si la notificación falla
+        console.warn('⚠️ Error enviando notificación de nueva aplicación:', notifError);
       }
 
       return {
