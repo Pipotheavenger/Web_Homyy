@@ -86,17 +86,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enviar WhatsApp si es una notificación importante
+    // Enviar WhatsApp si es una notificación importante (solo las 4 configuradas)
     const importantTypes: NotificationType[] = [
-      'payment_processed',
-      'payment_released',
-      'payment_issue',
-      'service_created',
-      'new_professional_applied',
-      'client_selected_you',
-      'service_cancelled',
-      'service_completed',
-      'new_message',
+      'new_professional_applied',  // Cuando un trabajador postula a un servicio
+      'client_selected_you',       // Cuando se selecciona al trabajador
+      'payment_processed',         // Cuando se paga y se confirma un pago
+      'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
     ];
 
     if (importantTypes.includes(type) && (isCritical || true)) {

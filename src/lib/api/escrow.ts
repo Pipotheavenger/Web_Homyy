@@ -291,6 +291,35 @@ export const escrowService = {
         }
       }
 
+      // Enviar notificación al trabajador cuando se liberan los fondos
+      try {
+        // Obtener la transacción de escrow para este servicio (la más reciente que esté completada)
+        const { data: escrowTransactions } = await supabase
+          .from('escrow_transactions')
+          .select('id, amount, worker_id')
+          .eq('service_id', serviceId)
+          .eq('worker_id', user.id)
+          .eq('status', 'completed')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (escrowTransactions && escrowTransactions.length > 0) {
+          const escrowTransaction = escrowTransactions[0];
+          if (escrowTransaction && escrowTransaction.amount) {
+            const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
+            await notifyPaymentProcessed(
+              escrowTransaction.worker_id,
+              escrowTransaction.amount,
+              escrowTransaction.id,
+              false // isClient = false porque es para el trabajador
+            );
+          }
+        }
+      } catch (notifError) {
+        // No fallar la operación si la notificación falla
+        console.warn('⚠️ Error enviando notificación de pago liberado:', notifError);
+      }
+
       // Solo loggear en caso de éxito para debugging
       console.log('✅ Servicio completado exitosamente con PIN');
 

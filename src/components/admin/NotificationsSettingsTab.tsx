@@ -10,37 +10,36 @@ interface NotificationSetting {
   description: string;
 }
 
-// Lista de notificaciones VITALES MÍNIMAS (las que se envían por WhatsApp)
+// Lista de las 4 notificaciones importantes que se envían por WhatsApp
 const VITAL_NOTIFICATIONS = [
-  'payment_processed',
-  'payment_released',
-  'payment_issue',
-  'service_created',
-  'new_professional_applied',
-  'client_selected_you',
-  'service_cancelled',
-  'service_completed',
-  'new_message',
+  'new_professional_applied',  // Cuando un trabajador postula a un servicio → notificación al usuario
+  'client_selected_you',       // Cuando se selecciona al trabajador → notificación al trabajador
+  'payment_processed',         // Cuando se paga y se confirma un pago
+  'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
 ];
 
 // Categorías de notificaciones
-const NOTIFICATION_CATEGORIES = {
-  cliente: ['service_created', 'new_professional_applied', 'payment_processed', 'service_cancelled', 'service_completed', 'new_message'],
-  trabajador: ['client_selected_you', 'payment_released', 'service_cancelled', 'service_completed', 'new_message'],
-  todos: ['payment_issue', 'service_cancelled', 'service_completed', 'new_message'],
+const NOTIFICATION_CATEGORIES: {
+  cliente: string[];
+  trabajador: string[];
+  todos: string[];
+} = {
+  cliente: ['new_professional_applied', 'payment_processed'],
+  trabajador: ['client_selected_you', 'payment_released'],
+  todos: [],
 };
 
 const getNotificationCategory = (notificationType: string): 'cliente' | 'trabajador' | 'todos' => {
   if (NOTIFICATION_CATEGORIES.cliente.includes(notificationType)) {
     // Si está en cliente pero también en todos, priorizar todos
-    if (NOTIFICATION_CATEGORIES.todos.includes(notificationType)) {
+    if (NOTIFICATION_CATEGORIES.todos.length > 0 && NOTIFICATION_CATEGORIES.todos.includes(notificationType)) {
       return 'todos';
     }
     return 'cliente';
   }
   if (NOTIFICATION_CATEGORIES.trabajador.includes(notificationType)) {
     // Si está en trabajador pero también en todos, priorizar todos
-    if (NOTIFICATION_CATEGORIES.todos.includes(notificationType)) {
+    if (NOTIFICATION_CATEGORIES.todos.length > 0 && NOTIFICATION_CATEGORIES.todos.includes(notificationType)) {
       return 'todos';
     }
     return 'trabajador';
