@@ -41,22 +41,14 @@ interface CreateNotificationParams {
 }
 
 /**
- * Lista de tipos de notificaciones VITALES MÍNIMAS que se envían por WhatsApp
- * Solo estas notificaciones críticas/vitales se enviarán por WhatsApp
+ * Lista de tipos de notificaciones importantes que se envían por WhatsApp
+ * Solo estas 4 notificaciones se enviarán por WhatsApp
  */
 const IMPORTANT_NOTIFICATIONS_FOR_WHATSAPP: NotificationType[] = [
-  // Vitales - Pagos
-  'payment_processed',
-  'payment_released',
-  'payment_issue',
-  // Vitales - Servicios
-  'service_created',
-  'new_professional_applied',
-  'client_selected_you',
-  'service_cancelled',
-  'service_completed',
-  // Vitales - Chat
-  'new_message',
+  'new_professional_applied',  // Cuando un trabajador postula a un servicio → notificación al usuario
+  'client_selected_you',       // Cuando se selecciona al trabajador → notificación al trabajador
+  'payment_processed',         // Cuando se paga y se confirma un pago
+  'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
 ];
 
 /**

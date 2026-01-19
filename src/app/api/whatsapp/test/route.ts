@@ -24,14 +24,17 @@ function normalizePhoneNumber(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, message } = body;
+    const { phoneNumber, name, message } = body;
 
-    if (!phoneNumber || !message) {
+    if (!phoneNumber) {
       return NextResponse.json(
-        { error: 'phoneNumber y message son requeridos' },
+        { error: 'phoneNumber es requerido' },
         { status: 400 }
       );
     }
+
+    // El template usa el nombre como placeholder, pero aceptamos 'name' o 'message' para compatibilidad
+    const nameToUse = name || message || 'Usuario';
 
     // Obtener las credenciales de Infobip desde variables de entorno
     const infobipApiKey = process.env.INFOBIP_API_KEY;
@@ -72,10 +75,8 @@ export async function POST(request: NextRequest) {
       templateLanguage = 'es_CO'; // Forzar es_CO si está configurado como "es"
     }
     
-    // Usar el mensaje proporcionado, o string vacío si no se proporciona
-    // Si el template no tiene placeholders, deberíamos enviar array vacío
-    const messageToSend = message || '';
-    
+    // Template "notificacion": "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
+    // El placeholder {{1}} es el nombre del usuario
     console.log('📤 Enviando WhatsApp con template de texto...');
     const endpoint = `${baseUrl}/whatsapp/1/message/template`;
     
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
             templateName: templateName,
             templateData: {
               body: {
-                placeholders: messageToSend ? [messageToSend] : [] // Array con placeholders o vacío
+                placeholders: [nameToUse] // Nombre del usuario como placeholder {{1}}
               }
             },
             language: templateLanguage
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     console.log('From:', infobipWhatsAppSender);
     console.log('Template:', templateName);
     console.log('Language:', templateLanguage);
-    console.log('Message:', messageToSend);
+    console.log('Name (placeholder):', nameToUse);
     console.log('Payload completo:', JSON.stringify(payload, null, 2));
 
     const response = await fetch(endpoint, {
