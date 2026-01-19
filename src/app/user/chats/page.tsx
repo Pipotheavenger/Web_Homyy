@@ -71,9 +71,9 @@ export default function ChatsPage() {
     setSelectedChat(chat);
   };
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, type: 'text' | 'image' | 'document' = 'text') => {
     if (!selectedChat) return false;
-    return await sendMessage(message, selectedChat.id);
+    return await sendMessage(message, selectedChat.id, type);
   };
 
   // ✅ OPTIMIZACIÓN: Mostrar skeleton solo si no hay chats y está cargando
