@@ -36,3 +36,4 @@ CREATE POLICY "Solo admins pueden actualizar términos"
 -- Crear índice para búsquedas más rápidas
 CREATE INDEX IF NOT EXISTS idx_terms_updated_at ON terms_and_conditions(updated_at DESC);
 
+
