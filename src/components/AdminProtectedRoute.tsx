@@ -2,10 +2,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
 }
+
+const ADMIN_EMAIL = 'admin@hommy.app';
 
 export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   const router = useRouter();
@@ -14,20 +17,27 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const adminAuth = sessionStorage.getItem('admin_authenticated');
-      
-      if (adminAuth !== 'true') {
-        console.log('🔐 No admin auth found, redirecting to /admin');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session || session.user.email !== ADMIN_EMAIL) {
+          console.log('🔐 No admin auth found, redirecting to /admin');
+          sessionStorage.removeItem('admin_authenticated');
+          router.push('/admin');
+          setIsLoading(false);
+          return;
+        }
+
+        // Verificar que la sesión de admin esté activa
+        console.log('🔐 Admin authentication verified');
+        sessionStorage.setItem('admin_authenticated', 'true');
+        setIsAuthenticated(true);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error checking auth:', error);
         router.push('/admin');
         setIsLoading(false);
-        return;
       }
-
-      // Solo verificar que la sesión de admin esté activa
-      console.log('🔐 Admin authentication verified');
-      setIsAuthenticated(true);
-      
-      setIsLoading(false);
     };
 
     checkAuth();

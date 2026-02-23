@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# cypress env (mantener cifrado o usar variables en CI/CD)
+cypress.env.json
+
 # vercel
 .vercel
 
@@ -43,3 +46,10 @@ next-env.d.ts
 # SonarQube
 .scannerwork/
 .sonarqube/
+
+# Cypress
+test/cypress/videos/
+test/cypress/screenshots/
+test/reports/*.json
+test/reports/*.html
+!test/reports/.gitkeep

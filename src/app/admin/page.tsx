@@ -1,67 +1,86 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, LogOut } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+const ADMIN_EMAIL = 'admin@hommy.app';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Verificar si ya está autenticado (tanto sessionStorage como cookies)
-    const isAdminAuthenticated = sessionStorage.getItem('admin_authenticated');
-    const isAdminAuthenticatedCookie = document.cookie.includes('admin_authenticated=true');
-    
-    if (isAdminAuthenticated === 'true' && isAdminAuthenticatedCookie) {
-      console.log('🔐 Admin already authenticated, redirecting to dashboard');
-      router.push('/admin/dashboard');
-    }
+    // Verificar si ya está autenticado con Supabase
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user && session.user.email === ADMIN_EMAIL) {
+        console.log('🔐 Admin already authenticated, redirecting to dashboard');
+        sessionStorage.setItem('admin_authenticated', 'true');
+        document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict';
+        router.push('/admin/dashboard');
+        return;
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // Código de acceso admin (en producción esto debe estar en variables de entorno)
-      const ADMIN_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || '123456';
-      
-      console.log('🔍 Código ingresado:', code);
-      console.log('🔍 Código esperado:', ADMIN_CODE);
-      console.log('🔍 Son iguales:', code === ADMIN_CODE);
-
-      if (code !== ADMIN_CODE) {
-        console.log('❌ Código incorrecto');
-        setError('Código incorrecto. Acceso denegado.');
-        setCode('');
+      // Verificar que el email sea el de admin
+      if (email !== ADMIN_EMAIL) {
+        setError('Solo el administrador autorizado puede acceder');
         setLoading(false);
         return;
       }
-      
-      console.log('✅ Código correcto, procediendo...');
 
-      // Solo validar el código, sin verificar autenticación de usuario
-      // Establecer la autenticación de admin
-      sessionStorage.setItem('admin_authenticated', 'true');
-      
-      // También establecer una cookie para el middleware
-      document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict'; // 1 hora
-      
-      console.log('🔐 Admin authentication successful');
-      router.push('/admin/dashboard');
-    } catch (error) {
-      console.error('Error en autenticación de admin:', error);
-      setError('Error de autenticación. Inténtalo de nuevo.');
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('Correo electrónico o contraseña incorrectos');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Por favor, confirma tu correo electrónico primero');
+        } else {
+          setError(authError.message || 'Error al iniciar sesión');
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (data.user && data.session) {
+        // Verificar que el email sea el de admin
+        if (data.user.email !== ADMIN_EMAIL) {
+          await supabase.auth.signOut();
+          setError('Solo el administrador autorizado puede acceder');
+          setLoading(false);
+          return;
+        }
+
+        // Establecer la autenticación de admin
+        sessionStorage.setItem('admin_authenticated', 'true');
+        document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict'; // 1 hora
+        
+        console.log('🔐 Admin authentication successful');
+        router.push('/admin/dashboard');
+      }
+    } catch (error: any) {
+      console.error('Error en login:', error);
+      setError(error.message || 'Error al iniciar sesión. Inténtalo de nuevo.');
       setLoading(false);
     }
-  };
-
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setCode(value);
   };
 
   return (
@@ -84,25 +103,45 @@ export default function AdminLoginPage() {
 
         {/* Login Card */}
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
+                <Mail size={32} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Iniciar Sesión</h2>
+              <p className="text-gray-400 text-sm">
+                Ingresa tus credenciales de administrador
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Código de Acceso
+                Correo Electrónico
               </label>
               <input
-                type="text"
-                inputMode="numeric"
-                value={code}
-                onChange={handleCodeChange}
-                placeholder="000000"
-                maxLength={6}
-                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all text-center text-2xl font-bold tracking-[0.5em]"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@hommy.app"
+                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all"
+                required
+                disabled
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                className="w-full px-6 py-4 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 focus:outline-none transition-all"
+                required
                 autoFocus
               />
-              <p className="text-xs text-gray-400 mt-2 text-center">
-                Ingresa el código de 6 dígitos<br/>
-                <span className="text-yellow-400 font-semibold">Acceso restringido solo para administradores</span>
-              </p>
             </div>
 
             {error && (
@@ -113,10 +152,10 @@ export default function AdminLoginPage() {
 
             <button
               type="submit"
-              disabled={code.length !== 6 || loading}
+              disabled={!password || loading}
               className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-purple-500 disabled:hover:to-pink-500"
             >
-              {loading ? 'Verificando...' : 'Acceder al Dashboard'}
+              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
 

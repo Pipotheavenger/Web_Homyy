@@ -132,6 +132,23 @@ export const bookingsService = {
         .update({ status: 'hired' })
         .eq('id', data.service_id);
 
+      // Enviar notificación al trabajador cuando es seleccionado
+      try {
+        const serviceTitle = booking.service?.title || 'el servicio';
+        const clientName = booking.client?.name || 'Un cliente';
+        
+        const { notifyClientSelectedYou } = await import('@/lib/utils/notificationHelpers');
+        await notifyClientSelectedYou(
+          data.worker_id,
+          clientName,
+          serviceTitle,
+          booking.id
+        );
+      } catch (notifError) {
+        // No fallar la creación del booking si la notificación falla
+        console.warn('⚠️ Error enviando notificación de selección:', notifError);
+      }
+
       return {
         data: booking,
         error: null,

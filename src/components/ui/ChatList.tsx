@@ -30,6 +30,15 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
     }
   };
 
+  const getMessagePreview = (message: string | null) => {
+    if (!message) return 'Sin mensajes aún';
+    // Verificar si es una URL de imagen de Supabase (heurística simple)
+    if (message.includes('/storage/v1/object/public/images/')) {
+      return '📷 Imagen';
+    }
+    return message;
+  };
+
   if (chats.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -118,7 +127,7 @@ export const ChatList = ({ chats, selectedChatId, onSelectChat, currentUserId }:
                     <p className={`text-xs truncate ${
                       hasUnread ? 'font-medium text-gray-900' : 'text-gray-600'
                     }`}>
-                      {chat.last_message || 'Sin mensajes aún'}
+                      {getMessagePreview(chat.last_message)}
                     </p>
 
                     {/* Unread badge */}

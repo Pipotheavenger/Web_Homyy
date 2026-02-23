@@ -16,7 +16,8 @@ import {
   Clock,
   Briefcase,
   Camera,
-  XCircle
+  XCircle,
+  MessageCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
@@ -24,7 +25,6 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { PhoneVerificationModal } from '@/components/ui/PhoneVerificationModal';
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -47,9 +47,10 @@ export default function PerfilPage() {
     loadProfileData
   } = useProfile();
   
-  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useState<HTMLInputElement | null>(null)[0];
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
 
   // Debug: Log cuando cambian los datos
   useEffect(() => {
@@ -57,6 +58,13 @@ export default function PerfilPage() {
     console.log('🔍 bookingStats:', bookingStats);
     console.log('🔍 reviews:', reviews?.length || 0);
   }, [serviciosRecientes, bookingStats, reviews]);
+
+  // Cargar preferencia de WhatsApp cuando cambia el usuario
+  useEffect(() => {
+    if (usuario) {
+      setWhatsappEnabled(usuario.whatsapp_notifications_enabled ?? false);
+    }
+  }, [usuario]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -527,37 +535,60 @@ export default function PerfilPage() {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
-                              <Phone size={14} />
-                              Verificación de Móvil
-                            </label>
-                            <div className="flex items-center gap-2">
-                              {usuario?.movil_verificado ? (
-                                <>
-                                  <CheckCircle className="text-green-600" size={18} />
-                                  <span className="font-semibold text-gray-900">Móvil Verificado</span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="text-gray-400" size={18} />
-                                  <span className="font-semibold text-gray-600">No Verificado</span>
-                                </>
-                              )}
+                      {/* Toggle de Notificaciones WhatsApp - Siempre visible */}
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
+                                <MessageCircle size={14} />
+                                Notificaciones por WhatsApp
+                              </label>
+                              <p className="text-sm text-gray-600 mt-1">
+                                Recibe notificaciones importantes por WhatsApp
+                              </p>
                             </div>
-                          </div>
-                          {false && !usuario?.movil_verificado && (
                             <button
-                              onClick={() => setShowPhoneVerification(true)}
-                              className="ml-2 lg:ml-4 px-3 py-1.5 lg:px-4 lg:py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all text-xs lg:text-sm flex items-center gap-1.5 lg:gap-2 flex-shrink-0 hidden"
+                              onClick={async () => {
+                                if (updatingWhatsapp) return;
+                                setUpdatingWhatsapp(true);
+                                const newValue = !whatsappEnabled;
+                                
+                                try {
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  if (!user) return;
+
+                                  const { error } = await supabase
+                                    .from('user_profiles')
+                                    .update({ whatsapp_notifications_enabled: newValue })
+                                    .eq('user_id', user.id);
+
+                                  if (error) {
+                                    console.error('Error actualizando preferencia de WhatsApp:', error);
+                                    alert('Error al actualizar la preferencia');
+                                  } else {
+                                    setWhatsappEnabled(newValue);
+                                    await loadProfileData(true);
+                                  }
+                                } catch (error) {
+                                  console.error('Error:', error);
+                                  alert('Error al actualizar la preferencia');
+                                } finally {
+                                  setUpdatingWhatsapp(false);
+                                }
+                              }}
+                              disabled={updatingWhatsapp}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                                whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
+                              } ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                             >
-                              <Phone size={14} className="lg:w-4 lg:h-4" />
-                              <span className="hidden sm:inline">Verificar</span>
-                              <span className="sm:hidden">Verif.</span>
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                              />
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
 
@@ -682,15 +713,6 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      <PhoneVerificationModal
-        isOpen={showPhoneVerification}
-        onClose={() => setShowPhoneVerification(false)}
-        phoneNumber={usuario?.telefono || ''}
-        userType="user"
-        onVerified={async () => {
-          await loadProfileData();
-        }}
-      />
     </Layout>
   );
 }

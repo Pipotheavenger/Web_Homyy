@@ -54,7 +54,7 @@ export const useChat = (chatId?: string) => {
   }, []);
 
   // Enviar mensaje
-  const sendMessage = useCallback(async (message: string, currentChatId?: string) => {
+  const sendMessage = useCallback(async (message: string, currentChatId?: string, type: 'text' | 'image' | 'document' = 'text') => {
     if (!currentChatId) {
       setError('No hay chat seleccionado');
       return false;
@@ -71,7 +71,8 @@ export const useChat = (chatId?: string) => {
     try {
       const response = await chatService.sendMessage({
         chat_id: currentChatId,
-        message: message.trim()
+        message: message.trim(),
+        message_type: type
       });
 
       if (response.success && response.data) {

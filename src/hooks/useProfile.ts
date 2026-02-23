@@ -29,14 +29,15 @@ export const useProfile = () => {
     loadProfileData();
   }, []);
 
-  const loadProfileData = async () => {
+  const loadProfileData = async (forceReload: boolean = false) => {
     try {
-      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay perfil previo
-      if (profile === null) {
+      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay perfil previo o si se fuerza recarga
+      if (profile === null || forceReload) {
         setLoading(true);
       }
       
       // ✅ OPTIMIZACIÓN: Cargar perfil primero (crítico para mostrar UI)
+      // Forzar recarga desde la base de datos ignorando cualquier caché
       const profileResponse = await profileService.getProfile();
       if (profileResponse.success && profileResponse.data) {
         const data = profileResponse.data;
@@ -55,7 +56,8 @@ export const useProfile = () => {
           serviciosCompletados: 0,
           serviciosActivos: 0,
           balance: data.balance || 0, // ✅ Usar balance real de la BD
-          movil_verificado: data.movil_verificado || false,
+          movil_verificado: data.movil_verificado ?? false, // Usar nullish coalescing para manejar null
+          whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? true, // Por defecto true
           preferencias: {
             notificaciones: true,
             emailMarketing: false,

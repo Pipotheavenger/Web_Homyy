@@ -1,0 +1,17 @@
+{
+  "client": {
+    "email": "test.client@hommy.test",
+    "password": "TestClient123!",
+    "role": "client"
+  },
+  "worker": {
+    "email": "test.worker@hommy.test",
+    "password": "TestWorker123!",
+    "role": "worker"
+  },
+  "admin": {
+    "email": "test.admin@hommy.test",
+    "password": "TestAdmin123!",
+    "role": "admin"
+  }
+}

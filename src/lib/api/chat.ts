@@ -453,8 +453,13 @@ export const chatService = {
         throw new Error('No tienes permiso para enviar mensajes en este chat');
       }
 
-      // Validar información sensible
-      const validation = validateSensitiveData(data.message);
+      const messageType = data.message_type || 'text';
+      
+      // Solo validar información sensible para mensajes de texto (no para imágenes/documentos)
+      const shouldValidate = messageType === 'text';
+      const validation = shouldValidate 
+        ? validateSensitiveData(data.message)
+        : { displayMessage: data.message, originalMessage: data.message, isBlocked: false };
 
       // Crear el mensaje guardando el mensaje original y la flag de bloqueado
       const { data: message, error } = await supabase
@@ -465,7 +470,7 @@ export const chatService = {
           message: validation.displayMessage, // Mensaje a mostrar (bloqueado o original)
           original_message: validation.originalMessage, // Mensaje original siempre guardado
           is_blocked: validation.isBlocked, // Flag de bloqueado
-          message_type: data.message_type || 'text',
+          message_type: messageType,
           is_read: false
         })
         .select(`
@@ -476,11 +481,12 @@ export const chatService = {
 
       if (error) throw error;
 
-      // Actualizar el chat con el último mensaje (mostrar mensaje bloqueado si aplica)
+      // Actualizar el chat con el último mensaje
+      const lastMessageDisplay = messageType === 'image' ? '📷 Imagen' : validation.displayMessage;
       await supabase
         .from('chats')
         .update({
-          last_message: validation.displayMessage,
+          last_message: lastMessageDisplay,
           last_message_at: new Date().toISOString()
         })
         .eq('id', data.chat_id);
