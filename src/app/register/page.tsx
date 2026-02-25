@@ -4,12 +4,13 @@ import { LoginHeader } from '@/components/ui/LoginHeader';
 import RoleSelection from '@/components/ui/RoleSelection';
 import WorkerInfoForm from '@/components/ui/WorkerInfoForm';
 import PersonalDataForm from '@/components/ui/PersonalDataForm';
+import PhoneVerifyForm from '@/components/ui/PhoneVerifyForm';
 import RegisterSuccess from '@/components/ui/RegisterSuccess';
 import BgWave from '../login/BgWave';
 import { useRegister } from '@/hooks/useRegister';
 import { RegisterUserData, RegisterWorkerData } from '@/types/database';
 
-type RegistrationStep = 'role' | 'worker-info' | 'personal-data' | 'success';
+type RegistrationStep = 'role' | 'worker-info' | 'personal-data' | 'phone-verify' | 'success';
 type UserRole = 'user' | 'worker';
 
 interface WorkerInfoData {
@@ -33,6 +34,7 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [workerInfo, setWorkerInfo] = useState<WorkerInfoData | null>(null);
+  const [pendingPersonalData, setPendingPersonalData] = useState<PersonalData | null>(null);
   const { isLoading, error, registerUser, registerWorker, clearError } = useRegister();
 
   // Funciones de navegación
@@ -52,7 +54,17 @@ export default function RegisterPage() {
 
   const handlePersonalDataSubmit = async (data: PersonalData) => {
     if (!selectedRole) return;
-    
+
+    clearError();
+
+    // Guardar datos y avanzar a verificación telefónica
+    setPendingPersonalData(data);
+    setCurrentStep('phone-verify');
+  };
+
+  const handlePhoneVerified = async () => {
+    if (!selectedRole || !pendingPersonalData) return;
+
     clearError();
 
     try {
@@ -60,41 +72,52 @@ export default function RegisterPage() {
 
       if (selectedRole === 'user') {
         const userData: RegisterUserData = {
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          birthDate: data.birthDate,
-          password: data.password,
-          confirmPassword: data.confirmPassword
+          fullName: pendingPersonalData.fullName,
+          email: pendingPersonalData.email,
+          phone: pendingPersonalData.phone,
+          birthDate: pendingPersonalData.birthDate,
+          password: pendingPersonalData.password,
+          confirmPassword: pendingPersonalData.confirmPassword
         };
-        
+
         result = await registerUser(userData);
       } else if (selectedRole === 'worker' && workerInfo) {
         const workerData: RegisterWorkerData = {
-          fullName: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          birthDate: data.birthDate,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
+          fullName: pendingPersonalData.fullName,
+          email: pendingPersonalData.email,
+          phone: pendingPersonalData.phone,
+          birthDate: pendingPersonalData.birthDate,
+          password: pendingPersonalData.password,
+          confirmPassword: pendingPersonalData.confirmPassword,
           profession: workerInfo.profession,
           experienceYears: parseInt(workerInfo.experienceYears),
           selectedCategories: workerInfo.categories,
           profileDescription: workerInfo.bio,
           certifications: workerInfo.certifications
         };
-        
+
         result = await registerWorker(workerData);
       } else {
         throw new Error('Información de trabajador faltante');
       }
 
-      if (result.success) {
+      if (result.success && result.userId) {
+        // Marcar teléfono como verificado en el perfil
+        try {
+          await fetch('/api/auth/phone-verify/mark-verified', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: result.userId }),
+          });
+        } catch (err) {
+          console.warn('No se pudo marcar el teléfono como verificado:', err);
+        }
+        setCurrentStep('success');
+      } else if (result.success) {
         setCurrentStep('success');
       }
     } catch (error: any) {
       console.error('Error en registro:', error);
-      // El error ya se maneja en el hook
     }
   };
 
@@ -109,6 +132,8 @@ export default function RegisterPage() {
         setCurrentStep('role');
         setSelectedRole(null);
       }
+    } else if (currentStep === 'phone-verify') {
+      setCurrentStep('personal-data');
     }
   };
 
@@ -117,28 +142,38 @@ export default function RegisterPage() {
     switch (currentStep) {
       case 'role':
         return <RoleSelection onSelectRole={handleRoleSelection} />;
-      
+
       case 'worker-info':
         return (
-          <WorkerInfoForm 
+          <WorkerInfoForm
             onContinue={handleWorkerInfoSubmit}
             onBack={handleBack}
           />
         );
-      
+
       case 'personal-data':
         return (
-          <PersonalDataForm 
+          <PersonalDataForm
             onSubmit={handlePersonalDataSubmit}
             onBack={handleBack}
             isLoading={isLoading}
             error={error || undefined}
+            initialData={pendingPersonalData || undefined}
           />
         );
-      
+
+      case 'phone-verify':
+        return (
+          <PhoneVerifyForm
+            phoneNumber={pendingPersonalData?.phone.replace(/\s/g, '') || ''}
+            onVerified={handlePhoneVerified}
+            onBack={handleBack}
+          />
+        );
+
       case 'success':
         return <RegisterSuccess userType={selectedRole || 'user'} />;
-      
+
       default:
         return <RoleSelection onSelectRole={handleRoleSelection} />;
     }
@@ -147,10 +182,10 @@ export default function RegisterPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-lavender overflow-hidden">
       <BgWave />
-      
+
       {/* Header - Solo mostrar en pasos que no sean success */}
       {currentStep !== 'success' && <LoginHeader />}
-      
+
       {/* Contenido principal */}
       <div className="w-full flex-1 flex items-center justify-center">
         {renderCurrentStep()}
@@ -174,4 +209,4 @@ export default function RegisterPage() {
       `}</style>
     </main>
   );
-} 
+}

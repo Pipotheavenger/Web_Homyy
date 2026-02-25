@@ -17,10 +17,11 @@ interface PersonalDataFormProps {
   onBack: () => void;
   isLoading?: boolean;
   error?: string;
+  initialData?: PersonalData;
 }
 
-export default function PersonalDataForm({ onSubmit, onBack, isLoading, error }: PersonalDataFormProps) {
-  const [formData, setFormData] = useState<PersonalData>({
+export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, initialData }: PersonalDataFormProps) {
+  const [formData, setFormData] = useState<PersonalData>(initialData || {
     fullName: '',
     email: '',
     phone: '',

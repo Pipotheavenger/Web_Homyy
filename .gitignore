@@ -53,3 +53,6 @@ test/cypress/screenshots/
 test/reports/*.json
 test/reports/*.html
 !test/reports/.gitkeep
+
+# docs
+/docs/

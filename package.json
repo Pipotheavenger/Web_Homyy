@@ -17,6 +17,7 @@
     "test:performance:report": "cypress run --config-file test/cypress.config.ts --reporter json --reporter-options output=test/reports/results.json"
   },
   "dependencies": {
+    "@aws-sdk/client-sns": "^3.997.0",
     "@supabase/supabase-js": "^2.51.0",
     "@tanstack/react-query": "^5.90.7",
     "date-fns": "^4.1.0",

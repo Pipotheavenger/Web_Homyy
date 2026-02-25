@@ -8,8 +8,8 @@ interface UseRegisterReturn {
   isLoading: boolean;
   error: string | null;
   success: boolean;
-  registerUser: (data: RegisterUserData) => Promise<{ success: boolean; error?: string }>;
-  registerWorker: (data: RegisterWorkerData) => Promise<{ success: boolean; error?: string }>;
+  registerUser: (data: RegisterUserData) => Promise<{ success: boolean; error?: string; userId?: string }>;
+  registerWorker: (data: RegisterWorkerData) => Promise<{ success: boolean; error?: string; userId?: string }>;
   clearError: () => void;
 }
 
@@ -20,7 +20,7 @@ export const useRegister = (): UseRegisterReturn => {
 
   const clearError = () => setError(null);
 
-  const registerUser = async (data: RegisterUserData): Promise<{ success: boolean; error?: string }> => {
+  const registerUser = async (data: RegisterUserData): Promise<{ success: boolean; error?: string; userId?: string }> => {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
@@ -62,7 +62,7 @@ export const useRegister = (): UseRegisterReturn => {
       }
 
       setSuccess(true);
-      return { success: true };
+      return { success: true, userId: authData.user.id };
 
     } catch (error: any) {
       console.error('Error en registro de usuario:', error);
@@ -89,7 +89,7 @@ export const useRegister = (): UseRegisterReturn => {
     }
   };
 
-  const registerWorker = async (data: RegisterWorkerData): Promise<{ success: boolean; error?: string }> => {
+  const registerWorker = async (data: RegisterWorkerData): Promise<{ success: boolean; error?: string; userId?: string }> => {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
@@ -146,7 +146,7 @@ export const useRegister = (): UseRegisterReturn => {
       }
 
       setSuccess(true);
-      return { success: true };
+      return { success: true, userId: authData.user.id };
 
     } catch (error: any) {
       console.error('Error en registro de trabajador:', error);
