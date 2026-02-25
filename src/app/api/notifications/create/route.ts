@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar si el tipo de notificación está habilitado (y si WhatsApp está habilitado para este tipo)
-    // Nota: whatsapp_enabled puede no existir si no se aplicó el SQL; en ese caso hacemos fallback.
     let setting: { enabled?: boolean; whatsapp_enabled?: boolean } | null = null;
     {
       const attempt = await supabaseAdmin
@@ -126,9 +125,10 @@ export async function POST(request: NextRequest) {
     // Solo enviar WhatsApp si:
     // 1. Es un tipo importante (una de las 4 notificaciones vitales)
     // 2. La notificación está habilitada en notification_settings (si existe la configuración)
-    const isNotificationEnabled = !setting || setting.enabled !== false;
-    const isWhatsAppEnabledForType = !setting || setting.whatsapp_enabled !== false; // default ON si no existe
-    const shouldSendWhatsApp = importantTypes.includes(type) && isNotificationEnabled && isWhatsAppEnabledForType;
+    // 3. WhatsApp está habilitado para este tipo de notificación (whatsapp_enabled)
+    const isNotificationEnabled = !setting || setting.enabled;
+    const isWhatsAppEnabled = !setting || setting.whatsapp_enabled !== false;
+    const shouldSendWhatsApp = importantTypes.includes(type) && isNotificationEnabled && isWhatsAppEnabled;
 
     if (shouldSendWhatsApp) {
       // Verificar si el usuario tiene WhatsApp habilitado: primero user_profiles, luego worker_profiles
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         console.log(`ℹ️ WhatsApp no enviado para usuario ${userId}: notificaciones deshabilitadas o sin teléfono`);
       }
     } else {
-      console.log(`ℹ️ WhatsApp no enviado: tipo ${type} no es importante o notificación deshabilitada`);
+      console.log(`ℹ️ WhatsApp no enviado: tipo ${type} no es importante, notificación deshabilitada o WhatsApp deshabilitado para este tipo`);
     }
 
     return NextResponse.json({

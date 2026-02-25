@@ -25,7 +25,7 @@ function normalizePhoneNumber(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, message, title, type } = body;
+    const { userId, message } = body;
 
     if (!userId || !message) {
       return NextResponse.json(
@@ -74,22 +74,25 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Obtener información del usuario: primero user_profiles, si no hay datos válidos luego worker_profiles
+    // Obtener información del usuario: primero user_profiles, luego worker_profiles
+    // (similar a como lo hace /api/notifications/create)
     const { data: userProfile } = await supabaseAdmin
       .from('user_profiles')
       .select('phone, whatsapp_notifications_enabled, name')
       .eq('user_id', userId)
       .single();
 
-    const fromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone
-      ? { phone: userProfile.phone, name: userProfile.name }
-      : null;
+    const canSendFromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone;
 
-    let profile: { phone: string; name: string | null } | null = fromUser
-      ? { phone: fromUser.phone, name: userProfile?.name ?? null }
-      : null;
+    let profile: { phone: string; name: string | null } | null = null;
+    let whatsappEnabled = false;
 
-    if (!profile) {
+    if (canSendFromUser) {
+      // Si user_profiles tiene WhatsApp habilitado y teléfono, usarlo
+      profile = { phone: userProfile.phone, name: userProfile.name || null };
+      whatsappEnabled = true;
+    } else {
+      // Si no está en user_profiles o no tiene WhatsApp habilitado, buscar en worker_profiles
       const { data: workerProfile } = await supabaseAdmin
         .from('worker_profiles')
         .select('phone, whatsapp_notifications_enabled, name')
@@ -97,18 +100,36 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone) {
-        profile = { phone: workerProfile.phone, name: workerProfile.name ?? null };
+        // Si worker_profiles tiene WhatsApp habilitado y teléfono, usarlo
+        profile = { phone: workerProfile.phone, name: workerProfile.name || null };
+        whatsappEnabled = true;
+      } else if (userProfile?.phone) {
+        // Si userProfile existe y tiene teléfono pero WhatsApp no está habilitado, no enviar
+        return NextResponse.json(
+          { error: 'Notificaciones WhatsApp deshabilitadas para este usuario' },
+          { status: 400 }
+        );
       }
     }
 
-    if (!profile) {
+    if (!profile || !profile.phone) {
       return NextResponse.json(
-        { error: 'Usuario no encontrado o sin WhatsApp habilitado/teléfono' },
+        { error: 'Usuario no encontrado o sin número de teléfono' },
         { status: 404 }
       );
     }
 
+    if (!whatsappEnabled) {
+      return NextResponse.json(
+        { error: 'Notificaciones WhatsApp deshabilitadas' },
+        { status: 400 }
+      );
+    }
+
+    // Obtener el nombre del usuario para personalizar el mensaje
     const userName = profile.name || 'Usuario';
+    
+    // Normalizar y limpiar el número de teléfono
     const normalizedPhone = normalizePhoneNumber(profile.phone);
     const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
 
@@ -126,9 +147,6 @@ export async function POST(request: NextRequest) {
     console.log('  - Teléfono original:', profile.phone);
     console.log('  - Teléfono normalizado:', normalizedPhone);
     console.log('  - Teléfono para Infobip:', phoneForInfobip);
-    console.log('  - Tipo de notificación:', type || 'N/A');
-    console.log('  - Título:', title || 'N/A');
-    console.log('  - Mensaje:', message);
 
     // Asegurar que la URL tenga el protocolo https://
     let baseUrl = infobipBaseUrl;
@@ -150,17 +168,7 @@ export async function POST(request: NextRequest) {
     
     // Template "notificacion": "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
     // El placeholder {{1}} es el nombre del usuario
-    // Si el template tiene más placeholders, se pueden agregar aquí
-    // Por ejemplo, si el template es: "Hola {{1}}, {{2}} – Hommy"
-    // entonces placeholders sería: [userName, message]
-    
-    // Por ahora, solo usamos el nombre del usuario
-    // El mensaje completo se puede incluir si el template lo permite
-    const placeholders = [userName];
-    
-    // Si el template tiene un segundo placeholder para el mensaje, descomentar:
-    // const placeholders = [userName, message.substring(0, 100)]; // Limitar a 100 caracteres
-    
+    // El mensaje personalizado se incluye en el placeholder
     const payload = {
       messages: [
         {
@@ -170,7 +178,7 @@ export async function POST(request: NextRequest) {
             templateName: templateName,
             templateData: {
               body: {
-                placeholders: placeholders
+                placeholders: [userName] // Nombre del usuario como placeholder {{1}}
               }
             },
             language: templateLanguage
