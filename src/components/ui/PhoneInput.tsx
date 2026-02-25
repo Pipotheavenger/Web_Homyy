@@ -63,7 +63,7 @@ export default function PhoneInput({
             <span className="text-gray-600 font-medium text-sm">+57</span>
           </div>
         </div>
-        
+
         <input
           type="tel"
           value={value}
@@ -75,13 +75,13 @@ export default function PhoneInput({
             error ? 'border-red-300 bg-red-50' : 'border-gray-200'
           } ${isFocused ? 'ring-2 ring-purple-500 border-transparent' : ''} ${className}`}
         />
-        
-        {error ? (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
-        ) : (
-          <p className="mt-1 text-xs text-gray-500">Número de 10 dígitos (ej: 300 123 4567)</p>
-        )}
       </div>
+
+      {error ? (
+        <p className="mt-1 text-sm text-red-600">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs text-gray-500">Número de 10 dígitos (ej: 300 123 4567)</p>
+      )}
     </div>
   );
 }

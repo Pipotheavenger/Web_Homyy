@@ -75,11 +75,11 @@ export async function POST(request: NextRequest) {
       .update({ verified: true })
       .eq('id', verification.id);
 
-    // Si se proporcionó userId, marcar el teléfono como verificado en los perfiles
+    // Si se proporcionó userId, marcar el teléfono como verificado y activar WhatsApp
     if (userId) {
       await supabaseAdmin
         .from('user_profiles')
-        .update({ movil_verificado: true })
+        .update({ movil_verificado: true, whatsapp_notifications_enabled: true })
         .eq('user_id', userId);
 
       // Intentar actualizar también en worker_profiles (puede no existir)
