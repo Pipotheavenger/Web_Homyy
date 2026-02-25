@@ -4,6 +4,7 @@ import { useUserType } from '@/contexts/UserTypeContext';
 import { getNavigationItems, getPageConfig } from '@/utils/userTypeUtils';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import PhoneVerificationBar from './ui/PhoneVerificationBar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -60,6 +61,8 @@ export default function Layout({
             navigationItems={navigationItems}
             currentPage={currentPage}
           />
+
+          <PhoneVerificationBar />
 
           {/* Page Content */}
           <main className="flex-1 overflow-y-auto">
