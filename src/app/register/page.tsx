@@ -4,13 +4,12 @@ import { LoginHeader } from '@/components/ui/LoginHeader';
 import RoleSelection from '@/components/ui/RoleSelection';
 import WorkerInfoForm from '@/components/ui/WorkerInfoForm';
 import PersonalDataForm from '@/components/ui/PersonalDataForm';
-import PhoneVerifyForm from '@/components/ui/PhoneVerifyForm';
 import RegisterSuccess from '@/components/ui/RegisterSuccess';
 import BgWave from '../login/BgWave';
 import { useRegister } from '@/hooks/useRegister';
 import { RegisterUserData, RegisterWorkerData } from '@/types/database';
 
-type RegistrationStep = 'role' | 'worker-info' | 'personal-data' | 'phone-verify' | 'success';
+type RegistrationStep = 'role' | 'worker-info' | 'personal-data' | 'success';
 type UserRole = 'user' | 'worker';
 
 interface WorkerInfoData {
@@ -34,7 +33,6 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [workerInfo, setWorkerInfo] = useState<WorkerInfoData | null>(null);
-  const [pendingPersonalData, setPendingPersonalData] = useState<PersonalData | null>(null);
   const { isLoading, error, registerUser, registerWorker, clearError } = useRegister();
 
   // Funciones de navegación
@@ -57,38 +55,28 @@ export default function RegisterPage() {
 
     clearError();
 
-    // Guardar datos y avanzar a verificación telefónica
-    setPendingPersonalData(data);
-    setCurrentStep('phone-verify');
-  };
-
-  const handlePhoneVerified = async () => {
-    if (!selectedRole || !pendingPersonalData) return;
-
-    clearError();
-
     try {
       let result;
 
       if (selectedRole === 'user') {
         const userData: RegisterUserData = {
-          fullName: pendingPersonalData.fullName,
-          email: pendingPersonalData.email,
-          phone: pendingPersonalData.phone,
-          birthDate: pendingPersonalData.birthDate,
-          password: pendingPersonalData.password,
-          confirmPassword: pendingPersonalData.confirmPassword
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          birthDate: data.birthDate,
+          password: data.password,
+          confirmPassword: data.confirmPassword
         };
 
         result = await registerUser(userData);
       } else if (selectedRole === 'worker' && workerInfo) {
         const workerData: RegisterWorkerData = {
-          fullName: pendingPersonalData.fullName,
-          email: pendingPersonalData.email,
-          phone: pendingPersonalData.phone,
-          birthDate: pendingPersonalData.birthDate,
-          password: pendingPersonalData.password,
-          confirmPassword: pendingPersonalData.confirmPassword,
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          birthDate: data.birthDate,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
           profession: workerInfo.profession,
           experienceYears: parseInt(workerInfo.experienceYears),
           selectedCategories: workerInfo.categories,
@@ -120,8 +108,6 @@ export default function RegisterPage() {
         setCurrentStep('role');
         setSelectedRole(null);
       }
-    } else if (currentStep === 'phone-verify') {
-      setCurrentStep('personal-data');
     }
   };
 
@@ -146,16 +132,6 @@ export default function RegisterPage() {
             onBack={handleBack}
             isLoading={isLoading}
             error={error || undefined}
-            initialData={pendingPersonalData || undefined}
-          />
-        );
-
-      case 'phone-verify':
-        return (
-          <PhoneVerifyForm
-            phoneNumber={pendingPersonalData?.phone.replace(/\s/g, '') || ''}
-            onVerified={handlePhoneVerified}
-            onBack={handleBack}
           />
         );
 

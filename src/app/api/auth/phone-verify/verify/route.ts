@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { phoneNumber, otpCode } = await request.json();
+    const { phoneNumber, otpCode, userId } = await request.json();
 
     if (!phoneNumber || !otpCode) {
       return NextResponse.json(
@@ -74,6 +74,20 @@ export async function POST(request: NextRequest) {
       .from('phone_verifications')
       .update({ verified: true })
       .eq('id', verification.id);
+
+    // Si se proporcionó userId, marcar el teléfono como verificado en los perfiles
+    if (userId) {
+      await supabaseAdmin
+        .from('user_profiles')
+        .update({ movil_verificado: true })
+        .eq('user_id', userId);
+
+      // Intentar actualizar también en worker_profiles (puede no existir)
+      await supabaseAdmin
+        .from('worker_profiles')
+        .update({ movil_verificado: true })
+        .eq('user_id', userId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

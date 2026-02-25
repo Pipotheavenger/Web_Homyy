@@ -45,6 +45,7 @@ export const useProfile = () => {
         
         const profileData = {
           id: data.id,
+          user_id: data.user_id,
           nombre: nameParts[0] || '',
           apellido: nameParts.slice(1).join(' ') || '',
           email: data.email || '',

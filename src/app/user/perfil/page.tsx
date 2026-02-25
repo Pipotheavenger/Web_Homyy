@@ -25,6 +25,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import PhoneVerificationModal from '@/components/ui/PhoneVerificationModal';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -51,6 +53,7 @@ export default function PerfilPage() {
   const fileInputRef = useState<HTMLInputElement | null>(null)[0];
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   // Debug: Log cuando cambian los datos
   useEffect(() => {
@@ -65,6 +68,11 @@ export default function PerfilPage() {
       setWhatsappEnabled(usuario.whatsapp_notifications_enabled ?? false);
     }
   }, [usuario]);
+
+  const handlePhoneVerified = async () => {
+    setShowVerifyModal(false);
+    await loadProfileData(true);
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -521,74 +529,104 @@ export default function PerfilPage() {
                       <Shield className="text-purple-600" size={24} />
                       Estado de Cuenta
                     </h3>
-                    
+
                     <div className="space-y-3">
-                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Verificación</label>
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="text-green-600" size={20} />
-                              <span className="font-semibold text-gray-900">Cuenta Verificada</span>
+                      {/* Verificación - Condicional */}
+                      {usuario?.movil_verificado ? (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Verificación</label>
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="text-green-600" size={20} />
+                                <span className="font-semibold text-gray-900">Cuenta Verificada</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Toggle de Notificaciones WhatsApp - Siempre visible */}
-                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
-                                <MessageCircle size={14} />
-                                Notificaciones por WhatsApp
-                              </label>
-                              <p className="text-sm text-gray-600 mt-1">
-                                Recibe notificaciones importantes por WhatsApp
-                              </p>
+                      ) : (
+                        <div className="p-5 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <AlertTriangle className="text-yellow-600" size={20} />
                             </div>
-                            <button
-                              onClick={async () => {
-                                if (updatingWhatsapp) return;
-                                setUpdatingWhatsapp(true);
-                                const newValue = !whatsappEnabled;
-                                
-                                try {
-                                  const { data: { user } } = await supabase.auth.getUser();
-                                  if (!user) return;
-
-                                  const { error } = await supabase
-                                    .from('user_profiles')
-                                    .update({ whatsapp_notifications_enabled: newValue })
-                                    .eq('user_id', user.id);
-
-                                  if (error) {
-                                    console.error('Error actualizando preferencia de WhatsApp:', error);
-                                    alert('Error al actualizar la preferencia');
-                                  } else {
-                                    setWhatsappEnabled(newValue);
-                                    await loadProfileData(true);
-                                  }
-                                } catch (error) {
-                                  console.error('Error:', error);
-                                  alert('Error al actualizar la preferencia');
-                                } finally {
-                                  setUpdatingWhatsapp(false);
-                                }
-                              }}
-                              disabled={updatingWhatsapp}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-                                whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
-                              } ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                            >
-                              <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                  whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
-                                }`}
-                              />
-                            </button>
+                            <div className="flex-1">
+                              <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-md uppercase mb-2">
+                                Pendiente
+                              </span>
+                              <h4 className="font-semibold text-gray-900 mb-1">Verificación de cuenta</h4>
+                              <p className="text-sm text-gray-600 mb-3">
+                                Verifica tu número de celular para activar notificaciones por WhatsApp y acceder a todas las funciones de Hommy.
+                              </p>
+                              <button
+                                onClick={() => setShowVerifyModal(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors"
+                              >
+                                Verificar ahora
+                                <ArrowRight size={16} />
+                              </button>
+                            </div>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Toggle de Notificaciones WhatsApp */}
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-purple-50 rounded-xl border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
+                              <MessageCircle size={14} />
+                              Notificaciones por WhatsApp
+                            </label>
+                            <p className="text-sm text-gray-600 mt-1">
+                              Recibe notificaciones importantes por WhatsApp
+                            </p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (updatingWhatsapp) return;
+                              // Si no está verificado y quiere activar, abrir modal
+                              if (!whatsappEnabled && !usuario?.movil_verificado) {
+                                setShowVerifyModal(true);
+                                return;
+                              }
+                              setUpdatingWhatsapp(true);
+                              const newValue = !whatsappEnabled;
+
+                              try {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                if (!user) return;
+
+                                const { error } = await supabase
+                                  .from('user_profiles')
+                                  .update({ whatsapp_notifications_enabled: newValue })
+                                  .eq('user_id', user.id);
+
+                                if (error) {
+                                  console.error('Error actualizando preferencia de WhatsApp:', error);
+                                  alert('Error al actualizar la preferencia');
+                                } else {
+                                  setWhatsappEnabled(newValue);
+                                  await loadProfileData(true);
+                                }
+                              } catch (error) {
+                                console.error('Error:', error);
+                                alert('Error al actualizar la preferencia');
+                              } finally {
+                                setUpdatingWhatsapp(false);
+                              }
+                            }}
+                            disabled={updatingWhatsapp}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                              whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
+                            } ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
                         </div>
                       </div>
 
@@ -713,6 +751,14 @@ export default function PerfilPage() {
         </div>
       </div>
 
+      {/* Modal de Verificación de Teléfono */}
+      <PhoneVerificationModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        onVerified={handlePhoneVerified}
+        initialPhone={usuario?.telefono?.replace(/\s/g, '') || ''}
+        userId={usuario?.user_id}
+      />
     </Layout>
   );
 }

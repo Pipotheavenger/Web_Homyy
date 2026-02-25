@@ -2,8 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+// Cliente con anon key para signUp (flujo público que envía email de confirmación)
+const supabasePublic = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+// Cliente con service role para operaciones de admin (crear perfiles, rollback)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
@@ -66,49 +76,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Verificar que el teléfono fue verificado via OTP
-    const digits = phone.replace(/\s/g, '');
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-
-    const { data: verification, error: verifyError } = await supabaseAdmin
-      .from('phone_verifications')
-      .select('id')
-      .eq('phone_number', digits)
-      .eq('verified', true)
-      .gte('created_at', thirtyMinutesAgo)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (verifyError || !verification) {
-      return NextResponse.json(
-        { error: 'El teléfono no ha sido verificado. Completa la verificación OTP primero.' },
-        { status: 403 }
-      );
-    }
-
-    // 3. Crear usuario en Supabase Auth con admin API
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 2. Crear usuario con signUp() — envía email de confirmación via SMTP
+    const { data: authData, error: authError } = await supabasePublic.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      phone_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        phone,
-        birth_date: birthDate,
+      options: {
+        data: {
+          full_name: fullName,
+          phone,
+          birth_date: birthDate,
+        },
       },
     });
 
     if (authError) {
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
 
-      if (authError.message.includes('already been registered') || authError.message.includes('already exists')) {
+      if (authError.message.includes('already been registered') || authError.message.includes('already exists') || authError.message.includes('User already registered')) {
         errorMessage = 'Este correo electrónico ya está registrado';
       } else if (authError.message.includes('Password should be at least 6 characters')) {
         errorMessage = 'La contraseña debe tener al menos 6 caracteres';
       } else if (authError.message.includes('Invalid email')) {
         errorMessage = 'El correo electrónico no es válido';
+      } else if (authError.message.includes('Error sending confirmation')) {
+        errorMessage = 'Error al enviar el correo de confirmación. Intenta de nuevo más tarde.';
       }
 
       return NextResponse.json({ error: errorMessage }, { status: 409 });
@@ -123,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     const userId = authData.user.id;
 
-    // 4. Crear perfil de usuario y (si aplica) perfil de trabajador
+    // 3. Crear perfiles usando service role (bypasa RLS)
     try {
       const { error: profileError } = await supabaseAdmin.rpc('create_user_profile', {
         p_user_id: userId,
@@ -153,19 +144,6 @@ export async function POST(request: NextRequest) {
           throw new Error(workerError.message || 'Error al crear el perfil de trabajador');
         }
       }
-
-      // 5. Marcar movil_verificado en perfiles
-      await supabaseAdmin
-        .from('user_profiles')
-        .update({ movil_verificado: true })
-        .eq('user_id', userId);
-
-      if (userType === 'worker') {
-        await supabaseAdmin
-          .from('worker_profiles')
-          .update({ movil_verificado: true })
-          .eq('user_id', userId);
-      }
     } catch (profileError) {
       // Rollback: eliminar el usuario auth si falla la creación de perfiles
       console.error('Error creando perfiles, eliminando usuario auth:', profileError);
@@ -181,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, userId });
   } catch (error) {
-    console.error('❌ Error en /api/auth/register:', error);
+    console.error('Error en /api/auth/register:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Error al crear la cuenta. Inténtalo de nuevo.' },
       { status: 500 }
