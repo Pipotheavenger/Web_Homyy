@@ -714,7 +714,7 @@ export default function PerfilWorkerPage() {
                       )}
 
                       {/* Toggle de Notificaciones WhatsApp */}
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-200">
+                      <div className={`p-4 rounded-xl border ${!usuario?.movil_verificado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-gradient-to-r from-gray-50 to-emerald-50 border-gray-200'}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
@@ -722,14 +722,15 @@ export default function PerfilWorkerPage() {
                               Notificaciones por WhatsApp
                             </label>
                             <p className="text-sm text-gray-600 mt-1">
-                              Recibe notificaciones importantes por WhatsApp
+                              {!usuario?.movil_verificado
+                                ? 'Verifica tu número de celular para activar esta opción'
+                                : 'Recibe notificaciones importantes por WhatsApp'}
                             </p>
                           </div>
                           <button
                             onClick={async () => {
                               if (updatingWhatsapp) return;
-                              // Si no está verificado y quiere activar, abrir modal
-                              if (!whatsappEnabled && !usuario?.movil_verificado) {
+                              if (!usuario?.movil_verificado) {
                                 setShowVerifyModal(true);
                                 return;
                               }
@@ -759,14 +760,14 @@ export default function PerfilWorkerPage() {
                                 setUpdatingWhatsapp(false);
                               }
                             }}
-                            disabled={updatingWhatsapp}
+                            disabled={updatingWhatsapp || !usuario?.movil_verificado}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                              whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
-                            } ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                              whatsappEnabled && usuario?.movil_verificado ? 'bg-green-500' : 'bg-gray-300'
+                            } ${updatingWhatsapp || !usuario?.movil_verificado ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
+                                whatsappEnabled && usuario?.movil_verificado ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>

@@ -58,7 +58,7 @@ export const useProfile = () => {
           serviciosActivos: 0,
           balance: data.balance || 0, // ✅ Usar balance real de la BD
           movil_verificado: data.movil_verificado ?? false, // Usar nullish coalescing para manejar null
-          whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? true, // Por defecto true
+          whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? false,
           preferencias: {
             notificaciones: true,
             emailMarketing: false,
