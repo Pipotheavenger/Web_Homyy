@@ -1,0 +1,15 @@
+{
+  "serviceIds": {
+    "sample": "replace-with-real-id-from-database"
+  },
+  "categories": [
+    "Limpieza",
+    "Plomería",
+    "Electricidad",
+    "Carpintería"
+  ],
+  "testMessages": [
+    "Hola, ¿cómo estás?",
+    "¿Puedes confirmar la fecha?"
+  ]
+}
