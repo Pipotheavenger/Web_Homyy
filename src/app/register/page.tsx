@@ -101,19 +101,7 @@ export default function RegisterPage() {
         throw new Error('Información de trabajador faltante');
       }
 
-      if (result.success && result.userId) {
-        // Marcar teléfono como verificado en el perfil
-        try {
-          await fetch('/api/auth/phone-verify/mark-verified', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: result.userId }),
-          });
-        } catch (err) {
-          console.warn('No se pudo marcar el teléfono como verificado:', err);
-        }
-        setCurrentStep('success');
-      } else if (result.success) {
+      if (result.success) {
         setCurrentStep('success');
       }
     } catch (error: any) {

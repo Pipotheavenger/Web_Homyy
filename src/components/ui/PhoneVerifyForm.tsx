@@ -16,6 +16,7 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const [smsSent, setSmsSent] = useState(false);
 
   // Formatear teléfono para mostrar
@@ -37,7 +38,12 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Error al enviar el código');
+        if (response.status === 429 && data.retryAfterSeconds) {
+          setRateLimitCooldown(data.retryAfterSeconds);
+          setError(null);
+        } else {
+          setError(data.error || 'Error al enviar el código');
+        }
         return;
       }
 
@@ -70,6 +76,30 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
 
     return () => clearInterval(timer);
   }, [cooldown]);
+
+  // Temporizador del rate limit
+  useEffect(() => {
+    if (rateLimitCooldown <= 0) return;
+
+    const timer = setInterval(() => {
+      setRateLimitCooldown((prev) => {
+        if (prev <= 1) {
+          setError(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [rateLimitCooldown]);
+
+  // Formatear segundos a MM:SS
+  const formatTime = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
 
   // Verificar código automáticamente al completar 6 dígitos
   useEffect(() => {
@@ -133,12 +163,25 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
       {/* Card */}
       <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 space-y-6">
         {/* Mensajes de estado */}
-        {error && (
+        {rateLimitCooldown > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center space-y-2">
+            <p className="text-amber-700 text-sm font-medium">
+              Límite de envíos alcanzado
+            </p>
+            <p className="text-amber-600 text-xs">
+              Podrás reenviar el código en
+            </p>
+            <p className="text-2xl font-bold text-amber-700">
+              {formatTime(rateLimitCooldown)}
+            </p>
+          </div>
+        )}
+        {error && rateLimitCooldown <= 0 && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm text-center">
             {error}
           </div>
         )}
-        {successMessage && !error && (
+        {successMessage && !error && rateLimitCooldown <= 0 && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-600 text-sm text-center">
             {successMessage}
           </div>
@@ -160,7 +203,7 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
           <OtpInput
             value={otpValue}
             onChange={setOtpValue}
-            disabled={isVerifying || isSending}
+            disabled={isVerifying || isSending || rateLimitCooldown > 0}
             error={!!error}
           />
         </div>
@@ -175,7 +218,11 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
 
         {/* Botón reenviar */}
         <div className="text-center">
-          {cooldown > 0 ? (
+          {rateLimitCooldown > 0 ? (
+            <p className="text-sm text-gray-400">
+              Reenvío bloqueado temporalmente
+            </p>
+          ) : cooldown > 0 ? (
             <p className="text-sm text-gray-500">
               Reenviar código en <span className="font-semibold text-purple-600">{cooldown}s</span>
             </p>

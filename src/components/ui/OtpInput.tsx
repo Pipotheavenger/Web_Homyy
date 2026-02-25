@@ -11,7 +11,7 @@ interface OtpInputProps {
 
 export default function OtpInput({ value, onChange, disabled, error }: OtpInputProps) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(6, '').split('').slice(0, 6);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
 
   const focusInput = useCallback((index: number) => {
     if (index >= 0 && index < 6) {
@@ -77,7 +77,7 @@ export default function OtpInput({ value, onChange, disabled, error }: OtpInputP
           type="text"
           inputMode="numeric"
           maxLength={1}
-          value={digit === ' ' ? '' : digit}
+          value={digit}
           onChange={(e) => handleChange(index, e.target.value.slice(-1))}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onFocus={(e) => e.target.select()}
@@ -85,7 +85,7 @@ export default function OtpInput({ value, onChange, disabled, error }: OtpInputP
           className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold border-2 rounded-xl transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none ${
             error
               ? 'border-red-300 bg-red-50 text-red-600'
-              : digit && digit !== ' '
+              : digit
                 ? 'border-purple-400 bg-purple-50 text-purple-700'
                 : 'border-gray-200 bg-white text-gray-700'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}

@@ -42,9 +42,10 @@ export async function POST(request: NextRequest) {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const { data: recentSends, error: countError } = await supabaseAdmin
       .from('phone_verifications')
-      .select('id')
+      .select('id, created_at')
       .eq('phone_number', digits)
-      .gte('created_at', tenMinutesAgo);
+      .gte('created_at', tenMinutesAgo)
+      .order('created_at', { ascending: true });
 
     if (countError) {
       console.error('Error consultando rate limit:', countError);
@@ -55,8 +56,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (recentSends && recentSends.length >= 3) {
+      // Calcular cuántos segundos faltan para que expire el envío más antiguo
+      const oldestSend = new Date(recentSends[0].created_at).getTime();
+      const expiresAt = oldestSend + 10 * 60 * 1000;
+      const retryAfterSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+
       return NextResponse.json(
-        { error: 'Has excedido el límite de envíos. Intenta de nuevo en unos minutos.' },
+        { error: 'Has excedido el límite de envíos.', retryAfterSeconds },
         { status: 429 }
       );
     }

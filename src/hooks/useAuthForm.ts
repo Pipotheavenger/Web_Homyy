@@ -89,9 +89,7 @@ export const useAuthForm = () => {
       if (error) {
         let errorMessage = '';
 
-        if (error.message.includes('Email not confirmed')) {
-          errorMessage = '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para activar tu cuenta.';
-        } else if (error.message.includes('Invalid login credentials')) {
+        if (error.message.includes('Invalid login credentials')) {
           errorMessage = '❌ Correo electrónico o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
         } else if (error.message.includes('Too many requests')) {
           errorMessage = '⏰ Demasiados intentos. Por favor, espera unos minutos antes de intentar nuevamente.';
@@ -107,18 +105,6 @@ export const useAuthForm = () => {
       }
 
       if (data.user) {
-        // Verificar si el email está confirmado
-        if (!data.user.email_confirmed_at) {
-          setErrors({
-            general: '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para confirmar tu cuenta antes de iniciar sesión.'
-          });
-          setIsLoading(false);
-          
-          // Cerrar la sesión si el email no está confirmado
-          await supabase.auth.signOut();
-          return;
-        }
-
         // Obtener el tipo de usuario desde la base de datos
         const userType = await getUserType(data.user.id);
         
