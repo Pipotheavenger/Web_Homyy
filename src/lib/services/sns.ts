@@ -4,13 +4,20 @@
 
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
-const snsClient = new SNSClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+function getSNSClient(): SNSClient | null {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY?.trim();
+  if (!accessKeyId || !secretAccessKey) {
+    return null;
+  }
+  return new SNSClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+}
 
 /**
  * Convierte un número de teléfono colombiano a formato E.164
@@ -47,6 +54,15 @@ export async function sendVerificationSMS(
   otpCode: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const snsClient = getSNSClient();
+    if (!snsClient) {
+      console.warn('⚠️ AWS SNS no configurado: faltan AWS_ACCESS_KEY_ID o AWS_SECRET_ACCESS_KEY');
+      return {
+        success: false,
+        error: 'El envío de SMS no está configurado. Contacta al administrador.',
+      };
+    }
+
     const formattedPhone = formatPhoneForSNS(phoneNumber);
 
     const command = new PublishCommand({

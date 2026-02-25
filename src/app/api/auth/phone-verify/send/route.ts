@@ -92,8 +92,12 @@ export async function POST(request: NextRequest) {
     const smsResult = await sendVerificationSMS(digits, otpCode);
 
     if (!smsResult.success) {
+      const userMessage =
+        smsResult.error?.includes('credential') || smsResult.error?.includes('no está configurado')
+          ? 'El envío de SMS no está configurado. Contacta al administrador.'
+          : smsResult.error || 'Error al enviar el SMS';
       return NextResponse.json(
-        { error: smsResult.error || 'Error al enviar el SMS' },
+        { error: userMessage },
         { status: 500 }
       );
     }

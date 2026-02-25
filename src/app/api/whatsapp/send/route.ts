@@ -25,7 +25,7 @@ function normalizePhoneNumber(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, message } = body;
+    const { userId, message, title, type } = body;
 
     if (!userId || !message) {
       return NextResponse.json(
@@ -74,39 +74,42 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Obtener información del usuario (incluyendo nombre y teléfono)
-    const { data: userProfile, error: profileError } = await supabaseAdmin
+    // Obtener información del usuario: primero user_profiles, si no hay datos válidos luego worker_profiles
+    const { data: userProfile } = await supabaseAdmin
       .from('user_profiles')
       .select('phone, whatsapp_notifications_enabled, name')
       .eq('user_id', userId)
       .single();
 
-    if (profileError || !userProfile) {
+    const fromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone
+      ? { phone: userProfile.phone, name: userProfile.name }
+      : null;
+
+    let profile: { phone: string; name: string | null } | null = fromUser
+      ? { phone: fromUser.phone, name: userProfile?.name ?? null }
+      : null;
+
+    if (!profile) {
+      const { data: workerProfile } = await supabaseAdmin
+        .from('worker_profiles')
+        .select('phone, whatsapp_notifications_enabled, name')
+        .eq('user_id', userId)
+        .single();
+
+      if (workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone) {
+        profile = { phone: workerProfile.phone, name: workerProfile.name ?? null };
+      }
+    }
+
+    if (!profile) {
       return NextResponse.json(
-        { error: 'Usuario no encontrado' },
+        { error: 'Usuario no encontrado o sin WhatsApp habilitado/teléfono' },
         { status: 404 }
       );
     }
 
-    if (!userProfile.whatsapp_notifications_enabled) {
-      return NextResponse.json(
-        { error: 'Notificaciones WhatsApp deshabilitadas' },
-        { status: 400 }
-      );
-    }
-
-    if (!userProfile.phone) {
-      return NextResponse.json(
-        { error: 'Usuario no tiene número de teléfono' },
-        { status: 400 }
-      );
-    }
-
-    // Obtener el nombre del usuario para personalizar el mensaje
-    const userName = userProfile.name || 'Usuario';
-    
-    // Normalizar y limpiar el número de teléfono
-    const normalizedPhone = normalizePhoneNumber(userProfile.phone);
+    const userName = profile.name || 'Usuario';
+    const normalizedPhone = normalizePhoneNumber(profile.phone);
     const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
 
     // Validar que tenemos los datos necesarios
@@ -120,9 +123,12 @@ export async function POST(request: NextRequest) {
     console.log('📱 Datos del usuario para WhatsApp:');
     console.log('  - User ID:', userId);
     console.log('  - Nombre:', userName);
-    console.log('  - Teléfono original:', userProfile.phone);
+    console.log('  - Teléfono original:', profile.phone);
     console.log('  - Teléfono normalizado:', normalizedPhone);
     console.log('  - Teléfono para Infobip:', phoneForInfobip);
+    console.log('  - Tipo de notificación:', type || 'N/A');
+    console.log('  - Título:', title || 'N/A');
+    console.log('  - Mensaje:', message);
 
     // Asegurar que la URL tenga el protocolo https://
     let baseUrl = infobipBaseUrl;
@@ -144,7 +150,17 @@ export async function POST(request: NextRequest) {
     
     // Template "notificacion": "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
     // El placeholder {{1}} es el nombre del usuario
-    // El mensaje personalizado se incluye en el placeholder
+    // Si el template tiene más placeholders, se pueden agregar aquí
+    // Por ejemplo, si el template es: "Hola {{1}}, {{2}} – Hommy"
+    // entonces placeholders sería: [userName, message]
+    
+    // Por ahora, solo usamos el nombre del usuario
+    // El mensaje completo se puede incluir si el template lo permite
+    const placeholders = [userName];
+    
+    // Si el template tiene un segundo placeholder para el mensaje, descomentar:
+    // const placeholders = [userName, message.substring(0, 100)]; // Limitar a 100 caracteres
+    
     const payload = {
       messages: [
         {
@@ -154,7 +170,7 @@ export async function POST(request: NextRequest) {
             templateName: templateName,
             templateData: {
               body: {
-                placeholders: [userName] // Nombre del usuario como placeholder {{1}}
+                placeholders: placeholders
               }
             },
             language: templateLanguage
