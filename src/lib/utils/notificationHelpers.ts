@@ -223,7 +223,8 @@ export const notifyPaymentProcessed = async (
     metadata: {
       transaction_id: transactionId,
       amount
-    }
+    },
+    isCritical: true // Marcar como crítica para asegurar envío por WhatsApp
   });
 };
 

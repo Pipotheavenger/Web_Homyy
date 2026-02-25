@@ -13,7 +13,7 @@ import { formatPrice } from '@/lib/utils/empty-state-helpers';
 
 function DetallesPostulantesContent() {
   const [isQuestionsExpanded, setIsQuestionsExpanded] = useState(false); // Colapsado por defecto
-  const [isPostulantesExpanded, setIsPostulantesExpanded] = useState(false); // Colapsado por defecto
+  const [isPostulantesExpanded, setIsPostulantesExpanded] = useState(true); // Desplegada por defecto
 
   const {
     servicio,

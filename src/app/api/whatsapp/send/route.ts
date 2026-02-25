@@ -74,39 +74,63 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Obtener información del usuario (incluyendo nombre y teléfono)
-    const { data: userProfile, error: profileError } = await supabaseAdmin
+    // Obtener información del usuario: primero user_profiles, luego worker_profiles
+    // (similar a como lo hace /api/notifications/create)
+    const { data: userProfile } = await supabaseAdmin
       .from('user_profiles')
       .select('phone, whatsapp_notifications_enabled, name')
       .eq('user_id', userId)
       .single();
 
-    if (profileError || !userProfile) {
+    const canSendFromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone;
+
+    let profile: { phone: string; name: string | null } | null = null;
+    let whatsappEnabled = false;
+
+    if (canSendFromUser) {
+      // Si user_profiles tiene WhatsApp habilitado y teléfono, usarlo
+      profile = { phone: userProfile.phone, name: userProfile.name || null };
+      whatsappEnabled = true;
+    } else {
+      // Si no está en user_profiles o no tiene WhatsApp habilitado, buscar en worker_profiles
+      const { data: workerProfile } = await supabaseAdmin
+        .from('worker_profiles')
+        .select('phone, whatsapp_notifications_enabled, name')
+        .eq('user_id', userId)
+        .single();
+
+      if (workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone) {
+        // Si worker_profiles tiene WhatsApp habilitado y teléfono, usarlo
+        profile = { phone: workerProfile.phone, name: workerProfile.name || null };
+        whatsappEnabled = true;
+      } else if (userProfile?.phone) {
+        // Si userProfile existe y tiene teléfono pero WhatsApp no está habilitado, no enviar
+        return NextResponse.json(
+          { error: 'Notificaciones WhatsApp deshabilitadas para este usuario' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (!profile || !profile.phone) {
       return NextResponse.json(
-        { error: 'Usuario no encontrado' },
+        { error: 'Usuario no encontrado o sin número de teléfono' },
         { status: 404 }
       );
     }
 
-    if (!userProfile.whatsapp_notifications_enabled) {
+    if (!whatsappEnabled) {
       return NextResponse.json(
         { error: 'Notificaciones WhatsApp deshabilitadas' },
         { status: 400 }
       );
     }
 
-    if (!userProfile.phone) {
-      return NextResponse.json(
-        { error: 'Usuario no tiene número de teléfono' },
-        { status: 400 }
-      );
-    }
-
     // Obtener el nombre del usuario para personalizar el mensaje
-    const userName = userProfile.name || 'Usuario';
+    const userName = profile.name || 'Usuario';
     
     // Normalizar y limpiar el número de teléfono
-    const normalizedPhone = normalizePhoneNumber(userProfile.phone);
+    const normalizedPhone = normalizePhoneNumber(profile.phone);
     const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
 
     // Validar que tenemos los datos necesarios
@@ -120,7 +144,7 @@ export async function POST(request: NextRequest) {
     console.log('📱 Datos del usuario para WhatsApp:');
     console.log('  - User ID:', userId);
     console.log('  - Nombre:', userName);
-    console.log('  - Teléfono original:', userProfile.phone);
+    console.log('  - Teléfono original:', profile.phone);
     console.log('  - Teléfono normalizado:', normalizedPhone);
     console.log('  - Teléfono para Infobip:', phoneForInfobip);
 

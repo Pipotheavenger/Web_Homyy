@@ -46,13 +46,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si el tipo de notificación está habilitado
-    const { data: setting } = await supabaseAdmin
-      .from('notification_settings')
-      .select('enabled')
-      .eq('notification_type', type)
-      .single();
+    // Verificar si el tipo de notificación está habilitado (y si WhatsApp está habilitado para este tipo)
+    let setting: { enabled?: boolean; whatsapp_enabled?: boolean } | null = null;
+    {
+      const attempt = await supabaseAdmin
+        .from('notification_settings')
+        .select('enabled, whatsapp_enabled')
+        .eq('notification_type', type)
+        .single();
 
+      if (!attempt.error) {
+        setting = attempt.data as any;
+      } else {
+        const msg = String(attempt.error.message || '');
+        const columnMissing = msg.toLowerCase().includes('whatsapp_enabled'.toLowerCase());
+        if (columnMissing) {
+          const fallback = await supabaseAdmin
+            .from('notification_settings')
+            .select('enabled')
+            .eq('notification_type', type)
+            .single();
+          if (!fallback.error) {
+            setting = fallback.data as any;
+          } else {
+            // Si falla, no bloqueamos la notificación; seguimos con comportamiento por defecto.
+            console.warn('⚠️ No se pudo leer notification_settings (fallback):', fallback.error);
+            setting = null;
+          }
+        } else {
+          console.warn('⚠️ No se pudo leer notification_settings:', attempt.error);
+          setting = null;
+        }
+      }
+    }
+
+    // Si la configuración existe y está deshabilitada, no crear la notificación
     if (setting && !setting.enabled) {
       return NextResponse.json(
         { 
@@ -94,21 +122,43 @@ export async function POST(request: NextRequest) {
       'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
     ];
 
-    if (importantTypes.includes(type) && (isCritical || true)) {
-      // Verificar si el usuario tiene WhatsApp habilitado y obtener datos del usuario
+    // Solo enviar WhatsApp si:
+    // 1. Es un tipo importante (una de las 4 notificaciones vitales)
+    // 2. La notificación está habilitada en notification_settings (si existe la configuración)
+    // 3. WhatsApp está habilitado para este tipo de notificación (whatsapp_enabled)
+    const isNotificationEnabled = !setting || setting.enabled;
+    const isWhatsAppEnabled = !setting || setting.whatsapp_enabled !== false;
+    const shouldSendWhatsApp = importantTypes.includes(type) && isNotificationEnabled && isWhatsAppEnabled;
+
+    if (shouldSendWhatsApp) {
+      // Verificar si el usuario tiene WhatsApp habilitado: primero user_profiles, luego worker_profiles
       const { data: userProfile } = await supabaseAdmin
         .from('user_profiles')
         .select('whatsapp_notifications_enabled, phone, name')
         .eq('user_id', userId)
         .single();
 
-      if (userProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
+      const canSendFromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone;
+
+      let canSendWhatsApp = canSendFromUser;
+      if (!canSendFromUser) {
+        const { data: workerProfile } = await supabaseAdmin
+          .from('worker_profiles')
+          .select('whatsapp_notifications_enabled, phone, name')
+          .eq('user_id', userId)
+          .single();
+        canSendWhatsApp = !!(workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone);
+      }
+
+      if (canSendWhatsApp) {
         // Enviar WhatsApp en segundo plano (no bloquea la respuesta)
         // El template "notificacion" usa el nombre del usuario como placeholder {{1}}
         // Template: "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
-        // El endpoint /api/whatsapp/send obtendrá el nombre y número del usuario automáticamente
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+        // El endpoint /api/whatsapp/send obtendrá el nombre y número desde user_profiles o worker_profiles
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+        console.log(`📱 Enviando WhatsApp para notificación ${type} al usuario ${userId}`);
         
         fetch(`${baseUrl}/api/whatsapp/send`, {
           method: 'POST',
@@ -117,12 +167,27 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             userId: userId,
-            message: message, // El mensaje de la notificación (aunque el template solo usa el nombre)
+            message: message,
+            title: title,
+            type: type,
           }),
-        }).catch(err => {
+        })
+        .then(async (response) => {
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+            console.error(`❌ Error enviando WhatsApp:`, errorData);
+          } else {
+            console.log(`✅ WhatsApp enviado exitosamente para usuario ${userId}`);
+          }
+        })
+        .catch(err => {
           console.warn('⚠️ Error enviando WhatsApp (no crítico):', err);
         });
+      } else {
+        console.log(`ℹ️ WhatsApp no enviado para usuario ${userId}: notificaciones deshabilitadas o sin teléfono`);
       }
+    } else {
+      console.log(`ℹ️ WhatsApp no enviado: tipo ${type} no es importante, notificación deshabilitada o WhatsApp deshabilitado para este tipo`);
     }
 
     return NextResponse.json({

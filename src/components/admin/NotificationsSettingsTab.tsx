@@ -7,6 +7,7 @@ interface NotificationSetting {
   id: string;
   notification_type: string;
   enabled: boolean;
+  whatsapp_enabled?: boolean;
   description: string;
 }
 
@@ -60,10 +61,10 @@ export function NotificationsSettingsTab() {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      // Cargar solo las notificaciones vitales
+      // Cargar solo las notificaciones vitales (incluyendo whatsapp_enabled)
       const { data: notifications, error: notifError } = await supabase
         .from('notification_settings')
-        .select('*')
+        .select('id, notification_type, enabled, whatsapp_enabled, description')
         .in('notification_type', VITAL_NOTIFICATIONS)
         .order('notification_type');
 
@@ -97,6 +98,31 @@ export function NotificationsSettingsTab() {
     } catch (error) {
       console.error('Error actualizando configuración:', error);
       alert('Error al actualizar la configuración');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const updateWhatsAppSetting = async (notificationType: string, whatsapp_enabled: boolean) => {
+    setUpdating(`whatsapp:${notificationType}`);
+    try {
+      const { error } = await supabase
+        .from('notification_settings')
+        .update({ whatsapp_enabled })
+        .eq('notification_type', notificationType);
+
+      if (error) throw error;
+
+      setNotificationSettings(prev =>
+        prev.map(setting =>
+          setting.notification_type === notificationType
+            ? { ...setting, whatsapp_enabled }
+            : setting
+        )
+      );
+    } catch (error) {
+      console.error('Error actualizando configuración WhatsApp:', error);
+      alert('Error al actualizar la configuración de WhatsApp');
     } finally {
       setUpdating(null);
     }
@@ -182,8 +208,11 @@ export function NotificationsSettingsTab() {
                   key={setting.id}
                   setting={setting}
                   enabled={setting.enabled}
+                  whatsappEnabled={setting.whatsapp_enabled ?? true}
                   updating={updating === setting.notification_type}
+                  updatingWhatsApp={updating === `whatsapp:${setting.notification_type}`}
                   onToggle={(enabled) => updateNotificationSetting(setting.notification_type, enabled)}
+                  onToggleWhatsApp={(enabled) => updateWhatsAppSetting(setting.notification_type, enabled)}
                 />
               ))}
             </div>
@@ -200,8 +229,11 @@ export function NotificationsSettingsTab() {
                   key={setting.id}
                   setting={setting}
                   enabled={setting.enabled}
+                  whatsappEnabled={setting.whatsapp_enabled ?? true}
                   updating={updating === setting.notification_type}
+                  updatingWhatsApp={updating === `whatsapp:${setting.notification_type}`}
                   onToggle={(enabled) => updateNotificationSetting(setting.notification_type, enabled)}
+                  onToggleWhatsApp={(enabled) => updateWhatsAppSetting(setting.notification_type, enabled)}
                 />
               ))}
             </div>
@@ -218,8 +250,11 @@ export function NotificationsSettingsTab() {
                   key={setting.id}
                   setting={setting}
                   enabled={setting.enabled}
+                  whatsappEnabled={setting.whatsapp_enabled ?? true}
                   updating={updating === setting.notification_type}
+                  updatingWhatsApp={updating === `whatsapp:${setting.notification_type}`}
                   onToggle={(enabled) => updateNotificationSetting(setting.notification_type, enabled)}
+                  onToggleWhatsApp={(enabled) => updateWhatsAppSetting(setting.notification_type, enabled)}
                 />
               ))}
             </div>
@@ -239,15 +274,26 @@ export function NotificationsSettingsTab() {
 interface NotificationToggleProps {
   setting: NotificationSetting;
   enabled: boolean;
+  whatsappEnabled: boolean;
   updating: boolean;
+  updatingWhatsApp: boolean;
   onToggle: (enabled: boolean) => void;
+  onToggleWhatsApp: (enabled: boolean) => void;
 }
 
-function NotificationToggle({ setting, enabled, updating, onToggle }: NotificationToggleProps) {
+function NotificationToggle({ 
+  setting, 
+  enabled, 
+  whatsappEnabled,
+  updating, 
+  updatingWhatsApp,
+  onToggle,
+  onToggleWhatsApp
+}: NotificationToggleProps) {
   const displayName = setting.description.replace(/^(Cliente:|Profesional:|Crítica:|Sistema:)\s*/, '');
 
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+    <div className="flex items-center justify-between gap-4 p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-gray-900">
@@ -257,26 +303,49 @@ function NotificationToggle({ setting, enabled, updating, onToggle }: Notificati
             {setting.notification_type}
           </span>
         </div>
-        {updating && (
+        {(updating || updatingWhatsApp) && (
           <span className="text-xs text-blue-600 mt-1 flex items-center gap-1">
             <Loader2 className="animate-spin" size={12} />
             Actualizando...
           </span>
         )}
       </div>
-      <button
-        onClick={() => onToggle(!enabled)}
-        disabled={updating}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-          enabled ? 'bg-green-500' : 'bg-gray-300'
-        } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            enabled ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-600">App</span>
+          <button
+            onClick={() => onToggle(!enabled)}
+            disabled={updating}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+              enabled ? 'bg-green-500' : 'bg-gray-300'
+            } ${updating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title="Activa/desactiva la notificación dentro de la app"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                enabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-600">WhatsApp</span>
+          <button
+            onClick={() => onToggleWhatsApp(!whatsappEnabled)}
+            disabled={updatingWhatsApp}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+              whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
+            } ${updatingWhatsApp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title="Activa/desactiva el envío por WhatsApp para este caso"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
