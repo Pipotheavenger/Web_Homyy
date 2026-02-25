@@ -21,27 +21,45 @@ export async function POST(request: NextRequest) {
     );
 
     // Activar WhatsApp para todos los usuarios con móvil verificado
+    // Primero contar los que tienen null
+    const { count: countNull, error: countNullError } = await supabaseClient
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('movil_verificado', true)
+      .is('whatsapp_notifications_enabled', null);
+
     // Actualizar los que tienen null
-    const { count: countNull, error: errorNull } = await supabaseClient
+    const { error: errorNull } = await supabaseClient
       .from('user_profiles')
       .update({ whatsapp_notifications_enabled: true })
       .eq('movil_verificado', true)
-      .is('whatsapp_notifications_enabled', null)
-      .select('*', { count: 'exact', head: true });
+      .is('whatsapp_notifications_enabled', null);
+
+    // Contar los que tienen false
+    const { count: countFalse, error: countFalseError } = await supabaseClient
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('movil_verificado', true)
+      .eq('whatsapp_notifications_enabled', false);
 
     // Actualizar los que tienen false
-    const { count: countFalse, error: errorFalse } = await supabaseClient
+    const { error: errorFalse } = await supabaseClient
       .from('user_profiles')
       .update({ whatsapp_notifications_enabled: true })
       .eq('movil_verificado', true)
-      .eq('whatsapp_notifications_enabled', false)
-      .select('*', { count: 'exact', head: true });
+      .eq('whatsapp_notifications_enabled', false);
 
     if (errorNull) {
       console.error('Error activando WhatsApp (null):', errorNull);
     }
     if (errorFalse) {
       console.error('Error activando WhatsApp (false):', errorFalse);
+    }
+    if (countNullError) {
+      console.error('Error contando usuarios (null):', countNullError);
+    }
+    if (countFalseError) {
+      console.error('Error contando usuarios (false):', countFalseError);
     }
 
     if (errorNull && errorFalse) {

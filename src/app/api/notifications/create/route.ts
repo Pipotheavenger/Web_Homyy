@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
       'payment_processed',
       'payment_released',
       'payment_issue',
-      'service_created',
       'new_professional_applied',
       'client_selected_you',
       'service_cancelled',

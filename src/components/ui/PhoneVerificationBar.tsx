@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { usePhoneVerificationStatus } from '@/hooks/usePhoneVerificationStatus';
-import PhoneVerificationModal from './PhoneVerificationModal';
+import { PhoneVerificationModal } from './PhoneVerificationModal';
+import { useUserType } from '@/contexts/UserTypeContext';
 
 const DISMISS_KEY = 'hommy_phone_verify_dismissed';
 
 export default function PhoneVerificationBar() {
   const { isVerified, phone, userId, loading } = usePhoneVerificationStatus();
+  const { userType } = useUserType();
   const [isDismissed, setIsDismissed] = useState(true); // Start true to avoid flash
   const [showModal, setShowModal] = useState(false);
   const [verifiedLocally, setVerifiedLocally] = useState(false);
@@ -41,8 +43,8 @@ export default function PhoneVerificationBar() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onVerified={handleVerified}
-        initialPhone={phone?.replace(/\s/g, '') || ''}
-        userId={userId || undefined}
+        phoneNumber={phone?.replace(/\s/g, '') || ''}
+        userType={userType || 'user'}
       />
     ) : null;
   }
@@ -91,8 +93,8 @@ export default function PhoneVerificationBar() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onVerified={handleVerified}
-        initialPhone={phone?.replace(/\s/g, '') || ''}
-        userId={userId || undefined}
+        phoneNumber={phone?.replace(/\s/g, '') || ''}
+        userType={userType || 'user'}
       />
     </>
   );
