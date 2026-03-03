@@ -14,7 +14,7 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-    const { error } = await supabase.from('profiles').select('id').limit(1);
+    const { error } = await supabase.from('user_profiles').select('id').limit(1);
     checks.supabase = !error;
     if (error) checks.status = 'degraded';
   } catch {

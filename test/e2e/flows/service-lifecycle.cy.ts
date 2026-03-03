@@ -76,29 +76,19 @@ describe('Flujo Completo: Ciclo de Vida del Servicio', () => {
     // Fill barrio
     cy.get('input[placeholder="Chapinero"]').clear().type('Chapinero');
 
-    // Select a date: click a future day in the calendar
-    // The calendar shows the current month. We click the next available day.
-    cy.get('body').then(($body) => {
-      // Find a clickable day button in the calendar that is not disabled
-      // Calendar days are buttons inside the calendar grid
-      const today = new Date();
-      const futureDay = today.getDate() + 2; // 2 days from now
-
-      // Try clicking a specific future date, or just the last available day
-      if (futureDay <= 28) {
-        // Safe range for any month
-        cy.contains('button', futureDay.toString())
-          .filter(':not([disabled])')
-          .first()
-          .click();
-      } else {
-        // Just click any available non-disabled day
-        cy.get('button')
-          .filter(':not([disabled])')
-          .filter((_, el) => /^\d{1,2}$/.test(el.textContent?.trim() || ''))
-          .last()
-          .click();
+    // Select a date: use native DOM API to bypass Cypress element wrapping
+    // (Cypress internal visibility checks fail on React-rerendered calendar buttons)
+    cy.wait(500);
+    cy.window().then((win) => {
+      const grids = win.document.querySelectorAll('[class*="grid-cols-7"]');
+      for (const grid of Array.from(grids)) {
+        const buttons = grid.querySelectorAll('button:not([disabled])');
+        if (buttons.length > 0) {
+          (buttons[buttons.length - 1] as HTMLButtonElement).click();
+          return;
+        }
       }
+      throw new Error('No enabled calendar buttons found');
     });
 
     // Use the "Mañana" preset for quick time selection

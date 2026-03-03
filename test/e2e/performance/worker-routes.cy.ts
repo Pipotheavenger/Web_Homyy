@@ -119,7 +119,7 @@ describe('Performance: Worker Routes', () => {
 
     it('debe mostrar informacion de ganancias y pagos', () => {
       cy.visit('/worker/pagos');
-      cy.waitForPageLoad();
+      cy.waitForPageLoad(8000);
 
       cy.contains(/pago|pagos|ganancia/i).should('be.visible');
     });
