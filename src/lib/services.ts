@@ -107,14 +107,14 @@ export const serviceService = {
       // Si no se necesitan categorías ni escrow, retornar inmediatamente (más rápido)
       if (!includeCategories && !shouldIncludeEscrow) {
         return {
-          data: services.map(s => ({ ...s, category: null, escrow_pin: null, budget: s.escrow_amount || 0 })),
+          data: services.map(s => ({ ...s, category: undefined, escrow_pin: null, budget: s.escrow_amount || 0 })),
           error: null,
           success: true
         };
       }
 
       // Cargar datos adicionales solo si se solicitan (en paralelo)
-      const promises: Promise<any>[] = [];
+      const promises: PromiseLike<any>[] = [];
       
       if (includeCategories) {
         const categoryIds = [...new Set(services.map(s => s.category_id).filter(Boolean))];
@@ -166,14 +166,14 @@ export const serviceService = {
       const servicesWithExtras = services.map(service => {
         const category = includeCategories
           ? categories.find(c => c.id === service.category_id)
-          : null;
+          : undefined;
         const escrow = shouldIncludeEscrow
           ? escrowData.find(e => e.service_id === service.id)
           : null;
 
         return {
           ...service,
-          category: category || null,
+          category: category || undefined,
           escrow_pin: escrow?.completion_pin || null,
           budget: escrow?.amount || service.escrow_amount || 0
         };
@@ -227,7 +227,7 @@ export const serviceService = {
       // Las relaciones se pueden cargar después si es necesario
       const basicServices = services.map(service => ({
         ...service,
-        category: null,
+        category: undefined,
         client: null,
         schedules: []
       }));

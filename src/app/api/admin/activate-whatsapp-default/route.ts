@@ -24,18 +24,16 @@ export async function POST(request: NextRequest) {
     // Actualizar los que tienen null
     const { count: countNull, error: errorNull } = await supabaseClient
       .from('user_profiles')
-      .update({ whatsapp_notifications_enabled: true })
+      .update({ whatsapp_notifications_enabled: true }, { count: 'exact' })
       .eq('movil_verificado', true)
-      .is('whatsapp_notifications_enabled', null)
-      .select('*', { count: 'exact', head: true });
+      .is('whatsapp_notifications_enabled', null);
 
     // Actualizar los que tienen false
     const { count: countFalse, error: errorFalse } = await supabaseClient
       .from('user_profiles')
-      .update({ whatsapp_notifications_enabled: true })
+      .update({ whatsapp_notifications_enabled: true }, { count: 'exact' })
       .eq('movil_verificado', true)
-      .eq('whatsapp_notifications_enabled', false)
-      .select('*', { count: 'exact', head: true });
+      .eq('whatsapp_notifications_enabled', false);
 
     if (errorNull) {
       console.error('Error activando WhatsApp (null):', errorNull);

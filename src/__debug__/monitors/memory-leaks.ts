@@ -30,7 +30,7 @@ export function createMemoryMonitor() {
   const originalSetTimeout = window.setTimeout.bind(window);
   const originalClearTimeout = window.clearTimeout.bind(window);
 
-  let leakCheckInterval: ReturnType<typeof setInterval> | null = null;
+  let leakCheckInterval: number | null = null;
 
   const getStack = (): string => {
     try {

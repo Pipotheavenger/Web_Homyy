@@ -117,7 +117,7 @@ export const reviewsService = {
     try {
       // professional_id es el id de la tabla professionals (no el user_id)
       // Primero intentar con la relación completa
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('reviews')
         .select(`
           *,

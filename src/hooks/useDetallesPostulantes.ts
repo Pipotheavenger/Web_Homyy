@@ -381,9 +381,10 @@ export const useDetallesPostulantes = () => {
     etapa: servicio.status === 'active' ? 'Contratando' : 
            servicio.status === 'hired' ? 'Contratado' : 
            servicio.status === 'completed' ? 'Completado' : 'Activo',
-    horariosDisponibilidad: servicio.schedules?.map((s: any) => 
+    horariosDisponibilidad: servicio.schedules?.map((s: any) =>
       `${s.date_available}: ${s.start_time} - ${s.end_time}`
-    ) || []
+    ) || [],
+    escrow_amount: servicio.escrow_amount
   } : null;
 
   return {

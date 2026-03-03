@@ -57,7 +57,7 @@ export const notificationService = {
 
       const { data: notifications, error } = await supabase
         .from('notifications')
-        .select('id, user_id, type, title, message, is_read, is_critical, created_at, metadata')
+        .select('id, user_id, type, title, message, is_read, is_critical, created_at, updated_at, metadata')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -87,7 +87,7 @@ export const notificationService = {
 
       const { data: notifications, error } = await supabase
         .from('notifications')
-        .select('id, user_id, type, title, message, is_read, is_critical, created_at, metadata')
+        .select('id, user_id, type, title, message, is_read, is_critical, created_at, updated_at, metadata')
         .eq('user_id', user.id)
         .eq('is_read', false)
         .order('created_at', { ascending: false });

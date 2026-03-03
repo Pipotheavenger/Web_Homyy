@@ -3,7 +3,7 @@ import { User, Award, Settings, Star } from 'lucide-react';
 interface Tab {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 interface ProfileTabsProps {
