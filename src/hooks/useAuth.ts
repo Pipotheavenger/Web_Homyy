@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { getUserProfile, UserProfile } from '@/lib/auth-utils';
-import { getCachedData, setCachedData, clearCachedData } from '@/lib/cache-utils';
+import { getCachedData, setCachedData, clearAllCache } from '@/lib/cache-utils';
 
 interface AuthState {
   user: User | null;
@@ -52,12 +52,9 @@ export const useAuth = () => {
       async (event, session) => {
         if (event === 'SIGNED_OUT') {
           userIdRef.current = null;
-          setAuthState(prev => {
-            if (prev.user?.id) {
-              clearCachedData(`user_profile_${prev.user.id}`);
-            }
-            return { user: null, profile: null, loading: false, error: null };
-          });
+          clearAllCache();
+          localStorage.removeItem('userType');
+          setAuthState({ user: null, profile: null, loading: false, error: null });
           return;
         }
 

@@ -1,0 +1,10 @@
+[  146565ms] [ERROR] Access to fetch at 'https://kclglwxssvtwderrqgks.supabase.co/auth/v1/user' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:3000/user/chats:0
+[  146565ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://kclglwxssvtwderrqgks.supabase.co/auth/v1/user:0
+[  146567ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:9701:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:10030:24)
+    at _request (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:10017:24)
+    at http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13161:220
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13030:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13146:20)
+    at async http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13133:20 @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225

@@ -48,13 +48,17 @@ export async function getUserIdByEmail(email: string): Promise<string | null> {
 }
 
 /**
- * Add test balance (recarga) for a user
+ * Add test balance (recarga) for a user.
+ * Updates both the transactions table (frontend balance check) and
+ * user_profiles.balance (RPC balance check) to ensure consistency.
  */
 export async function addTestBalance(
   userId: string,
   amount: number
 ): Promise<{ id: string } | null> {
   const supabase = getSupabaseAdminClient();
+
+  // Insert a transaction record (used by frontend balance calculation)
   const { data, error } = await supabase
     .from('transactions')
     .insert({
@@ -71,6 +75,13 @@ export async function addTestBalance(
     console.error('Error adding test balance:', error);
     return null;
   }
+
+  // Also set user_profiles.balance directly (used by the escrow RPC function)
+  await supabase
+    .from('user_profiles')
+    .update({ balance: amount })
+    .eq('user_id', userId);
+
   return data;
 }
 
@@ -101,10 +112,13 @@ export async function getCompletionPin(
   serviceId: string
 ): Promise<string | null> {
   const supabase = getSupabaseAdminClient();
+  // The PIN is stored in escrow_transactions, not in services
   const { data, error } = await supabase
-    .from('services')
+    .from('escrow_transactions')
     .select('completion_pin')
-    .eq('id', serviceId)
+    .eq('service_id', serviceId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single();
 
   if (error || !data) return null;
@@ -128,6 +142,71 @@ export async function getBookingByService(
 
   if (error || !data) return null;
   return data;
+}
+
+/**
+ * Ensure a chat exists for a booking. Creates one if it doesn't exist.
+ * The hiring flow's chat creation can silently fail due to race conditions,
+ * so this guarantees a chat is available for the E2E chat exchange test.
+ */
+export async function ensureTestChat(
+  serviceId: string,
+  clientId: string,
+  workerId: string
+): Promise<{ id: string } | null> {
+  const supabase = getSupabaseAdminClient();
+
+  // Get the booking for this service
+  const booking = await getBookingByService(serviceId);
+  if (!booking) {
+    console.error('No booking found for service:', serviceId);
+    return null;
+  }
+
+  // Check if a chat already exists
+  const { data: existingChat } = await supabase
+    .from('chats')
+    .select('id')
+    .eq('booking_id', booking.id)
+    .single();
+
+  if (existingChat) return existingChat;
+
+  // Create the chat
+  const { data: newChat, error } = await supabase
+    .from('chats')
+    .insert({
+      booking_id: booking.id,
+      client_id: clientId,
+      worker_id: workerId,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Error creating test chat:', error);
+    return null;
+  }
+  return newChat;
+}
+
+/**
+ * Get applications for a service (admin query — bypasses RLS)
+ */
+export async function getApplicationsForService(
+  serviceId: string
+): Promise<{ id: string; worker_id: string; status: string; proposed_price: number }[]> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('applications')
+    .select('id, worker_id, status, proposed_price')
+    .eq('service_id', serviceId);
+
+  if (error) {
+    console.error('Error fetching applications:', error);
+    return [];
+  }
+  return data || [];
 }
 
 /**

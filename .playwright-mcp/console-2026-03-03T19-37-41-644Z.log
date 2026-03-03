@@ -1,0 +1,8 @@
+[      86ms] [ERROR] TypeError: Failed to fetch
+    at http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:9701:23
+    at _handleRequest (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:10030:24)
+    at _request (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:10017:24)
+    at http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13161:220
+    at SupabaseAuthClient._useSession (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13030:26)
+    at async SupabaseAuthClient._getUser (http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13146:20)
+    at async http://localhost:3000/_next/static/chunks/node_modules_b18377f2._.js:13133:20 @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225

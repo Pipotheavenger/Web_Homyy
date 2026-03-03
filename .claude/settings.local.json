@@ -4,6 +4,7 @@
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
       "Bash(npx cypress verify)",
+      "Bash(npx playwright:*)",
       "Bash(if [ -f .env.local ])",
       "Bash(then echo \"✓ .env.local exists\")",
       "Bash(else echo \"✗ .env.local NOT FOUND\")",
@@ -11,7 +12,8 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "supabase"
+    "supabase",
+    "playwright"
   ],
   "enableAllProjectMcpServers": true
 }

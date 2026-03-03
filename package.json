@@ -15,7 +15,12 @@
     "test:performance:headed": "start-server-and-test dev http://localhost:3000 'cypress run --headed --config-file test/cypress.config.ts'",
     "test:performance:chrome": "start-server-and-test dev http://localhost:3000 'cypress run --browser chrome --config-file test/cypress.config.ts'",
     "test:performance:report": "cypress run --config-file test/cypress.config.ts --reporter json --reporter-options output=test/reports/results.json",
-    "test:ci": "start-server-and-test start http://localhost:3000 'cypress run --config-file test/cypress.config.ts --browser chrome'"
+    "test:ci": "start-server-and-test start http://localhost:3000 'cypress run --config-file test/cypress.config.ts --browser chrome'",
+    "playwright:test": "npx playwright test",
+    "playwright:test:headed": "npx playwright test --headed",
+    "playwright:test:ui": "npx playwright test --ui",
+    "playwright:report": "npx playwright show-report test/playwright/reports",
+    "test:e2e:lifecycle": "start-server-and-test dev http://localhost:3000 'npx playwright test service-lifecycle'"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.997.0",
@@ -30,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.28",
     "@types/react": "^19",

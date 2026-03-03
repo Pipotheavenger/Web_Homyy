@@ -54,5 +54,12 @@ test/reports/*.json
 test/reports/*.html
 !test/reports/.gitkeep
 
+# Playwright
+test/playwright/results/
+test/playwright/reports/
+test-results/
+playwright-report/
+blob-report/
+
 # docs
 /docs/
