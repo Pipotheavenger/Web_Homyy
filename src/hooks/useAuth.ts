@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { getUserProfile, UserProfile } from '@/lib/auth-utils';
@@ -23,6 +23,9 @@ export const useAuth = () => {
     loading: true,
     error: null
   });
+
+  // Track current user ID to avoid unnecessary state updates on TOKEN_REFRESHED
+  const userIdRef = useRef<string | null>(null);
 
   // Función optimizada para cargar perfil con caché
   const loadUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
@@ -48,6 +51,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT') {
+          userIdRef.current = null;
           setAuthState(prev => {
             if (prev.user?.id) {
               clearCachedData(`user_profile_${prev.user.id}`);
@@ -58,14 +62,24 @@ export const useAuth = () => {
         }
 
         if (session?.user) {
-          const profile = await loadUserProfile(session.user.id);
-          setAuthState({
-            user: session.user,
-            profile,
-            loading: false,
-            error: null
-          });
+          const isNewUser = session.user.id !== userIdRef.current;
+          userIdRef.current = session.user.id;
+
+          if (isNewUser) {
+            // New user login or initial session - full profile load
+            const profile = await loadUserProfile(session.user.id);
+            setAuthState({
+              user: session.user,
+              profile,
+              loading: false,
+              error: null
+            });
+          } else {
+            // Same user, token refresh - update user object without triggering cascades
+            setAuthState(prev => ({ ...prev, user: session.user, loading: false }));
+          }
         } else {
+          userIdRef.current = null;
           setAuthState({ user: null, profile: null, loading: false, error: null });
         }
       }

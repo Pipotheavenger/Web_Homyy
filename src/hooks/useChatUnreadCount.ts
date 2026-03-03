@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -12,9 +12,10 @@ import { useAuth } from './useAuth';
 export const useChatUnreadCount = () => {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadCount = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const { count, error } = await supabase
       .from('chat_messages')
@@ -25,16 +26,18 @@ export const useChatUnreadCount = () => {
     if (!error && count !== null) {
       setUnreadCount(count);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     loadCount();
 
+    const userId = user.id;
+
     // Suscripcion Realtime para nuevos mensajes
     const channel = supabase
-      .channel(`unread_messages_count_${user.id}`)
+      .channel(`unread_messages_count_${userId}`)
       .on(
         'postgres_changes',
         {
@@ -44,16 +47,19 @@ export const useChatUnreadCount = () => {
         },
         (payload) => {
           // Solo incrementar si el mensaje no es nuestro
-          if (payload.new && payload.new.sender_id !== user.id) {
+          if (payload.new && payload.new.sender_id !== userId) {
             setUnreadCount(prev => prev + 1);
           }
         }
       )
       .subscribe();
 
-    // Refetch al volver a la pestaña
+    // Refetch al volver a la pestaña (con delay para dejar que Realtime reconecte)
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') loadCount();
+      if (document.visibilityState === 'visible') {
+        if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+        visibilityTimerRef.current = setTimeout(() => loadCount(), 1000);
+      }
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
@@ -61,8 +67,9 @@ export const useChatUnreadCount = () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', handleVisibility);
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
     };
-  }, [user, loadCount]);
+  }, [user?.id, loadCount]);
 
   return unreadCount;
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { notificationService } from '@/lib/api/notifications';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
@@ -25,6 +25,7 @@ export const useNotificationCounts = (options: NotificationCountsOptions = {}) =
     pendingPayments: 0,
     newApplications: 0
   });
+  const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync external unread messages count if provided
   useEffect(() => {
@@ -36,26 +37,28 @@ export const useNotificationCounts = (options: NotificationCountsOptions = {}) =
   const loadUnreadCount = useCallback(async () => {
     const response = await notificationService.getUnreadCount();
     if (response.success && response.data !== null) {
-      setCounts(prev => ({ ...prev, unreadNotifications: response.data }));
+      setCounts(prev => ({ ...prev, unreadNotifications: response.data as number }));
     }
   }, []);
 
   // Realtime subscription + refetch on visibility change (replaces 30s polling)
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     loadUnreadCount();
 
+    const userId = user.id;
+
     // Subscribe to new notifications via Realtime instead of polling
     const channel = supabase
-      .channel(`notification_counts_${user.id}`)
+      .channel(`notification_counts_${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${userId}`
         },
         () => {
           setCounts(prev => ({
@@ -66,10 +69,11 @@ export const useNotificationCounts = (options: NotificationCountsOptions = {}) =
       )
       .subscribe();
 
-    // Refetch on tab visibility change as a lightweight fallback
+    // Refetch on tab visibility change (with delay to let Realtime reconnect)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadUnreadCount();
+        if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+        visibilityTimerRef.current = setTimeout(() => loadUnreadCount(), 1000);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -78,8 +82,9 @@ export const useNotificationCounts = (options: NotificationCountsOptions = {}) =
       channel.unsubscribe();
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
     };
-  }, [user, loadUnreadCount]);
+  }, [user?.id, loadUnreadCount]);
 
   return counts;
 };

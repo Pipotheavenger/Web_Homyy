@@ -1,6 +1,16 @@
 import { defineConfig } from 'cypress';
 import dotenv from 'dotenv';
 import path from 'path';
+import {
+  getUserIdByEmail,
+  addTestBalance,
+  getLastServiceByUser,
+  getCompletionPin,
+  getBookingByService,
+  cleanupTestService,
+  cleanupTestBalance,
+  deleteTestUser,
+} from './support/flow-helpers';
 
 // Load .env.local for local development
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
@@ -39,6 +49,39 @@ export default defineConfig({
         log(message) {
           console.log(message);
           return null;
+        },
+
+        // Flow test helpers — run server-side with Supabase admin client
+        async getUserIdByEmail(email: string) {
+          return (await getUserIdByEmail(email)) || null;
+        },
+
+        async addTestBalance({ userId, amount }: { userId: string; amount: number }) {
+          return (await addTestBalance(userId, amount)) || null;
+        },
+
+        async getLastServiceByUser(userId: string) {
+          return (await getLastServiceByUser(userId)) || null;
+        },
+
+        async getCompletionPin(serviceId: string) {
+          return (await getCompletionPin(serviceId)) || null;
+        },
+
+        async getBookingByService(serviceId: string) {
+          return (await getBookingByService(serviceId)) || null;
+        },
+
+        async cleanupTestService(serviceId: string) {
+          return await cleanupTestService(serviceId);
+        },
+
+        async cleanupTestBalance(userId: string) {
+          return await cleanupTestBalance(userId);
+        },
+
+        async deleteTestUser(email: string) {
+          return await deleteTestUser(email);
         },
       });
 

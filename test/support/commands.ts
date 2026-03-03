@@ -86,6 +86,20 @@ Cypress.Commands.add('assertNoFailedRequests', () => {
   perfAssertNoFailedRequests();
 });
 
+// Flow Test Commands
+
+Cypress.Commands.add('sendChatMessage', (message: string) => {
+  cy.get('input[placeholder="Escribe un mensaje..."]', { timeout: 10000 })
+    .should('be.visible')
+    .clear()
+    .type(message)
+    .type('{enter}');
+});
+
+Cypress.Commands.add('waitForChatMessage', (text: string, timeout = 10000) => {
+  cy.contains(text, { timeout }).should('be.visible');
+});
+
 // Export for direct use if needed
 export {
   loginAsUser,

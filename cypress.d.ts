@@ -128,6 +128,23 @@ declare namespace Cypress {
      * @example cy.assertNoFailedRequests()
      */
     assertNoFailedRequests(): Chainable<void>;
+
+    // ====== Flow Test Commands ======
+
+    /**
+     * Type a message in the chat input and press Enter to send
+     * @param message The message text to send
+     * @example cy.sendChatMessage('Hola, ¿cómo estás?')
+     */
+    sendChatMessage(message: string): Chainable<void>;
+
+    /**
+     * Wait for a specific chat message to appear in the chat window
+     * @param text The message text to wait for
+     * @param timeout Max time to wait in ms (default: 10000)
+     * @example cy.waitForChatMessage('Hola')
+     */
+    waitForChatMessage(text: string, timeout?: number): Chainable<void>;
   }
 
   interface Window {

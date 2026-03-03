@@ -11,10 +11,15 @@ export function QueryProvider({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 2 * 60 * 1000, // 2 minutos - datos cacheados se muestran instant
             gcTime: 5 * 60 * 1000, // 5 minutos en memoria
-            // Reintentar 1 vez en caso de error
-            retry: 1,
-            // Refrescar cuando la ventana recupera el foco (datos frescos)
-            refetchOnWindowFocus: true,
+            // No reintentar errores de autenticacion
+            retry: (failureCount, error) => {
+              const msg = error instanceof Error ? error.message : '';
+              if (msg.includes('not authenticated') || msg.includes('JWT')) return false;
+              return failureCount < 1;
+            },
+            // Desactivado: los hooks de visibilitychange ya manejan refetch al volver
+            // Tenerlo activo causa avalancha de requests simultaneos al volver de idle
+            refetchOnWindowFocus: false,
             // Refrescar automático en reconexión
             refetchOnReconnect: true,
             // Siempre refrescar al montar para datos actualizados
