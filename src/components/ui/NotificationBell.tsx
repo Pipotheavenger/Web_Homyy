@@ -22,14 +22,9 @@ export const NotificationBell = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Actualizar contador periódicamente
+  // Cargar contador inicial (el polling periodico lo maneja useNotificationCounts en Sidebar)
   useEffect(() => {
     loadUnreadCount();
-    const interval = setInterval(() => {
-      loadUnreadCount();
-    }, 30000); // Cada 30 segundos
-
-    return () => clearInterval(interval);
   }, [loadUnreadCount]);
 
   // Cerrar dropdown al hacer clic fuera

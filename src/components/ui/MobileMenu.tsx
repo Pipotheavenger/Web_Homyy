@@ -7,7 +7,7 @@ import { X, LogOut } from 'lucide-react';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { supabase } from '@/lib/supabase';
-import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { type NotificationCounts } from '@/hooks/useNotificationCounts';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface MobileMenuProps {
@@ -17,6 +17,7 @@ interface MobileMenuProps {
   currentPage: string;
   userType: UserType;
   colors: any;
+  counts?: NotificationCounts;
 }
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({
@@ -25,10 +26,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   navigationItems,
   currentPage,
   userType,
-  colors
+  colors,
+  counts
 }) => {
   const router = useRouter();
-  const counts = useNotificationCounts();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
 
   // Función para obtener el badge según la ruta
   const getBadgeCount = (href: string) => {
+    if (!counts) return 0;
     if (href.includes('chats')) return counts.unreadMessages;
     if (href.includes('pagos')) return counts.pendingPayments;
     if (href.includes('dashboard') && userType === 'user') return counts.newApplications;

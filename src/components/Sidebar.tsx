@@ -6,7 +6,7 @@ import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useNotificationCounts } from '@/hooks/useNotificationCounts';
+import { type NotificationCounts } from '@/hooks/useNotificationCounts';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
 
 interface SidebarProps {
@@ -14,6 +14,7 @@ interface SidebarProps {
   currentPage: string;
   userType: UserType;
   colors: any;
+  counts: NotificationCounts;
 }
 
 // Colores específicos para el sidebar (extraído fuera del componente)
@@ -155,13 +156,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   navigationItems,
   currentPage,
   userType,
-  colors
+  colors,
+  counts
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
-  const counts = useNotificationCounts();
   const currentColors = sidebarColors[userType];
 
   const handleNavigation = (href: string) => {

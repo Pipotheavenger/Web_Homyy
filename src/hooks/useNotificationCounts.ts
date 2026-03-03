@@ -1,42 +1,53 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useChat } from './useChat';
+import { useState, useEffect, useCallback } from 'react';
 import { notificationService } from '@/lib/api/notifications';
 import { useAuth } from './useAuth';
 
-export const useNotificationCounts = () => {
+export interface NotificationCounts {
+  unreadMessages: number;
+  unreadNotifications: number;
+  pendingPayments: number;
+  newApplications: number;
+}
+
+interface NotificationCountsOptions {
+  /** Pass chat unread count from an external source to avoid creating duplicate useChat() subscriptions */
+  externalUnreadMessages?: number;
+}
+
+export const useNotificationCounts = (options: NotificationCountsOptions = {}) => {
   const { user } = useAuth();
-  const { chats } = useChat();
-  const [counts, setCounts] = useState({
+  const [counts, setCounts] = useState<NotificationCounts>({
     unreadMessages: 0,
     unreadNotifications: 0,
     pendingPayments: 0,
     newApplications: 0
   });
 
-  // Calcular mensajes sin leer
+  // Sync external unread messages count if provided
   useEffect(() => {
-    const totalUnread = chats.reduce((sum, chat) => sum + (chat.unread_count || 0), 0);
-    setCounts(prev => ({ ...prev, unreadMessages: totalUnread }));
-  }, [chats]);
+    if (options.externalUnreadMessages !== undefined) {
+      setCounts(prev => ({ ...prev, unreadMessages: options.externalUnreadMessages! }));
+    }
+  }, [options.externalUnreadMessages]);
 
-  // Cargar contador de notificaciones no leídas
+  const loadUnreadCount = useCallback(async () => {
+    const response = await notificationService.getUnreadCount();
+    if (response.success && response.data !== null) {
+      setCounts(prev => ({ ...prev, unreadNotifications: response.data }));
+    }
+  }, []);
+
+  // Cargar contador de notificaciones no leidas y polling periodico
   useEffect(() => {
     if (!user) return;
 
-    const loadUnreadCount = async () => {
-      const response = await notificationService.getUnreadCount();
-      if (response.success && response.data !== null) {
-        setCounts(prev => ({ ...prev, unreadNotifications: response.data }));
-      }
-    };
-
     loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000); // Actualizar cada 30 segundos
+    const interval = setInterval(loadUnreadCount, 30000);
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, loadUnreadCount]);
 
   return counts;
 };

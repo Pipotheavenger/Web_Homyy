@@ -71,7 +71,7 @@ export default function PhoneInput({
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={placeholder}
-          className={`w-full pl-20 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 ${
+          className={`w-full pl-24 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 ${
             error ? 'border-red-300 bg-red-50' : 'border-gray-200'
           } ${isFocused ? 'ring-2 ring-purple-500 border-transparent' : ''} ${className}`}
         />

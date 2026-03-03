@@ -7,6 +7,7 @@ import { NotificationBell } from '@/components/ui/NotificationBell';
 import { MobileMenu } from '@/components/ui/MobileMenu';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
+import { type NotificationCounts } from '@/hooks/useNotificationCounts';
 
 interface HeaderProps {
   title: string;
@@ -19,6 +20,7 @@ interface HeaderProps {
   showNotifications?: boolean;
   navigationItems?: NavigationItem[];
   currentPage?: string;
+  counts?: NotificationCounts;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,7 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
   colors,
   showNotifications = true,
   navigationItems = [],
-  currentPage = 'dashboard'
+  currentPage = 'dashboard',
+  counts
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -140,6 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
         currentPage={currentPage}
         userType={userType}
         colors={colors}
+        counts={counts}
       />
     </>
   );

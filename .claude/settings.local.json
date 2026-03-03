@@ -9,5 +9,9 @@
       "Bash(else echo \"✗ .env.local NOT FOUND\")",
       "Bash(fi)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }

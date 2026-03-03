@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { DEBUG_MODE, DebugProvider } from '@/__debug__';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,7 +20,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
-          {children}
+          {DEBUG_MODE ? (
+            <DebugProvider>{children}</DebugProvider>
+          ) : (
+            children
+          )}
         </QueryProvider>
       </body>
     </html>

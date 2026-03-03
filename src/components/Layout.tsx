@@ -1,10 +1,12 @@
 'use client';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { getNavigationItems, getPageConfig } from '@/utils/userTypeUtils';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import PhoneVerificationBar from './ui/PhoneVerificationBar';
+import { useChat } from '@/hooks/useChat';
+import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
 interface LayoutProps {
   children: ReactNode;
@@ -28,6 +30,12 @@ export default function Layout({
   const { userType, colors } = useUserType();
   const navigationItems = getNavigationItems(userType);
   const pageConfig = getPageConfig(userType, currentPage);
+  const { chats } = useChat();
+  const unreadMessages = useMemo(
+    () => chats.reduce((sum, chat) => sum + (chat.unread_count || 0), 0),
+    [chats]
+  );
+  const counts = useNotificationCounts({ externalUnreadMessages: unreadMessages });
 
   const finalTitle = title || pageConfig.title;
   const finalDescription = description || pageConfig.description;
@@ -38,11 +46,12 @@ export default function Layout({
       <div className="flex md:relative">
         {/* Sidebar - Oculto en móvil */}
         <div className="hidden md:block md:sticky md:top-0 md:self-start md:h-screen md:flex-shrink-0">
-          <Sidebar 
+          <Sidebar
             navigationItems={navigationItems}
             currentPage={currentPage}
             userType={userType}
             colors={colors}
+            counts={counts}
           />
         </div>
 
@@ -60,6 +69,7 @@ export default function Layout({
             showNotifications={true}
             navigationItems={navigationItems}
             currentPage={currentPage}
+            counts={counts}
           />
 
           <PhoneVerificationBar />
