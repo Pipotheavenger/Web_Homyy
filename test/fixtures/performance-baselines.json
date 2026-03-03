@@ -1,0 +1,51 @@
+{
+  "_comment": "Performance baselines per route. Adjust thresholds based on actual measurements.",
+  "thresholds": {
+    "maxLoadTime": 4000,
+    "maxLCP": 2500,
+    "maxCLS": 0.1,
+    "maxSingleRequestDuration": 2000,
+    "maxTransferSizeKB": {
+      "/login": 1500,
+      "/register": 1500,
+      "/": 2000,
+      "/user/dashboard": 3000,
+      "/user/crear-servicio": 2000,
+      "/user/profesionales": 4000,
+      "/user/perfil": 2000,
+      "/user/historial": 2000,
+      "/user/notificaciones": 2000,
+      "/user/pagos": 2000,
+      "/user/chats": 2000,
+      "/worker/dashboard": 3000,
+      "/worker/trabajos": 3000,
+      "/worker/perfil": 2000,
+      "/worker/historial": 2000,
+      "/worker/pagos": 2000,
+      "/worker/chats": 2000,
+      "/admin/dashboard": 2500,
+      "_default": 3000
+    },
+    "maxRequestCount": {
+      "/login": 30,
+      "/register": 30,
+      "/": 30,
+      "/user/dashboard": 50,
+      "/user/crear-servicio": 40,
+      "/user/profesionales": 60,
+      "/user/perfil": 40,
+      "/user/historial": 40,
+      "/user/notificaciones": 40,
+      "/user/pagos": 40,
+      "/user/chats": 40,
+      "/worker/dashboard": 50,
+      "/worker/trabajos": 50,
+      "/worker/perfil": 40,
+      "/worker/historial": 40,
+      "/worker/pagos": 40,
+      "/worker/chats": 40,
+      "/admin/dashboard": 50,
+      "_default": 50
+    }
+  }
+}

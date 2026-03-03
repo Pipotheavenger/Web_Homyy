@@ -1,6 +1,7 @@
 /**
  * Performance tests for User (Client) Routes
  * Tests all secondary client routes for load performance
+ * Note: /user/profesionales is covered in professionals.cy.ts
  */
 
 describe('Performance: User Routes', () => {
@@ -13,18 +14,19 @@ describe('Performance: User Routes', () => {
   });
 
   describe('Crear Servicio Page', () => {
-    it('debe cargar /user/crear-servicio en menos de 4 segundos', () => {
+    it('debe cargar /user/crear-servicio en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/crear-servicio');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
-        cy.log('Requests:', metrics.requestCount);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe cargar formulario y categorías', () => {
+    it('debe cargar formulario y categorias', () => {
       cy.visit('/user/crear-servicio');
       cy.waitForPageLoad();
 
@@ -32,61 +34,20 @@ describe('Performance: User Routes', () => {
     });
   });
 
-  describe('Profesionales Page', () => {
-    it('debe cargar /user/profesionales en menos de 4 segundos', () => {
-      cy.visit('/user/profesionales');
-      cy.waitForPageLoad(4000);
-
-      cy.measureLoadTime().then((metrics) => {
-        cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
-        cy.log('Requests:', metrics.requestCount);
-      });
-    });
-
-    it('debe mostrar profesionales o estado vacío', () => {
-      cy.visit('/user/profesionales');
-      cy.waitForPageLoad();
-
-      cy.get('body').then(($body) => {
-        if ($body.text().includes('No hay profesionales')) {
-          cy.log('No professionals available');
-        } else {
-          cy.log('Professionals list loaded');
-        }
-      });
-    });
-
-    it('debe tener Core Web Vitals aceptables', () => {
-      cy.visit('/user/profesionales');
-      cy.waitForPageLoad();
-
-      cy.getCoreWebVitals().then((vitals) => {
-        cy.log('LCP:', `${vitals.lcp}ms`);
-        cy.log('CLS:', vitals.cls);
-
-        if (vitals.lcp > 0) {
-          expect(vitals.lcp).to.be.lessThan(2500);
-        }
-        if (vitals.cls > 0) {
-          expect(vitals.cls).to.be.lessThan(0.1);
-        }
-      });
-    });
-  });
-
   describe('Perfil Page', () => {
-    it('debe cargar /user/perfil en menos de 4 segundos', () => {
+    it('debe cargar /user/perfil en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/perfil');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar información del perfil', () => {
+    it('debe mostrar informacion del perfil', () => {
       cy.visit('/user/perfil');
       cy.waitForPageLoad();
 
@@ -95,14 +56,16 @@ describe('Performance: User Routes', () => {
   });
 
   describe('Historial Page', () => {
-    it('debe cargar /user/historial en menos de 4 segundos', () => {
+    it('debe cargar /user/historial en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/historial');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
     it('debe mostrar historial de servicios', () => {
@@ -114,17 +77,19 @@ describe('Performance: User Routes', () => {
   });
 
   describe('Notificaciones Page', () => {
-    it('debe cargar /user/notificaciones en menos de 4 segundos', () => {
+    it('debe cargar /user/notificaciones en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/notificaciones');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar notificaciones o estado vacío', () => {
+    it('debe mostrar notificaciones o estado vacio', () => {
       cy.visit('/user/notificaciones');
       cy.waitForPageLoad();
 
@@ -139,28 +104,29 @@ describe('Performance: User Routes', () => {
   });
 
   describe('Pagos Page', () => {
-    it('debe cargar /user/pagos en menos de 4 segundos', () => {
+    it('debe cargar /user/pagos en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/pagos');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar información de pagos', () => {
+    it('debe mostrar informacion de pagos', () => {
       cy.visit('/user/pagos');
       cy.waitForPageLoad();
 
-      cy.contains(/pago|pagos|métodos de pago/i).should('be.visible');
+      cy.contains(/pago|pagos|metodos de pago/i).should('be.visible');
     });
   });
 
   describe('Network Performance Across Routes', () => {
     const routes = [
       '/user/crear-servicio',
-      '/user/profesionales',
       '/user/perfil',
       '/user/historial',
       '/user/notificaciones',
@@ -168,24 +134,15 @@ describe('Performance: User Routes', () => {
     ];
 
     routes.forEach((route) => {
-      it(`${route} no debe tener requests excesivamente lentas`, () => {
+      it(`${route} no debe tener requests lentas ni requests fallidas`, () => {
         cy.startPerformanceMonitoring();
         cy.visit(route);
         cy.waitForPageLoad();
 
         cy.measureLoadTime().then((metrics) => {
-          // Check for very slow requests
-          const slowRequests = metrics.slowestRequests.filter(req => req.duration > 2000);
-
-          if (slowRequests.length > 0) {
-            cy.log(`⚠️  Slow requests found in ${route}:`);
-            slowRequests.forEach(req => {
-              cy.log(`  - ${req.url}: ${req.duration}ms`);
-            });
-          } else {
-            cy.log(`✓ All requests in ${route} are reasonably fast`);
-          }
+          cy.assertNoSlowRequests(metrics, 2000);
         });
+        cy.assertNoFailedRequests();
       });
     });
   });

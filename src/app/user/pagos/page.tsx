@@ -14,8 +14,15 @@ import {
   XCircle
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { QRModal } from '@/components/ui/QRModal';
-import { PaymentSuccessModal } from '@/components/ui/PaymentSuccessModal';
+import dynamic from 'next/dynamic';
+const QRModal = dynamic(
+  () => import('@/components/ui/QRModal').then(mod => ({ default: mod.QRModal })),
+  { ssr: false }
+);
+const PaymentSuccessModal = dynamic(
+  () => import('@/components/ui/PaymentSuccessModal').then(mod => ({ default: mod.PaymentSuccessModal })),
+  { ssr: false }
+);
 import { transactionsService, Transaction } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
 

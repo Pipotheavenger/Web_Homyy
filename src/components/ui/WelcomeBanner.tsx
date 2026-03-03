@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Plus } from 'lucide-react';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
 
@@ -27,10 +28,13 @@ export const WelcomeBanner = ({ userName, onCreateService }: WelcomeBannerProps)
       
       {/* Imagen - Posicionada debajo del contenido en <1024px (que cubre 890px), a la derecha en pantallas más grandes */}
       <div className="absolute bottom-0 left-1/2 lg:left-auto lg:right-0 -translate-x-1/2 lg:translate-x-0 h-auto lg:h-full flex items-end justify-center lg:justify-end w-full lg:w-auto z-0">
-        <img 
-          src={ASSETS_CONFIG.banner} 
-          alt="Banner" 
-          className="h-48 sm:h-56 md:h-52 lg:h-full w-auto object-contain max-h-[260px] sm:max-h-[300px] md:max-h-[280px] lg:max-h-none" 
+        <Image
+          src={ASSETS_CONFIG.banner}
+          alt="Banner"
+          width={400}
+          height={300}
+          priority
+          className="h-48 sm:h-56 md:h-52 lg:h-full w-auto object-contain max-h-[260px] sm:max-h-[300px] md:max-h-[280px] lg:max-h-none"
         />
       </div>
       

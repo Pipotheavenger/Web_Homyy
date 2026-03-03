@@ -1,8 +1,9 @@
-import { 
-  CalendarDays, 
-  Users, 
-  Star, 
-  Eye, 
+import Image from 'next/image';
+import {
+  CalendarDays,
+  Users,
+  Star,
+  Eye,
   CheckCircle,
   UserCheck,
   DollarSign,
@@ -78,12 +79,14 @@ export const PostulanteCard = ({
         <div className="flex items-center space-x-4">
           {/* Foto del postulante */}
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 rounded-xl overflow-hidden flex items-center justify-center shadow-lg">
+            <div className="relative w-16 h-16 bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 rounded-xl overflow-hidden flex items-center justify-center shadow-lg">
               {postulante.foto ? (
-                <img
+                <Image
                   src={postulante.foto}
                   alt={`${postulante.nombre} ${postulante.apellido}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="64px"
+                  className="object-cover"
                 />
               ) : (
                 <span className="text-white font-bold text-lg">

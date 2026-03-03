@@ -1,21 +1,25 @@
 'use client';
 
-import { useState, Suspense, lazy } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Plus } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useDashboard } from '@/hooks/useDashboard';
 import { WelcomeBanner } from '@/components/ui/WelcomeBanner';
 import ServiceCard from '@/components/ui/ServiceCard';
-import { ReviewModal } from '@/components/ui/ReviewModal';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { reviewsService } from '@/lib/services';
 import { useQueryClient } from '@tanstack/react-query';
 import { dashboardKeys } from '@/hooks/queries/dashboardQueries';
 
-// Lazy load TopProfessionals - componente secundario
-const TopProfessionals = lazy(() => 
-  import('@/components/ui/TopProfessionals').then(module => ({ default: module.TopProfessionals }))
+const ReviewModal = dynamic(
+  () => import('@/components/ui/ReviewModal').then(mod => ({ default: mod.ReviewModal })),
+  { ssr: false }
+);
+const TopProfessionals = dynamic(
+  () => import('@/components/ui/TopProfessionals').then(mod => ({ default: mod.TopProfessionals })),
+  { ssr: false }
 );
 
 export default function Dashboard() {

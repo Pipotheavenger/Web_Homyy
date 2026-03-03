@@ -1,4 +1,9 @@
 import { defineConfig } from 'cypress';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.local for local development
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 export default defineConfig({
   e2e: {
@@ -18,7 +23,18 @@ export default defineConfig({
     fixturesFolder: 'test/fixtures',
 
     setupNodeEvents(on, config) {
-      // Implement node event listeners here
+      // Inject Supabase env vars into Cypress.env()
+      // Priority: CYPRESS_ prefixed env vars (CI) > process.env (dotenv) > existing config.env
+      config.env.NEXT_PUBLIC_SUPABASE_URL =
+        process.env.CYPRESS_NEXT_PUBLIC_SUPABASE_URL ||
+        process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        config.env.NEXT_PUBLIC_SUPABASE_URL;
+
+      config.env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
+        process.env.CYPRESS_NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        config.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
       on('task', {
         log(message) {
           console.log(message);
@@ -40,6 +56,5 @@ export default defineConfig({
     maxLoadTime: 4000, // 4 seconds max load time
     maxLCP: 2500, // 2.5s Largest Contentful Paint
     maxCLS: 0.1, // 0.1 Cumulative Layout Shift
-    maxFID: 100, // 100ms First Input Delay
   },
 });

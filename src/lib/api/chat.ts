@@ -193,31 +193,7 @@ export const chatService = {
     try {
       const user = await getAuthenticatedUser();
 
-      // ✅ OPTIMIZACIÓN: Filtrar directamente en la query usando inner join
-      // Solo obtener chats de servicios activos (scheduled o in_progress)
-      // Primero obtener TODOS los bookings del usuario para debuggear
-      const { data: allBookings, error: allBookingsError } = await supabase
-        .from('bookings')
-        .select('id, status, client_id, worker_id, completed_at')
-        .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      console.log('[CHAT SERVICE] TODOS los bookings del usuario:', allBookings?.length);
-      if (allBookings) {
-        allBookings.forEach((booking, index) => {
-          console.log(`[CHAT SERVICE] Booking ${index + 1}:`, {
-            id: booking.id,
-            status: booking.status,
-            completed_at: booking.completed_at,
-            client_id: booking.client_id,
-            worker_id: booking.worker_id
-          });
-        });
-      }
-
-      // SOLUCIÓN: Verificar el estado del SERVICIO relacionado, no solo el booking
-      // Los servicios sí se actualizan a 'completed' cuando se finalizan
-      // Obtener bookings con sus servicios relacionados y filtrar por estado del servicio
+      // Obtener bookings con sus servicios y filtrar por estado del servicio
       const { data: bookingsWithServices, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -231,10 +207,7 @@ export const chatService = {
         `)
         .or(`client_id.eq.${user.id},worker_id.eq.${user.id}`);
 
-      console.log('[CHAT SERVICE] Bookings con servicios:', bookingsWithServices?.length);
-
       if (bookingsError) {
-        console.error('[CHAT SERVICE] Error obteniendo bookings con servicios:', bookingsError);
         throw bookingsError;
       }
 
@@ -242,43 +215,16 @@ export const chatService = {
       const activeBookings = bookingsWithServices?.filter(booking => {
         const service = Array.isArray(booking.service) ? booking.service[0] : booking.service;
         const serviceStatus = service?.status;
-        const isServiceActive = serviceStatus !== 'completed' && serviceStatus !== 'cancelled';
-        
-        console.log(`[CHAT SERVICE] Booking ${booking.id}:`, {
-          booking_status: booking.status,
-          service_status: serviceStatus,
-          is_active: isServiceActive
-        });
-        
-        return isServiceActive;
+        return serviceStatus !== 'completed' && serviceStatus !== 'cancelled';
       }) || [];
 
-      console.log('[CHAT SERVICE] Bookings activos encontrados (filtrando por servicio):', activeBookings.length);
-      
-      // Verificar si hay bookings con status activo pero completed_at no nulo
-      const inconsistentBookings = allBookings?.filter(b => 
-        (b.status === 'scheduled' || b.status === 'in_progress') && b.completed_at !== null
-      );
-      if (inconsistentBookings && inconsistentBookings.length > 0) {
-        console.warn('[CHAT SERVICE] ⚠️ Bookings inconsistentes (status activo pero completed_at no nulo):', inconsistentBookings);
-      }
-
-      // Si no hay bookings activos, retornar vacío
       if (activeBookings.length === 0) {
-        console.log('[CHAT SERVICE] No hay bookings activos, retornando lista vacía');
-        return {
-          data: [],
-          error: null,
-          success: true
-        };
+        return { data: [], error: null, success: true };
       }
 
       const activeBookingIds = activeBookings.map(b => b.id);
-      console.log('[CHAT SERVICE] IDs de bookings activos:', activeBookingIds);
 
-      // Ahora obtener solo los chats de esos bookings activos
-      // IMPORTANTE: No usar .or() aquí porque ya estamos filtrando por booking_id
-      // que pertenece a bookings activos del usuario
+      // Obtener chats de bookings activos con datos relacionados
       const { data: chats, error } = await supabase
         .from('chats')
         .select(`
@@ -293,63 +239,36 @@ export const chatService = {
         `)
         .in('booking_id', activeBookingIds)
         .order('last_message_at', { ascending: false, nullsFirst: false })
-        .limit(20); // Limitar a 20 chats más recientes para carga rápida
-
-      console.log('[CHAT SERVICE] Chats obtenidos:', chats?.length, chats);
+        .limit(20);
 
       if (error) {
-        console.error('[CHAT SERVICE] Error obteniendo chats:', error);
         throw error;
       }
 
       if (!chats || chats.length === 0) {
-        console.log('[CHAT SERVICE] No hay chats, retornando lista vacía');
-        return {
-          data: [],
-          error: null,
-          success: true
-        };
+        return { data: [], error: null, success: true };
       }
 
-      // Verificación adicional por seguridad: filtrar cualquier chat que no tenga booking activo
+      // Filtrar chats que no tengan booking activo
       const activeChats = chats.filter(chat => {
         const booking = Array.isArray(chat.booking) ? chat.booking[0] : chat.booking;
         const bookingStatus = booking?.status;
-        const isActive = bookingStatus === 'scheduled' || bookingStatus === 'in_progress';
-        
-        if (!isActive) {
-          console.warn('[CHAT SERVICE] Filtrando chat inactivo:', chat.id, 'Status:', bookingStatus);
-        }
-        
-        return isActive;
+        return bookingStatus === 'scheduled' || bookingStatus === 'in_progress';
       });
 
-      console.log('[CHAT SERVICE] Chats activos después del filtro:', activeChats.length);
-
       if (activeChats.length === 0) {
-        return {
-          data: [],
-          error: null,
-          success: true
-        };
+        return { data: [], error: null, success: true };
       }
 
-      // ✅ OPTIMIZACIÓN: Calcular mensajes no leídos en una sola query usando agregación
+      // Calcular mensajes no leídos en una sola query
       const chatIds = activeChats.map(chat => chat.id);
-      
-      // Obtener todos los conteos de mensajes no leídos en paralelo
-      const { data: unreadCounts, error: unreadError } = await supabase
+      const { data: unreadCounts } = await supabase
         .from('chat_messages')
         .select('chat_id')
         .in('chat_id', chatIds)
         .eq('is_read', false)
         .neq('sender_id', user.id);
 
-      if (unreadError) {
-        console.warn('Error obteniendo conteos de no leídos:', unreadError);
-      }
-
-      // Crear mapa de conteos por chat_id
       const unreadMap = new Map<string, number>();
       if (unreadCounts) {
         unreadCounts.forEach(msg => {
@@ -358,17 +277,12 @@ export const chatService = {
         });
       }
 
-      // Combinar chats con conteos de no leídos
       const chatsWithUnread = activeChats.map(chat => ({
         ...chat,
         unread_count: unreadMap.get(chat.id) || 0
       }));
 
-      return {
-        data: chatsWithUnread,
-        error: null,
-        success: true
-      };
+      return { data: chatsWithUnread, error: null, success: true };
     } catch (error) {
       return {
         data: null,

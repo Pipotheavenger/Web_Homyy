@@ -21,8 +21,15 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useUserType } from '@/contexts/UserTypeContext';
-import { ApplicationModal } from '@/components/ui/ApplicationModal';
-import { SuccessApplicationModal } from '@/components/ui/SuccessApplicationModal';
+import dynamic from 'next/dynamic';
+const ApplicationModal = dynamic(
+  () => import('@/components/ui/ApplicationModal').then(mod => ({ default: mod.ApplicationModal })),
+  { ssr: false }
+);
+const SuccessApplicationModal = dynamic(
+  () => import('@/components/ui/SuccessApplicationModal').then(mod => ({ default: mod.SuccessApplicationModal })),
+  { ssr: false }
+);
 import { useTrabajoDetalle } from '@/hooks/useTrabajoDetalle';
 
 interface TrabajoDetalle {

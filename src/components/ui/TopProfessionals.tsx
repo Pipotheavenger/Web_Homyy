@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Star, User } from 'lucide-react';
 
 interface TopProfessionalsProps {
@@ -28,12 +29,14 @@ export const TopProfessionals = ({ professionals }: TopProfessionalsProps) => {
       <div className="space-y-3 md:space-y-4">
         {professionals.map((worker) => (
           <div key={worker.id} className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
+            <div className="relative w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center overflow-hidden">
               {worker.user?.profile_picture_url ? (
-                <img 
-                  src={worker.user.profile_picture_url} 
+                <Image
+                  src={worker.user.profile_picture_url}
                   alt={worker.user.name}
-                  className="w-full h-full rounded-xl object-cover"
+                  fill
+                  sizes="48px"
+                  className="object-cover"
                 />
               ) : (
                 <User size={24} className="text-purple-600" />

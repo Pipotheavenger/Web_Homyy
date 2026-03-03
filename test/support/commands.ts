@@ -15,6 +15,11 @@ import {
   getNetworkStats as perfGetNetworkStats,
   getCoreWebVitals as perfGetCoreWebVitals,
   assertPerformanceThreshold as perfAssertPerformanceThreshold,
+  assertWebVitalsThreshold as perfAssertWebVitalsThreshold,
+  assertNoSlowRequests as perfAssertNoSlowRequests,
+  assertTransferSize as perfAssertTransferSize,
+  assertRequestCount as perfAssertRequestCount,
+  assertNoFailedRequests as perfAssertNoFailedRequests,
 } from './performance';
 
 // Authentication Commands
@@ -61,6 +66,26 @@ Cypress.Commands.add('assertPerformanceThreshold', (metrics, maxLoadTime = 4000)
   perfAssertPerformanceThreshold(metrics, maxLoadTime);
 });
 
+Cypress.Commands.add('assertWebVitalsThreshold', (vitals) => {
+  perfAssertWebVitalsThreshold(vitals);
+});
+
+Cypress.Commands.add('assertNoSlowRequests', (metrics, maxMs = 2000) => {
+  perfAssertNoSlowRequests(metrics, maxMs);
+});
+
+Cypress.Commands.add('assertTransferSize', (metrics, maxKB) => {
+  perfAssertTransferSize(metrics, maxKB);
+});
+
+Cypress.Commands.add('assertRequestCount', (metrics, maxRequests) => {
+  perfAssertRequestCount(metrics, maxRequests);
+});
+
+Cypress.Commands.add('assertNoFailedRequests', () => {
+  perfAssertNoFailedRequests();
+});
+
 // Export for direct use if needed
 export {
   loginAsUser,
@@ -71,4 +96,9 @@ export {
   perfGetNetworkStats as getNetworkStats,
   perfGetCoreWebVitals as getCoreWebVitals,
   perfAssertPerformanceThreshold as assertPerformanceThreshold,
+  perfAssertWebVitalsThreshold as assertWebVitalsThreshold,
+  perfAssertNoSlowRequests as assertNoSlowRequests,
+  perfAssertTransferSize as assertTransferSize,
+  perfAssertRequestCount as assertRequestCount,
+  perfAssertNoFailedRequests as assertNoFailedRequests,
 };

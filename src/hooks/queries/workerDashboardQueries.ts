@@ -38,11 +38,9 @@ export function useWorkerApplications(userId: string | undefined, enabled: boole
       }
     },
     enabled: enabled && !!userId,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
+    staleTime: 30 * 1000, // 30s - aplicaciones cambian moderadamente
+    gcTime: 2 * 60 * 1000,
     retry: 1,
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
   });
 }
 

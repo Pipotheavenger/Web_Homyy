@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Camera, Award, Clock, DollarSign, Star, Sparkles } from 'lucide-react';
 
 interface Usuario {
@@ -71,12 +72,14 @@ export const ProfileHeader = ({
         <div className="flex flex-col lg:flex-row lg:items-center space-y-3 lg:space-y-0 lg:space-x-4 w-full lg:w-auto mb-4 lg:mb-0">
           {/* Foto de perfil */}
           <div className="relative flex-shrink-0 self-center lg:self-auto">
-            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center text-xl lg:text-2xl text-white font-bold">
+            <div className="relative w-20 h-20 lg:w-24 lg:h-24 bg-gradient-to-r from-[#743fc6] to-[#8a5fd1] rounded-full flex items-center justify-center text-xl lg:text-2xl text-white font-bold">
               {usuario.foto ? (
-                <img
+                <Image
                   src={usuario.foto}
                   alt={`${usuario.nombre} ${usuario.apellido}`}
-                  className="w-full h-full rounded-full object-cover"
+                  fill
+                  sizes="96px"
+                  className="rounded-full object-cover"
                 />
               ) : (
                 `${usuario.nombre?.[0] || ''}${usuario.apellido?.[0] || ''}`

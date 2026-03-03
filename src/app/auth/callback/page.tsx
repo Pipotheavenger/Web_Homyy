@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getUserType, redirectToUserDashboard } from '@/lib/auth-utils';
-import Image from 'next/image';
 
 // Deshabilitar prerenderizado para esta página
 export const dynamic = 'force-dynamic';

@@ -24,8 +24,11 @@ import Layout from '@/components/Layout';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import PhoneVerificationModal from '@/components/ui/PhoneVerificationModal';
+import dynamic from 'next/dynamic';
+const PhoneVerificationModal = dynamic(
+  () => import('@/components/ui/PhoneVerificationModal'),
+  { ssr: false }
+);
 import { AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function PerfilPage() {

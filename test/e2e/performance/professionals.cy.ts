@@ -13,26 +13,25 @@ describe('Performance: Professionals Search', () => {
   });
 
   describe('Initial Load Performance', () => {
-    it('debe cargar /user/profesionales en menos de 4 segundos', () => {
+    it('debe cargar /user/profesionales en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('=== PROFESSIONALS PAGE METRICS ===');
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
-        cy.log('Requests:', metrics.requestCount);
-        cy.log('Total Size:', `${metrics.totalSize}KB`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 60);
+        cy.assertTransferSize(metrics, 4000);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar lista de profesionales o estado vacío', () => {
+    it('debe mostrar lista de profesionales o estado vacio', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
       cy.get('body').then(($body) => {
         if ($body.text().includes('No hay profesionales') || $body.text().includes('Sin resultados')) {
-          cy.log('No professionals available');
           cy.contains(/no hay|sin profesionales|sin resultados/i).should('be.visible');
         } else {
           cy.log('Professionals list loaded');
@@ -40,7 +39,7 @@ describe('Performance: Professionals Search', () => {
       });
     });
 
-    it('no debe tener skeleton loaders después de cargar', () => {
+    it('no debe tener skeleton loaders despues de cargar', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
@@ -55,38 +54,27 @@ describe('Performance: Professionals Search', () => {
       cy.waitForPageLoad();
 
       cy.getCoreWebVitals().then((vitals) => {
-        cy.log('=== CORE WEB VITALS ===');
-        cy.log('LCP:', `${vitals.lcp}ms`);
-        cy.log('CLS:', vitals.cls);
-
-        if (vitals.lcp > 0) {
-          expect(vitals.lcp, 'LCP should be less than 2500ms').to.be.lessThan(2500);
-        }
-        if (vitals.cls > 0) {
-          expect(vitals.cls, 'CLS should be less than 0.1').to.be.lessThan(0.1);
-        }
+        cy.assertWebVitalsThreshold(vitals);
       });
     });
   });
 
   describe('Search and Filter Performance', () => {
-    it('filtros deben estar disponibles rápidamente', () => {
+    it('filtros deben estar disponibles rapidamente', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
-      // Check if filters exist
+      // At least one filter/search mechanism should be available
       cy.get('body').then(($body) => {
-        if ($body.find('select').length > 0) {
-          cy.log('Filters found');
-        } else if ($body.find('input[type="search"]').length > 0) {
-          cy.log('Search input found');
-        } else {
-          cy.log('No filters or search found on page');
-        }
+        const hasFilters = $body.find('select').length > 0 ||
+                          $body.find('input[type="search"]').length > 0 ||
+                          $body.find('[role="combobox"]').length > 0 ||
+                          $body.find('input[placeholder]').length > 0;
+        expect(hasFilters, 'Page should have filter or search controls').to.be.true;
       });
     });
 
-    it('búsqueda no debe causar degradación de rendimiento', () => {
+    it('busqueda no debe causar degradacion de rendimiento', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
@@ -100,8 +88,6 @@ describe('Performance: Professionals Search', () => {
           cy.then(() => {
             const searchTime = Date.now() - startTime;
             cy.log('Search Response Time:', `${searchTime}ms`);
-
-            // Search should respond quickly
             expect(searchTime, 'Search should respond in < 1s').to.be.lessThan(1000);
           });
         } else {
@@ -112,76 +98,30 @@ describe('Performance: Professionals Search', () => {
   });
 
   describe('Network Performance', () => {
-    it('carga de profesionales no debe tener queries lentas', () => {
+    it('imagenes de profesionales deben cargar eficientemente', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
       cy.measureLoadTime().then((metrics) => {
-        // Check for slow database queries
-        const slowSupabaseRequests = metrics.slowestRequests.filter(req =>
-          req.url.includes('supabase') && req.duration > 1500
-        );
-
-        if (slowSupabaseRequests.length > 0) {
-          cy.log('⚠️  Slow Supabase queries detected:');
-          slowSupabaseRequests.forEach(req => {
-            cy.log(`  - ${req.url}: ${req.duration}ms`);
-          });
-        } else {
-          cy.log('✓ All Supabase queries are fast');
-        }
-      });
-    });
-
-    it('imágenes de profesionales deben cargar eficientemente', () => {
-      cy.visit('/user/profesionales');
-      cy.waitForPageLoad();
-
-      cy.measureLoadTime().then((metrics) => {
-        // Check for image loading performance
         const imageRequests = metrics.slowestRequests.filter(req =>
           req.url.match(/\.(png|jpg|jpeg|gif|svg|webp|avif)/i)
         );
 
-        if (imageRequests.length > 0) {
-          cy.log('Image Loading Performance:');
-          imageRequests.forEach((req, i) => {
-            cy.log(`${i + 1}. ${req.duration}ms`);
-
-            if (req.duration > 2000) {
-              cy.log(`⚠️  Slow image load: ${req.duration}ms`);
-            }
-          });
-        }
-      });
-    });
-
-    it('total de requests debe ser razonable', () => {
-      cy.visit('/user/profesionales');
-      cy.waitForPageLoad();
-
-      cy.getNetworkStats().then((stats) => {
-        cy.log('Total Requests:', stats.requestCount);
-        cy.log('Total Transfer Size:', `${stats.totalSize}KB`);
-
-        // Professionals page can have many images
-        // But should still be under reasonable limits
-        expect(stats.requestCount, 'Should not have excessive requests').to.be.lessThan(60);
+        imageRequests.forEach((req) => {
+          expect(req.duration, `Image ${req.url} should load in < 3s`).to.be.lessThan(3000);
+        });
       });
     });
   });
 
   describe('Pagination Performance', () => {
-    it('navegación entre páginas debe ser rápida', () => {
+    it('navegacion entre paginas debe ser rapida', () => {
       cy.visit('/user/profesionales');
       cy.waitForPageLoad();
 
       cy.get('body').then(($body) => {
         // Check if pagination exists
-        if ($body.find('button').text().match(/siguiente|next|página/i)) {
-          cy.log('Pagination controls found');
-
-          // Test pagination click performance
+        if ($body.find('button').text().match(/siguiente|next|pagina/i)) {
           const startTime = Date.now();
 
           cy.contains(/siguiente|next/i).first().click();
@@ -191,7 +131,6 @@ describe('Performance: Professionals Search', () => {
           cy.then(() => {
             const paginationTime = Date.now() - startTime;
             cy.log('Pagination Time:', `${paginationTime}ms`);
-
             expect(paginationTime, 'Pagination should be fast').to.be.lessThan(2000);
           });
         } else {

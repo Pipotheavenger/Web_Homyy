@@ -16,7 +16,8 @@ beforeEach(() => {
       const duration = Date.now() - startTime;
 
       // Store request data for performance tracking
-      cy.window().then((win) => {
+      // Using { log: false } to reduce Cypress command log noise and speed up tests
+      cy.window({ log: false }).then((win) => {
         if (!win.__performanceData__) {
           win.__performanceData__ = {
             requests: [],
@@ -41,14 +42,14 @@ beforeEach(() => {
     });
 
     // Track pending requests
-    cy.window().then((win) => {
+    cy.window({ log: false }).then((win) => {
       if (win.__pendingRequests__ !== undefined) {
         win.__pendingRequests__++;
       }
     });
 
     req.on('after:response', () => {
-      cy.window().then((win) => {
+      cy.window({ log: false }).then((win) => {
         if (win.__pendingRequests__ !== undefined && win.__pendingRequests__ > 0) {
           win.__pendingRequests__--;
         }
@@ -64,7 +65,7 @@ beforeEach(() => {
 
 afterEach(() => {
   // Clean up Supabase subscriptions to prevent memory leaks
-  cy.window().then((win) => {
+  cy.window({ log: false }).then((win) => {
     // Close any open Supabase realtime connections
     if (win.localStorage) {
       // Get all Supabase keys
@@ -79,15 +80,9 @@ afterEach(() => {
 });
 
 // Handle uncaught exceptions
-Cypress.on('uncaught:exception', (err, runnable) => {
-  // Log the error for debugging
-  cy.log('Uncaught exception:', err.message);
-
-  // Don't fail tests on uncaught exceptions from the app
-  // This is useful for performance tests where we're focused on load times
-  // You can customize this to only ignore specific errors
+Cypress.on('uncaught:exception', (err) => {
+  // Don't fail tests on ResizeObserver errors (common in React apps)
   if (err.message.includes('ResizeObserver')) {
-    // Ignore ResizeObserver errors (common in React apps)
     return false;
   }
 
@@ -99,4 +94,3 @@ Cypress.on('uncaught:exception', (err, runnable) => {
 Cypress.env('maxLoadTime', Cypress.env('maxLoadTime') || 4000);
 Cypress.env('maxLCP', Cypress.env('maxLCP') || 2500);
 Cypress.env('maxCLS', Cypress.env('maxCLS') || 0.1);
-Cypress.env('maxFID', Cypress.env('maxFID') || 100);

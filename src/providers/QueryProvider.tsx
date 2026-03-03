@@ -9,10 +9,8 @@ export function QueryProvider({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Siempre refrescar datos para dashboards y perfiles
-            staleTime: 0, // Considerar datos como obsoletos inmediatamente
-            // Mantener datos en memoria por tiempo mínimo
-            gcTime: 1 * 60 * 1000, // 1 minuto
+            staleTime: 2 * 60 * 1000, // 2 minutos - datos cacheados se muestran instant
+            gcTime: 5 * 60 * 1000, // 5 minutos en memoria
             // Reintentar 1 vez en caso de error
             retry: 1,
             // Refrescar cuando la ventana recupera el foco (datos frescos)

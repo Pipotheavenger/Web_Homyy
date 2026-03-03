@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { notificationService } from '@/lib/api/notifications';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
 export interface NotificationCounts {
@@ -39,16 +40,46 @@ export const useNotificationCounts = (options: NotificationCountsOptions = {}) =
     }
   }, []);
 
-  // Cargar contador de notificaciones no leidas y polling periodico
+  // Realtime subscription + refetch on visibility change (replaces 30s polling)
   useEffect(() => {
     if (!user) return;
 
     loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000);
 
-    return () => clearInterval(interval);
+    // Subscribe to new notifications via Realtime instead of polling
+    const channel = supabase
+      .channel(`notification_counts_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          setCounts(prev => ({
+            ...prev,
+            unreadNotifications: prev.unreadNotifications + 1
+          }));
+        }
+      )
+      .subscribe();
+
+    // Refetch on tab visibility change as a lightweight fallback
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadCount();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user, loadUnreadCount]);
 
   return counts;
 };
-

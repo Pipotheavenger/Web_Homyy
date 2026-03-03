@@ -14,7 +14,8 @@
     "test:performance": "start-server-and-test dev http://localhost:3000 cypress:run",
     "test:performance:headed": "start-server-and-test dev http://localhost:3000 'cypress run --headed --config-file test/cypress.config.ts'",
     "test:performance:chrome": "start-server-and-test dev http://localhost:3000 'cypress run --browser chrome --config-file test/cypress.config.ts'",
-    "test:performance:report": "cypress run --config-file test/cypress.config.ts --reporter json --reporter-options output=test/reports/results.json"
+    "test:performance:report": "cypress run --config-file test/cypress.config.ts --reporter json --reporter-options output=test/reports/results.json",
+    "test:ci": "start-server-and-test start http://localhost:3000 'cypress run --config-file test/cypress.config.ts --browser chrome'"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.997.0",

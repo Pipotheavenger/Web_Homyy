@@ -34,10 +34,8 @@ export function useUserServices(userId: string | undefined, enabled: boolean = t
       return response.data || [];
     },
     enabled: enabled && !!userId,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
+    staleTime: 30 * 1000, // 30s - servicios cambian moderadamente
+    gcTime: 2 * 60 * 1000,
   });
 }
 
@@ -83,16 +81,13 @@ export function useDashboardStats(
       return null;
     },
     enabled: enabled && !!userId && !!userType,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
+    staleTime: 60 * 1000, // 1 min - stats calculados localmente
+    gcTime: 2 * 60 * 1000,
   });
 }
 
 /**
  * Query para obtener categorías
- * Siempre refresca datos frescos desde la base de datos
  */
 export function useCategories(enabled: boolean = true) {
   return useQuery({
@@ -103,16 +98,13 @@ export function useCategories(enabled: boolean = true) {
       return response.data || [];
     },
     enabled,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 5 * 60 * 1000, // Mantener en memoria solo 5 minutos
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
+    staleTime: 10 * 60 * 1000, // 10 min - categorias casi nunca cambian
+    gcTime: 15 * 60 * 1000,
   });
 }
 
 /**
  * Query para obtener top workers
- * Siempre refresca datos frescos desde la base de datos
  */
 export function useTopWorkers(enabled: boolean = true) {
   return useQuery({
@@ -123,10 +115,8 @@ export function useTopWorkers(enabled: boolean = true) {
       return Array.isArray(response.data) ? response.data.slice(0, 5) : [];
     },
     enabled,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 2 * 60 * 1000, // Mantener en memoria solo 2 minutos
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
+    staleTime: 5 * 60 * 1000, // 5 min - top workers cambian lento
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -203,10 +193,8 @@ export function useReviewedServices(
       return reviewed;
     },
     enabled: enabled && !!userId && serviceIds.length > 0,
-    staleTime: 0, // Siempre considerar datos como obsoletos
-    gcTime: 1 * 60 * 1000, // Mantener en memoria solo 1 minuto
-    refetchOnMount: true, // Siempre refrescar al montar
-    refetchOnWindowFocus: true, // Refrescar cuando la ventana recupera el foco
+    staleTime: 2 * 60 * 1000, // 2 min - reviews cambian poco
+    gcTime: 5 * 60 * 1000,
   });
 }
 

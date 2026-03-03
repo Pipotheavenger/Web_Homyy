@@ -1,11 +1,11 @@
 'use client';
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { getNavigationItems, getPageConfig } from '@/utils/userTypeUtils';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import PhoneVerificationBar from './ui/PhoneVerificationBar';
-import { useChat } from '@/hooks/useChat';
+import { useChatUnreadCount } from '@/hooks/useChatUnreadCount';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
 interface LayoutProps {
@@ -30,11 +30,7 @@ export default function Layout({
   const { userType, colors } = useUserType();
   const navigationItems = getNavigationItems(userType);
   const pageConfig = getPageConfig(userType, currentPage);
-  const { chats } = useChat();
-  const unreadMessages = useMemo(
-    () => chats.reduce((sum, chat) => sum + (chat.unread_count || 0), 0),
-    [chats]
-  );
+  const unreadMessages = useChatUnreadCount();
   const counts = useNotificationCounts({ externalUnreadMessages: unreadMessages });
 
   const finalTitle = title || pageConfig.title;

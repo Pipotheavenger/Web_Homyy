@@ -30,7 +30,11 @@ import { useWorkerProfileCurrent } from '@/hooks/useWorkerProfileCurrent';
 import { supabase } from '@/lib/supabase';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import PhoneVerificationModal from '@/components/ui/PhoneVerificationModal';
+import dynamic from 'next/dynamic';
+const PhoneVerificationModal = dynamic(
+  () => import('@/components/ui/PhoneVerificationModal'),
+  { ssr: false }
+);
 import { AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function PerfilWorkerPage() {

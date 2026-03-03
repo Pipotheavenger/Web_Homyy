@@ -42,67 +42,31 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    // Obtener sesión inicial
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error obteniendo sesión:', error);
-          setAuthState(prev => ({ ...prev, loading: false, error: error.message }));
-          return;
-        }
-
-        if (session?.user) {
-          // Cargar perfil con caché (más rápido)
-          const profile = await loadUserProfile(session.user.id);
-          setAuthState({
-            user: session.user,
-            profile,
-            loading: false,
-            error: null
-          });
-        } else {
-          setAuthState({
-            user: null,
-            profile: null,
-            loading: false,
-            error: null
-          });
-        }
-      } catch (error: any) {
-        console.error('Error inesperado:', error);
-        setAuthState(prev => ({ ...prev, loading: false, error: error.message }));
-      }
-    };
-
-    getInitialSession();
-
-    // Escuchar cambios en la autenticación
+    // onAuthStateChange dispara INITIAL_SESSION al suscribirse,
+    // lo que cubre tanto "no hay sesión" como "ya hay sesión guardada".
+    // No necesitamos getSession() aparte (evita doble SIGNED_IN).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          // Cargar perfil con caché
-          const profile = await loadUserProfile(session.user.id);
-          setAuthState({
-            user: session.user,
-            profile,
-            loading: false,
-            error: null
-          });
-        } else {
-          // Limpiar caché al cerrar sesión
+        if (event === 'SIGNED_OUT') {
           setAuthState(prev => {
             if (prev.user?.id) {
               clearCachedData(`user_profile_${prev.user.id}`);
             }
-            return {
-              user: null,
-              profile: null,
-              loading: false,
-              error: null
-            };
+            return { user: null, profile: null, loading: false, error: null };
           });
+          return;
+        }
+
+        if (session?.user) {
+          const profile = await loadUserProfile(session.user.id);
+          setAuthState({
+            user: session.user,
+            profile,
+            loading: false,
+            error: null
+          });
+        } else {
+          setAuthState({ user: null, profile: null, loading: false, error: null });
         }
       }
     );

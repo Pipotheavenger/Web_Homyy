@@ -5,7 +5,11 @@ import { Plus, TrendingUp, DollarSign, Star, MapPin, Calendar, XCircle, Clock, B
 import Layout from '@/components/Layout';
 import { useUserType } from '@/contexts/UserTypeContext';
 import { useWorkerDashboard } from '@/hooks/useWorkerDashboard';
-import { WorkCompletionModal } from '@/components/ui/WorkCompletionModal';
+import dynamic from 'next/dynamic';
+const WorkCompletionModal = dynamic(
+  () => import('@/components/ui/WorkCompletionModal').then(mod => ({ default: mod.WorkCompletionModal })),
+  { ssr: false }
+);
 import { escrowService, applicationsService } from '@/lib/services';
 import Image from 'next/image';
 import { ASSETS_CONFIG } from '@/lib/assets-config';

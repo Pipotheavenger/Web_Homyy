@@ -12,7 +12,6 @@ export interface PerformanceMetrics {
 
 export interface CoreWebVitals {
   lcp: number; // Largest Contentful Paint
-  fid: number; // First Input Delay
   cls: number; // Cumulative Layout Shift
 }
 
@@ -168,7 +167,6 @@ export function getCoreWebVitals(): Cypress.Chainable<CoreWebVitals> {
     return new Cypress.Promise<CoreWebVitals>((resolve) => {
       const vitals: CoreWebVitals = {
         lcp: 0,
-        fid: 0,
         cls: 0,
       };
 
@@ -196,10 +194,6 @@ export function getCoreWebVitals(): Cypress.Chainable<CoreWebVitals> {
       } catch (e) {
         cy.log('CLS not available:', e);
       }
-
-      // FID (First Input Delay) is harder to measure in automated tests
-      // We'll set it to 0 as it requires real user interaction
-      vitals.fid = 0;
 
       resolve(vitals);
     });
@@ -235,24 +229,100 @@ export function assertPerformanceThreshold(
 
 /**
  * Assert Core Web Vitals meet thresholds
+ * In Chrome, LCP is required to be measured. In other browsers, it's optional.
  */
 export function assertWebVitalsThreshold(vitals: CoreWebVitals): void {
   cy.log('Core Web Vitals:', JSON.stringify(vitals, null, 2));
 
-  // Assert LCP (should be < 2.5s)
-  if (vitals.lcp > 0) {
+  // LCP: In Chrome, it must be measured and within threshold
+  // In Electron/other browsers, only assert if measured
+  if (Cypress.browser.name === 'chrome' || Cypress.browser.name === 'chromium') {
+    expect(vitals.lcp, 'LCP should be measured in Chrome').to.be.greaterThan(0);
+    expect(vitals.lcp, 'LCP should be less than 2500ms').to.be.lessThan(2500);
+  } else if (vitals.lcp > 0) {
     expect(vitals.lcp, 'LCP should be less than 2500ms').to.be.lessThan(2500);
   }
 
-  // Assert CLS (should be < 0.1)
-  if (vitals.cls > 0) {
-    expect(vitals.cls, 'CLS should be less than 0.1').to.be.lessThan(0.1);
+  // CLS: Always assert (0 is a valid good value)
+  expect(vitals.cls, 'CLS should be less than 0.1').to.be.lessThan(0.1);
+}
+
+/**
+ * Assert no individual request exceeds a duration threshold
+ * FAILS the test if slow requests are found (unlike the old log-only approach)
+ */
+export function assertNoSlowRequests(
+  metrics: PerformanceMetrics,
+  maxSingleRequestMs: number = 2000
+): void {
+  const slowRequests = metrics.slowestRequests.filter(
+    (req) => req.duration > maxSingleRequestMs
+  );
+
+  // Log for debugging regardless
+  if (slowRequests.length > 0) {
+    cy.log(`Slow requests (>${maxSingleRequestMs}ms):`);
+    slowRequests.forEach((req) => {
+      cy.log(`  ${req.url}: ${req.duration}ms`);
+    });
   }
 
-  // Assert FID (should be < 100ms) - only if measured
-  if (vitals.fid > 0) {
-    expect(vitals.fid, 'FID should be less than 100ms').to.be.lessThan(100);
-  }
+  // FAIL the test
+  expect(
+    slowRequests.length,
+    `No request should exceed ${maxSingleRequestMs}ms. Found ${slowRequests.length} slow request(s).`
+  ).to.eq(0);
+}
+
+/**
+ * Assert total transfer size is within threshold
+ */
+export function assertTransferSize(
+  metrics: PerformanceMetrics,
+  maxSizeKB: number
+): void {
+  expect(
+    metrics.totalSize,
+    `Transfer size ${metrics.totalSize}KB should be under ${maxSizeKB}KB`
+  ).to.be.lessThan(maxSizeKB);
+}
+
+/**
+ * Assert request count is within threshold
+ */
+export function assertRequestCount(
+  metrics: PerformanceMetrics,
+  maxRequests: number
+): void {
+  expect(
+    metrics.requestCount,
+    `Request count ${metrics.requestCount} should be under ${maxRequests}`
+  ).to.be.lessThan(maxRequests);
+}
+
+/**
+ * Assert no HTTP requests returned error status codes (4xx/5xx)
+ * Excludes favicon requests which commonly 404
+ */
+export function assertNoFailedRequests(): void {
+  cy.window().then((win) => {
+    const requests = win.__performanceData__?.requests || [];
+    const failedRequests = requests.filter(
+      (req) => req.status >= 400 && !req.url.includes('favicon')
+    );
+
+    if (failedRequests.length > 0) {
+      cy.log('Failed HTTP requests:');
+      failedRequests.forEach((req) => {
+        cy.log(`  ${req.status} ${req.method} ${req.url}`);
+      });
+    }
+
+    expect(
+      failedRequests.length,
+      `No HTTP requests should fail. Found ${failedRequests.length} request(s) with status >= 400.`
+    ).to.eq(0);
+  });
 }
 
 /**

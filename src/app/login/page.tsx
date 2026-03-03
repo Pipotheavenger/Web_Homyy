@@ -3,7 +3,11 @@ import { useState } from 'react';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { FormInput } from '@/components/ui/FormInput';
 import { LoginHeader } from '@/components/ui/LoginHeader';
-import { RecoverPasswordModal } from '@/components/ui/RecoverPasswordModal';
+import dynamic from 'next/dynamic';
+const RecoverPasswordModal = dynamic(
+  () => import('@/components/ui/RecoverPasswordModal').then(mod => ({ default: mod.RecoverPasswordModal })),
+  { ssr: false }
+);
 import BgWave from './BgWave';
 
 export default function LoginPage() {

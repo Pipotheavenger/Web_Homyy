@@ -30,24 +30,22 @@ export const useDetallesPostulantes = () => {
 
   useEffect(() => {
     if (serviceId) {
-      loadServiceDetails();
-      loadApplications();
-      loadPreguntas();
-      loadBooking();
+      setLoading(true);
+      Promise.allSettled([
+        loadServiceDetails(),
+        loadApplications(),
+        loadPreguntas(),
+        loadBooking()
+      ]).finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
   }, [serviceId]);
 
   const loadServiceDetails = async () => {
-    if (!serviceId) {
-      setLoading(false);
-      return;
-    }
+    if (!serviceId) return;
 
     try {
-      setLoading(true);
-
       // Query directa simple sin relaciones
       const { data: serviceData, error: serviceError } = await supabase
         .from('services')
@@ -83,8 +81,6 @@ export const useDetallesPostulantes = () => {
     } catch (error: any) {
       alert('Error al cargar servicio: ' + (error?.message || 'Error desconocido'));
       setServicio(null);
-    } finally {
-      setLoading(false);
     }
   };
 

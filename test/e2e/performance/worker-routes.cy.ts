@@ -13,18 +13,20 @@ describe('Performance: Worker Routes', () => {
   });
 
   describe('Trabajos Page', () => {
-    it('debe cargar /worker/trabajos en menos de 4 segundos', () => {
+    it('debe cargar /worker/trabajos en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/worker/trabajos');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
-        cy.log('Requests:', metrics.requestCount);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 50);
+        cy.assertTransferSize(metrics, 3000);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar trabajos disponibles o estado vacío', () => {
+    it('debe mostrar trabajos disponibles o estado vacio', () => {
       cy.visit('/worker/trabajos');
       cy.waitForPageLoad();
 
@@ -42,43 +44,38 @@ describe('Performance: Worker Routes', () => {
       cy.waitForPageLoad();
 
       cy.getCoreWebVitals().then((vitals) => {
-        cy.log('LCP:', `${vitals.lcp}ms`);
-        cy.log('CLS:', vitals.cls);
-
-        if (vitals.lcp > 0) {
-          expect(vitals.lcp).to.be.lessThan(2500);
-        }
-        if (vitals.cls > 0) {
-          expect(vitals.cls).to.be.lessThan(0.1);
-        }
+        cy.assertWebVitalsThreshold(vitals);
       });
     });
 
-    it('filtros deben funcionar sin degradación de rendimiento', () => {
+    it('filtros deben estar disponibles', () => {
       cy.visit('/worker/trabajos');
       cy.waitForPageLoad();
 
-      // Check if filters exist and can be interacted with
       cy.get('body').then(($body) => {
-        if ($body.find('select').length > 0 || $body.find('input[type="search"]').length > 0) {
-          cy.log('Filters are available');
-        }
+        const hasFilters = $body.find('select').length > 0 ||
+                          $body.find('input[type="search"]').length > 0 ||
+                          $body.find('[role="combobox"]').length > 0 ||
+                          $body.find('input[placeholder]').length > 0;
+        expect(hasFilters, 'Page should have filter or search controls').to.be.true;
       });
     });
   });
 
   describe('Perfil Page', () => {
-    it('debe cargar /worker/perfil en menos de 4 segundos', () => {
+    it('debe cargar /worker/perfil en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/worker/perfil');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar información del perfil profesional', () => {
+    it('debe mostrar informacion del perfil profesional', () => {
       cy.visit('/worker/perfil');
       cy.waitForPageLoad();
 
@@ -87,14 +84,16 @@ describe('Performance: Worker Routes', () => {
   });
 
   describe('Historial Page', () => {
-    it('debe cargar /worker/historial en menos de 4 segundos', () => {
+    it('debe cargar /worker/historial en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/worker/historial');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
     it('debe mostrar historial de trabajos', () => {
@@ -106,17 +105,19 @@ describe('Performance: Worker Routes', () => {
   });
 
   describe('Pagos Page', () => {
-    it('debe cargar /worker/pagos en menos de 4 segundos', () => {
+    it('debe cargar /worker/pagos en menos de 4 segundos sin requests fallidas', () => {
       cy.visit('/worker/pagos');
       cy.waitForPageLoad(4000);
 
       cy.measureLoadTime().then((metrics) => {
         cy.assertPerformanceThreshold(metrics, 4000);
-        cy.log('Load Time:', `${metrics.loadTime}ms`);
+        cy.assertNoSlowRequests(metrics, 2000);
+        cy.assertRequestCount(metrics, 40);
       });
+      cy.assertNoFailedRequests();
     });
 
-    it('debe mostrar información de ganancias y pagos', () => {
+    it('debe mostrar informacion de ganancias y pagos', () => {
       cy.visit('/worker/pagos');
       cy.waitForPageLoad();
 
@@ -133,40 +134,15 @@ describe('Performance: Worker Routes', () => {
     ];
 
     routes.forEach((route) => {
-      it(`${route} no debe tener requests excesivamente lentas`, () => {
+      it(`${route} no debe tener requests lentas ni requests fallidas`, () => {
         cy.startPerformanceMonitoring();
         cy.visit(route);
         cy.waitForPageLoad();
 
         cy.measureLoadTime().then((metrics) => {
-          // Check for very slow requests
-          const slowRequests = metrics.slowestRequests.filter(req => req.duration > 2000);
-
-          if (slowRequests.length > 0) {
-            cy.log(`⚠️  Slow requests found in ${route}:`);
-            slowRequests.forEach(req => {
-              cy.log(`  - ${req.url}: ${req.duration}ms`);
-            });
-          } else {
-            cy.log(`✓ All requests in ${route} are reasonably fast`);
-          }
+          cy.assertNoSlowRequests(metrics, 2000);
         });
-      });
-    });
-  });
-
-  describe('Comparison: User vs Worker Pages', () => {
-    it('worker/trabajos debe tener rendimiento comparable a user/profesionales', () => {
-      // Test worker/trabajos
-      cy.startPerformanceMonitoring();
-      cy.visit('/worker/trabajos');
-      cy.waitForPageLoad();
-
-      cy.measureLoadTime().then((workerMetrics) => {
-        cy.log('Worker Trabajos Load Time:', `${workerMetrics.loadTime}ms`);
-
-        // Both should meet threshold
-        expect(workerMetrics.loadTime).to.be.lessThan(4000);
+        cy.assertNoFailedRequests();
       });
     });
   });
