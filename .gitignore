@@ -63,3 +63,6 @@ blob-report/
 
 # docs
 /docs/
+
+#claude
+.claude/

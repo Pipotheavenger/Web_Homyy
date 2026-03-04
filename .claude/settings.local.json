@@ -8,12 +8,14 @@
       "Bash(if [ -f .env.local ])",
       "Bash(then echo \"✓ .env.local exists\")",
       "Bash(else echo \"✗ .env.local NOT FOUND\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_migrations"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase",
     "playwright"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
