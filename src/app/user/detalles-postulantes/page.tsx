@@ -7,12 +7,9 @@ import { ServiceDetails } from '@/components/ui/ServiceDetails';
 import { PostulanteCard } from '@/components/ui/PostulanteCard';
 import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
 import dynamic from 'next/dynamic';
+import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
 const CancelServiceModal = dynamic(
   () => import('@/components/ui/CancelServiceModal').then(mod => ({ default: mod.CancelServiceModal })),
-  { ssr: false }
-);
-const WorkerSelectionModal = dynamic(
-  () => import('@/components/ui/WorkerSelectionModal').then(mod => ({ default: mod.WorkerSelectionModal })),
   { ssr: false }
 );
 import { ChevronDown, ChevronUp, MessageCircle, Users, Star, MapPin, Calendar, Clock, DollarSign, Phone, Mail, CheckCircle, User, Info } from 'lucide-react';

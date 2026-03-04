@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { NotificationType } from '@/lib/api/notifications';
+import { sendWhatsAppTemplateToUser } from '@/lib/services/whatsapp';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -151,37 +152,13 @@ export async function POST(request: NextRequest) {
       }
 
       if (canSendWhatsApp) {
-        // Logs de diagnóstico para Vercel (sin secretos)
-        const vercelEnv = process.env.VERCEL_ENV ?? '(no VERCEL_ENV)';
-        const hasInfobipApiKey = !!process.env.INFOBIP_API_KEY;
-        const hasInfobipBaseUrl = !!process.env.INFOBIP_BASE_URL;
-        console.log('[notifications/create] VERCEL_ENV:', vercelEnv, '| hasInfobipApiKey:', hasInfobipApiKey, '| hasInfobipBaseUrl:', hasInfobipBaseUrl);
-
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-        console.log('[notifications/create] baseUrl (internal):', baseUrl.replace(/\/$/, ''));
-
-        console.log(`[notifications/create] before calling whatsapp/send | tipo=${type} userId=${userId}`);
+        console.log(`[notifications/create] enviando WhatsApp | tipo=${type} userId=${userId}`);
         try {
-          const whatsappResponse = await fetch(`${baseUrl}/api/whatsapp/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: userId,
-              message: message,
-              title: title,
-              type: type,
-            }),
-          });
-          const status = whatsappResponse.status;
-          const bodyPreview = await whatsappResponse.text().then(t => t.slice(0, 200)).catch(() => '');
-          console.log('[notifications/create] after whatsapp/send | status:', status, '| bodyPreview:', bodyPreview);
-          if (!whatsappResponse.ok) {
-            console.error(`❌ Error enviando WhatsApp:`, status, bodyPreview);
-          } else {
+          const result = await sendWhatsAppTemplateToUser(userId, message, { title, type });
+          if (result.success) {
             console.log(`✅ WhatsApp enviado exitosamente para usuario ${userId}`);
+          } else {
+            console.warn('⚠️ Error enviando WhatsApp (no crítico):', result.error);
           }
         } catch (err) {
           console.warn('⚠️ Error enviando WhatsApp (no crítico):', err);
