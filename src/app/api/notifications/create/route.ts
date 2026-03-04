@@ -115,12 +115,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enviar WhatsApp si es una notificación importante (solo las 4 configuradas)
+    // Enviar WhatsApp si es una notificación importante (pagos y eventos vitales)
     const importantTypes: NotificationType[] = [
       'new_professional_applied',  // Cuando un trabajador postula a un servicio
       'client_selected_you',       // Cuando se selecciona al trabajador
-      'payment_processed',         // Cuando se paga y se confirma un pago
-      'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
+      'payment_processed',        // Recarga/carga completada → acreditación en cuenta
+      'payment_released',          // Retiro completado o pago al trabajador (escrow)
+      'payment_issue',             // Problema con un pago (rechazo, error)
     ];
 
     // Solo enviar WhatsApp si:

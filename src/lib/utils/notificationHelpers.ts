@@ -47,8 +47,9 @@ interface CreateNotificationParams {
 const IMPORTANT_NOTIFICATIONS_FOR_WHATSAPP: NotificationType[] = [
   'new_professional_applied',  // Cuando un trabajador postula a un servicio → notificación al usuario
   'client_selected_you',       // Cuando se selecciona al trabajador → notificación al trabajador
-  'payment_processed',         // Cuando se paga y se confirma un pago
-  'payment_released',          // Cuando se liberan los fondos al trabajador después de completar un servicio
+  'payment_processed',        // Recarga/carga completada
+  'payment_released',         // Retiro completado o pago al trabajador (escrow)
+  'payment_issue',            // Problema con un pago (rechazo, error)
 ];
 
 /**
@@ -199,13 +200,18 @@ export const notifyServiceCompleted = async (
 };
 
 /**
- * Crear notificación cuando se procesa un pago
+ * Crear notificación cuando hay un cambio en pagos:
+ * - Recarga/carga completada (cliente)
+ * - Retiro/descarga completada (trabajador)
+ * - Pago al trabajador por escrow (sistema libera fondos)
  */
 export const notifyPaymentProcessed = async (
   userId: string,
   amount: number,
   transactionId: string,
-  isClient: boolean
+  isClient: boolean,
+  /** Solo cuando isClient es false: 'retiro' = descarga procesada, 'escrow' = pago por servicio */
+  source?: 'retiro' | 'escrow'
 ) => {
   const formattedAmount = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -213,18 +219,30 @@ export const notifyPaymentProcessed = async (
     minimumFractionDigits: 0
   }).format(amount);
 
+  let title: string;
+  let message: string;
+  if (isClient) {
+    title = 'Recarga acreditada';
+    message = `Tu recarga de ${formattedAmount} fue acreditada en tu cuenta.`;
+  } else if (source === 'retiro') {
+    title = 'Retiro procesado';
+    message = `Tu retiro de ${formattedAmount} fue procesado y enviado.`;
+  } else {
+    title = 'Pago liberado';
+    message = `Recibiste ${formattedAmount} por tu servicio.`;
+  }
+
   return createNotification({
     userId,
     type: isClient ? 'payment_processed' : 'payment_released',
-    title: isClient ? 'Pago procesado' : 'Pago liberado',
-    message: isClient
-      ? `Tu pago de ${formattedAmount} fue procesado exitosamente`
-      : `Recibiste ${formattedAmount} por tu servicio`,
+    title,
+    message,
     metadata: {
       transaction_id: transactionId,
-      amount
+      amount,
+      source: isClient ? 'recarga' : (source ?? 'escrow')
     },
-    isCritical: true // Marcar como crítica para asegurar envío por WhatsApp
+    isCritical: true
   });
 };
 

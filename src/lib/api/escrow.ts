@@ -311,7 +311,8 @@ export const escrowService = {
               escrowTransaction.worker_id,
               escrowTransaction.amount,
               escrowTransaction.id,
-              false // isClient = false porque es para el trabajador
+              false,
+              'escrow' // Pago al trabajador cuando el sistema libera fondos
             );
           }
         }

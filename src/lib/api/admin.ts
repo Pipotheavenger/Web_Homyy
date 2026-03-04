@@ -468,18 +468,18 @@ export const adminService = {
 
       if (error) throw error;
 
-      // Si el status cambió a 'completado' y antes no estaba completado, enviar notificación
+      // Si el status cambió a 'completado' y antes no estaba completado, enviar notificación + WhatsApp
       if (status === 'completado' && oldTransaction && oldTransaction.status !== 'completado') {
         try {
-          // Determinar si es cliente (recarga) o trabajador (retiro)
           const isClient = data.type === 'recarga';
-          
+          const source = data.type === 'retiro' ? ('retiro' as const) : ('escrow' as const);
           const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
           await notifyPaymentProcessed(
             data.user_id,
             data.amount,
             data.id,
-            isClient
+            isClient,
+            isClient ? undefined : source
           );
         } catch (notifError) {
           // No fallar la actualización si la notificación falla
