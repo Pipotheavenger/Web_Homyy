@@ -151,38 +151,41 @@ export async function POST(request: NextRequest) {
       }
 
       if (canSendWhatsApp) {
-        // Enviar WhatsApp en segundo plano (no bloquea la respuesta)
-        // El template "notificacion" usa el nombre del usuario como placeholder {{1}}
-        // Template: "Hola {{1}}, Tu solicitud en Hommy tiene una nueva actualización. – Hommy"
-        // El endpoint /api/whatsapp/send obtendrá el nombre y número desde user_profiles o worker_profiles
+        // Logs de diagnóstico para Vercel (sin secretos)
+        const vercelEnv = process.env.VERCEL_ENV ?? '(no VERCEL_ENV)';
+        const hasInfobipApiKey = !!process.env.INFOBIP_API_KEY;
+        const hasInfobipBaseUrl = !!process.env.INFOBIP_BASE_URL;
+        console.log('[notifications/create] VERCEL_ENV:', vercelEnv, '| hasInfobipApiKey:', hasInfobipApiKey, '| hasInfobipBaseUrl:', hasInfobipBaseUrl);
+
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+        console.log('[notifications/create] baseUrl (internal):', baseUrl.replace(/\/$/, ''));
 
-        console.log(`📱 Enviando WhatsApp para notificación ${type} al usuario ${userId}`);
-        
-        fetch(`${baseUrl}/api/whatsapp/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: userId,
-            message: message,
-            title: title,
-            type: type,
-          }),
-        })
-        .then(async (response) => {
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-            console.error(`❌ Error enviando WhatsApp:`, errorData);
+        console.log(`[notifications/create] before calling whatsapp/send | tipo=${type} userId=${userId}`);
+        try {
+          const whatsappResponse = await fetch(`${baseUrl}/api/whatsapp/send`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: userId,
+              message: message,
+              title: title,
+              type: type,
+            }),
+          });
+          const status = whatsappResponse.status;
+          const bodyPreview = await whatsappResponse.text().then(t => t.slice(0, 200)).catch(() => '');
+          console.log('[notifications/create] after whatsapp/send | status:', status, '| bodyPreview:', bodyPreview);
+          if (!whatsappResponse.ok) {
+            console.error(`❌ Error enviando WhatsApp:`, status, bodyPreview);
           } else {
             console.log(`✅ WhatsApp enviado exitosamente para usuario ${userId}`);
           }
-        })
-        .catch(err => {
+        } catch (err) {
           console.warn('⚠️ Error enviando WhatsApp (no crítico):', err);
-        });
+        }
       } else {
         console.log(`ℹ️ WhatsApp no enviado para usuario ${userId}: notificaciones deshabilitadas o sin teléfono`);
       }

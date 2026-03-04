@@ -39,6 +39,12 @@ export async function POST(request: NextRequest) {
     const infobipBaseUrl = process.env.INFOBIP_BASE_URL || 'https://api.infobip.com';
     const infobipWhatsAppSender = process.env.INFOBIP_WHATSAPP_SENDER_ID;
 
+    // Logs de diagnóstico para Vercel (sin secretos)
+    const vercelEnv = process.env.VERCEL_ENV ?? '(no VERCEL_ENV)';
+    const hasToken = !!infobipApiKey;
+    const baseUrlLog = infobipBaseUrl ? infobipBaseUrl.replace(/\/$/, '').replace(/\?.*$/, '') : '(vacío)';
+    console.log('[whatsapp/send] VERCEL_ENV:', vercelEnv, '| hasToken:', hasToken, '| infobipBaseUrl (sin query):', baseUrlLog);
+
     if (!infobipApiKey) {
       console.error('INFOBIP_API_KEY no está configurada');
       return NextResponse.json(
@@ -187,11 +193,10 @@ export async function POST(request: NextRequest) {
       ]
     };
 
+    console.log('[whatsapp/send] before infobip | URL:', `${baseUrl}/whatsapp/1/message/template`);
     console.log('📤 Enviando WhatsApp a Infobip:');
-    console.log('URL:', `${baseUrl}/whatsapp/1/message/template`);
     console.log('To:', phoneForInfobip);
     console.log('Template:', templateName);
-    console.log('Payload:', JSON.stringify(payload, null, 2));
 
     const response = await fetch(`${baseUrl}/whatsapp/1/message/template`, {
       method: 'POST',
@@ -203,12 +208,17 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(payload),
     });
 
+    const responseStatus = response.status;
+    const responseBodyRaw = await response.text();
+    const responseBodyPreview = responseBodyRaw.slice(0, 300);
+    console.log('[whatsapp/send] after infobip | status:', responseStatus, '| bodyPreview:', responseBodyPreview);
+
     if (!response.ok) {
       let errorData;
       try {
-        errorData = await response.json();
+        errorData = JSON.parse(responseBodyRaw);
       } catch {
-        errorData = await response.text();
+        errorData = responseBodyRaw;
       }
       console.error('❌ Error enviando WhatsApp:', errorData);
       return NextResponse.json(
@@ -220,7 +230,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await response.json();
+    const result = responseBodyRaw ? (() => { try { return JSON.parse(responseBodyRaw); } catch { return null; } })() : null;
     console.log('✅ WhatsApp enviado exitosamente:', result);
 
     return NextResponse.json({
