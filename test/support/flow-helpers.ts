@@ -58,6 +58,24 @@ export async function addTestBalance(
 ): Promise<{ id: string } | null> {
   const supabase = getSupabaseAdminClient();
 
+  // Clean up ALL old transactions for this user first to prevent accumulated
+  // debt from previous test runs (debits from escrow RPCs aren't cleaned by
+  // cleanupTestBalance, which only removes recargas).
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .in('type', ['debito', 'recarga', 'retiro'])
+    .like('description', '%[E2E Test]%');
+
+  // Also clean up escrow-created debit transactions from previous test runs
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('type', 'debito')
+    .like('description', '%[e2e Test]%');
+
   // Insert a transaction record (used by frontend balance calculation)
   const { data, error } = await supabase
     .from('transactions')

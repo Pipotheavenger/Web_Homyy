@@ -15,7 +15,7 @@ export const getUserType = async (userId: string): Promise<'user' | 'worker' | n
       .from('user_profiles')
       .select('user_type')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error obteniendo tipo de usuario:', error);
@@ -38,16 +38,25 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       .from('user_profiles')
       .select('user_type, name, email')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error('Error obteniendo perfil de usuario:', error);
+      console.error('Error obteniendo perfil de usuario:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        userId,
+      });
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error inesperado obteniendo perfil de usuario:', error);
+    console.error('Error inesperado obteniendo perfil de usuario:',
+      error instanceof Error ? error.message : String(error),
+      { userId }
+    );
     return null;
   }
 };

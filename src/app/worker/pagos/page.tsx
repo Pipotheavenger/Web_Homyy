@@ -25,6 +25,8 @@ const PaymentSuccessModal = dynamic(
 );
 import { transactionsService, Transaction } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 
 interface MetodoPago {
   id: string;
@@ -36,6 +38,7 @@ interface MetodoPago {
 }
 
 export default function PagosWorkerPage() {
+  const { user } = useAuth();
   const router = useRouter();
   const [showRecargar, setShowRecargar] = useState(false);
   const [showRetirar, setShowRetirar] = useState(false);
@@ -52,6 +55,32 @@ export default function PagosWorkerPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Realtime: refresh balance & transactions when admin approves
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`transactions_pagos_worker_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'transactions',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   const loadData = async () => {
     setLoading(true);
