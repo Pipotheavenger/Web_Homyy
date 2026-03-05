@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await getSupabaseAdmin().auth.getSession();
         
         if (error || !session || session.user.email !== ADMIN_EMAIL) {
           console.log('🔐 No admin auth found, redirecting to /admin');

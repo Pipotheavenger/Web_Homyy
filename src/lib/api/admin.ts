@@ -1,4 +1,5 @@
-import { supabase } from '../supabase';
+import { getSupabaseAdmin } from '../supabase';
+const supabase = getSupabaseAdmin();
 import type { ApiResponse } from '@/types/database';
 
 // =====================================================

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 const ADMIN_EMAIL = 'admin@hommy.app';
 
@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     // Verificar si ya está autenticado con Supabase
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await getSupabaseAdmin().auth.getSession();
       
       if (session?.user && session.user.email === ADMIN_EMAIL) {
         console.log('🔐 Admin already authenticated, redirecting to dashboard');
@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await getSupabaseAdmin().auth.signInWithPassword({
         email,
         password,
       });
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
       if (data.user && data.session) {
         // Verificar que el email sea el de admin
         if (data.user.email !== ADMIN_EMAIL) {
-          await supabase.auth.signOut();
+          await getSupabaseAdmin().auth.signOut();
           setError('Solo el administrador autorizado puede acceder');
           setLoading(false);
           return;
