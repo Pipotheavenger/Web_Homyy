@@ -29,6 +29,7 @@ function DetallesPostulantesContent() {
     candidateToConfirm,
     showCancelServiceModal,
     loading,
+    error,
     handleVerPerfil,
     handleBack,
     handleSelectCandidate,
@@ -62,10 +63,26 @@ function DetallesPostulantesContent() {
     );
   }
 
+  if (error) {
+    return (
+      <Layout
+        title="Detalles de Postulantes"
+        showBackButton={true}
+        onBackClick={handleBack}
+      >
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">
+            {error}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!servicio) {
     return (
-      <Layout 
-        title="Detalles de Postulantes" 
+      <Layout
+        title="Detalles de Postulantes"
         showBackButton={true}
         onBackClick={handleBack}
       >

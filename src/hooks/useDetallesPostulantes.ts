@@ -27,20 +27,22 @@ export const useDetallesPostulantes = () => {
   const [candidateToConfirm, setCandidateToConfirm] = useState<any>(null);
   const [showCancelServiceModal, setShowCancelServiceModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (serviceId) {
+    if (serviceId && user?.id) {
       setLoading(true);
+      setError(null);
       Promise.allSettled([
         loadServiceDetails(),
         loadApplications(),
         loadPreguntas(),
         loadBooking()
       ]).finally(() => setLoading(false));
-    } else {
+    } else if (!serviceId) {
       setLoading(false);
     }
-  }, [serviceId]);
+  }, [serviceId, user?.id]);
 
   const loadServiceDetails = async () => {
     if (!serviceId) return;
@@ -79,7 +81,8 @@ export const useDetallesPostulantes = () => {
       setServicio(serviceData);
 
     } catch (error: any) {
-      alert('Error al cargar servicio: ' + (error?.message || 'Error desconocido'));
+      console.error('Error al cargar servicio:', error);
+      setError('Error al cargar los detalles del servicio');
       setServicio(null);
     }
   };
@@ -97,6 +100,7 @@ export const useDetallesPostulantes = () => {
         setApplications(response.data);
       } else {
         console.error('❌ Error en la respuesta:', response.error);
+        setApplications([]);
       }
     } catch (error) {
       console.error('❌ Error loading applications:', error);
@@ -392,6 +396,7 @@ export const useDetallesPostulantes = () => {
     postulantes: filteredPostulantes,
     preguntas,
     booking, // Booking para obtener precio pagado
+    error,
     selectedFilter,
     selectedSort,
     selectedCandidate,

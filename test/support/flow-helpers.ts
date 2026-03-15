@@ -84,6 +84,7 @@ export async function addTestBalance(
       type: 'recarga',
       amount,
       status: 'completado',
+      payment_method: 'nequi',
       description: '[E2E Test] Balance de prueba',
     })
     .select('id')
@@ -423,6 +424,124 @@ export async function cleanupTestTransactions(
 /**
  * Delete a test user by email (removes auth user + profiles)
  */
+// ── Stress test: user creation helpers ──────────────────────────────
+
+const STRESS_PASSWORD = 'StressTest123!';
+
+/**
+ * Create a test client user via Supabase admin API.
+ * Uses RPCs to match the real registration flow.
+ */
+export async function createTestClient(
+  index: number
+): Promise<{ email: string; password: string; userId: string }> {
+  const supabase = getSupabaseAdminClient();
+  const email = `e2e.stress.client${index}@hommy.test`;
+  const password = STRESS_PASSWORD;
+
+  // Create auth user (auto-confirm email)
+  const { data: authData, error: authError } =
+    await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+  if (authError || !authData.user) {
+    throw new Error(
+      `Failed to create client ${index}: ${authError?.message}`
+    );
+  }
+
+  const userId = authData.user.id;
+
+  // Create user profile via RPC (same as registration API)
+  const { error: profileError } = await supabase.rpc('create_user_profile', {
+    p_user_id: userId,
+    p_email: email,
+    p_name: `E2E Cliente ${index}`,
+    p_user_type: 'user',
+    p_phone: `+57 300 000 00${10 + index}`,
+    p_birth_date: '1990-01-15',
+  });
+
+  if (profileError) {
+    // Rollback auth user on failure
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(
+      `Failed to create profile for client ${index}: ${profileError.message}`
+    );
+  }
+
+  return { email, password, userId };
+}
+
+/**
+ * Create a test worker user via Supabase admin API.
+ * Creates both user_profile and worker_profile via RPCs.
+ */
+export async function createTestWorker(
+  index: number
+): Promise<{ email: string; password: string; userId: string }> {
+  const supabase = getSupabaseAdminClient();
+  const email = `e2e.stress.worker${index}@hommy.test`;
+  const password = STRESS_PASSWORD;
+
+  // Create auth user (auto-confirm email)
+  const { data: authData, error: authError } =
+    await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+  if (authError || !authData.user) {
+    throw new Error(
+      `Failed to create worker ${index}: ${authError?.message}`
+    );
+  }
+
+  const userId = authData.user.id;
+
+  // Create user profile
+  const { error: profileError } = await supabase.rpc('create_user_profile', {
+    p_user_id: userId,
+    p_email: email,
+    p_name: `E2E Worker ${index}`,
+    p_user_type: 'worker',
+    p_phone: `+57 310 000 00${10 + index}`,
+    p_birth_date: '1988-06-20',
+  });
+
+  if (profileError) {
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(
+      `Failed to create profile for worker ${index}: ${profileError.message}`
+    );
+  }
+
+  // Create worker profile
+  const { error: workerError } = await supabase.rpc('create_worker_profile', {
+    p_user_id: userId,
+    p_profession: 'Limpieza general',
+    p_experience_years: 3,
+    p_bio: `Trabajador E2E ${index} con experiencia en limpieza profesional.`,
+    p_profile_description: `Trabajador E2E ${index} con experiencia en limpieza profesional.`,
+    p_categories: ['Limpieza'],
+    p_certifications: [],
+  });
+
+  if (workerError) {
+    await supabase.from('user_profiles').delete().eq('user_id', userId);
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(
+      `Failed to create worker profile for ${index}: ${workerError.message}`
+    );
+  }
+
+  return { email, password, userId };
+}
+
 export async function deleteTestUser(email: string): Promise<boolean> {
   const supabase = getSupabaseAdminClient();
 

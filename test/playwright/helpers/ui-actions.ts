@@ -21,10 +21,14 @@ export async function uiLogin(
 }
 
 /**
- * Logout via the user profile page.
+ * Logout via the profile page. Supports both client and worker roles.
  */
-export async function uiLogout(page: Page): Promise<void> {
-  await page.goto('/user/perfil', { waitUntil: 'networkidle' });
+export async function uiLogout(
+  page: Page,
+  role: 'user' | 'worker' = 'user'
+): Promise<void> {
+  const profilePath = role === 'worker' ? '/worker/perfil' : '/user/perfil';
+  await page.goto(profilePath, { waitUntil: 'networkidle' });
   // Handle confirm() dialog BEFORE clicking logout
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Salir', exact: true }).click();
