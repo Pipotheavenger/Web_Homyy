@@ -309,6 +309,118 @@ export async function cleanupTestBalance(userId: string): Promise<boolean> {
 }
 
 /**
+ * Get the most recent pending transaction for a user
+ */
+export async function getLatestPendingTransaction(
+  userId: string
+): Promise<{ id: string; amount: number; type: string; description: string } | null> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('id, amount, type, description')
+    .eq('user_id', userId)
+    .eq('status', 'pendiente')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+/**
+ * Approve a pending transaction and recalculate the user's balance.
+ * Updates both the transaction status AND user_profiles.balance
+ * to keep the dual balance system in sync.
+ */
+export async function approveTransaction(transactionId: string): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  // Update transaction status
+  const { data: txn, error } = await supabase
+    .from('transactions')
+    .update({ status: 'completado' })
+    .eq('id', transactionId)
+    .select('user_id, amount, type')
+    .single();
+
+  if (error || !txn) {
+    throw new Error(
+      `Failed to approve transaction ${transactionId}: ${error?.message}`
+    );
+  }
+
+  // Recalculate total balance from all completed transactions
+  const { data: allTxns, error: queryError } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', txn.user_id)
+    .eq('status', 'completado');
+
+  if (queryError || !allTxns) {
+    throw new Error(`Failed to query transactions: ${queryError?.message}`);
+  }
+
+  let balance = 0;
+  for (const t of allTxns) {
+    if (t.type === 'recarga') {
+      balance += Number(t.amount);
+    } else {
+      balance -= Number(t.amount);
+    }
+  }
+
+  // Update user_profiles.balance (used by RPC)
+  await supabase
+    .from('user_profiles')
+    .update({ balance })
+    .eq('user_id', txn.user_id);
+}
+
+/**
+ * Clean up test transactions and reset balance to zero.
+ */
+export async function cleanupTestTransactions(
+  userId: string
+): Promise<void> {
+  const supabase = getSupabaseAdminClient();
+
+  // Delete recharge transactions from UI
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .like('description', '%Recarga%');
+
+  // Delete E2E Loop transactions
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .like('description', '%[E2E Loop]%');
+
+  // Delete E2E Test balance transactions (from addTestBalance)
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .like('description', '%[E2E Test]%');
+
+  // Clean escrow debits from previous test runs
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .like('description', '%[e2e Test]%');
+
+  // Reset balance
+  await supabase
+    .from('user_profiles')
+    .update({ balance: 0 })
+    .eq('user_id', userId);
+}
+
+/**
  * Delete a test user by email (removes auth user + profiles)
  */
 export async function deleteTestUser(email: string): Promise<boolean> {

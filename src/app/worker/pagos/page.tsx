@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TrendingUp,
@@ -51,6 +51,7 @@ export default function PagosWorkerPage() {
   const [loading, setLoading] = useState(true);
   const [currentTransactionRef, setCurrentTransactionRef] = useState('');
   const [modalAmount, setModalAmount] = useState(0);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     loadData();
@@ -83,21 +84,28 @@ export default function PagosWorkerPage() {
   }, [user?.id]);
 
   const loadData = async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
-    
-    // Cargar balance
-    const balanceResponse = await transactionsService.getBalance();
-    if (balanceResponse.success && balanceResponse.data !== null) {
-      setBalance(balanceResponse.data);
-    }
 
-    // Cargar transacciones
-    const transactionsResponse = await transactionsService.getMyTransactions();
-    if (transactionsResponse.success) {
-      setTransactions(transactionsResponse.data);
-    }
+    try {
+      // Cargar balance
+      const balanceResponse = await transactionsService.getBalance();
+      if (balanceResponse.success && balanceResponse.data !== null) {
+        setBalance(balanceResponse.data);
+      }
 
-    setLoading(false);
+      // Cargar transacciones
+      const transactionsResponse = await transactionsService.getMyTransactions();
+      if (transactionsResponse.success) {
+        setTransactions(transactionsResponse.data);
+      }
+    } catch (error) {
+      console.error('Error cargando datos de pagos:', error);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
   };
 
   const handleVolver = () => {

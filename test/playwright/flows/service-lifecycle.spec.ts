@@ -25,6 +25,8 @@ import {
   ensureTestChat,
   cleanupTestService,
   cleanupTestBalance,
+  getLatestPendingTransaction,
+  approveTransaction,
 } from '../../support/flow-helpers';
 
 // Shared state across serial tests
@@ -346,6 +348,78 @@ test.describe.serial(
       // Assert success
       await expect(page.getByText('¡Trabajo Completado!')).toBeVisible({
         timeout: 15_000,
+      });
+    });
+
+    // ============================================================
+    // STEP 6: Client recharges balance (pending transaction)
+    // ============================================================
+    test('Step 6: Cliente recarga saldo', async ({ page }) => {
+      await loginAs(page, 'client');
+      await page.goto('/user/pagos', { waitUntil: 'networkidle' });
+      await expect(page.getByText('Balance Disponible')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Recharge 100K via UI
+      await page.getByRole('button', { name: 'Recargar Cuenta' }).click();
+      await expect(page.getByText('Elige tu método de pago')).toBeVisible({
+        timeout: 5_000,
+      });
+      await page.locator('input[type="number"]').fill('100000');
+      await page.locator('button').filter({ hasText: 'Nequi' }).click();
+      await page
+        .getByRole('button', { name: 'Continuar con el pago' })
+        .click();
+
+      // QR modal
+      const qrBtn = page.getByRole('button', { name: /Listo.*pago/ });
+      await expect(qrBtn).toBeVisible({ timeout: 10_000 });
+      await qrBtn.click();
+
+      // Success modal
+      const successBtn = page.getByRole('button', { name: 'Entendido' });
+      await expect(successBtn).toBeVisible({ timeout: 10_000 });
+      await successBtn.click();
+
+      // Assert pending transaction visible in history
+      await expect(page.getByText('Pendiente')).toBeVisible({
+        timeout: 10_000,
+      });
+    });
+
+    // ============================================================
+    // STEP 7: Admin approves and balance updates in realtime
+    // ============================================================
+    test('Step 7: Admin aprueba recarga y balance se actualiza', async ({
+      page,
+    }) => {
+      await loginAs(page, 'client');
+      await page.goto('/user/pagos', { waitUntil: 'networkidle' });
+      await expect(page.getByText('Balance Disponible')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Wait for pending transaction to show (confirms data loaded, subscription active)
+      await expect(page.getByText('Pendiente')).toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Admin approves via DB (triggers postgres_changes → loadData())
+      const txn = await getLatestPendingTransaction(testState.clientUserId!);
+      expect(txn).not.toBeNull();
+      await approveTransaction(txn!.id);
+
+      // The realtime listener should update the page:
+      // 'Pendiente' should disappear (transaction now completed)
+      await expect(page.getByText('Pendiente')).not.toBeVisible({
+        timeout: 10_000,
+      });
+
+      // Verify page is still responsive (freeze bug would cause timeout here)
+      await page.evaluate(() => document.title);
+      await expect(page.getByText('Balance Disponible')).toBeVisible({
+        timeout: 5_000,
       });
     });
   }

@@ -23,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
+import { clearAllCache } from '@/lib/cache-utils';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 const PhoneVerificationModal = dynamic(
@@ -152,9 +153,13 @@ export default function PerfilPage() {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
       try {
         await supabase.auth.signOut();
-        router.push('/login');
       } catch (error) {
-        alert('Error al cerrar sesión');
+        console.error('Error en signOut:', error);
+      } finally {
+        // Limpiar siempre, incluso si signOut falla
+        localStorage.removeItem('userType');
+        clearAllCache();
+        router.push('/login');
       }
     }
   };
