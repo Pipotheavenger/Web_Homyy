@@ -11,15 +11,30 @@ const getBaseUrl = () => {
   return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 }
 
-// Use sessionStorage so each browser tab has its own independent session.
-// This prevents session crossing when multiple accounts are open in different tabs.
-// sessionStorage persists across page reloads within the same tab, but not across new tabs.
+// Generate a unique storage key per tab.
+// sessionStorage persists across reloads but is isolated per tab,
+// so each tab gets its own independent auth session.
+// The unique storageKey also isolates BroadcastChannel events,
+// preventing cross-tab auth interference.
+function getTabStorageKey(): string {
+  if (typeof window === 'undefined') return 'sb-server-auth'
+  let tabId = sessionStorage.getItem('hommy-tab-id')
+  if (!tabId) {
+    tabId = crypto.randomUUID()
+    sessionStorage.setItem('hommy-tab-id', tabId)
+  }
+  return `sb-auth-${tabId}`
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    ...(typeof window !== 'undefined' && { storage: window.sessionStorage }),
+    ...(typeof window !== 'undefined' && {
+      storage: window.sessionStorage,
+      storageKey: getTabStorageKey(),
+    }),
   }
 })
 
@@ -36,8 +51,10 @@ export function getSupabaseAdmin(): typeof supabase {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
-        storageKey: 'hommy-admin-auth-token',
-        ...(typeof window !== 'undefined' && { storage: window.sessionStorage }),
+        ...(typeof window !== 'undefined' && {
+          storage: window.sessionStorage,
+          storageKey: `admin-${getTabStorageKey()}`,
+        }),
       }
     })
   }

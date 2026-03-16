@@ -38,13 +38,20 @@ async function getSupabaseSession(email: string, password: string) {
 }
 
 /**
- * Derive the localStorage key from the Supabase URL.
- * e.g. https://kclglwxssvtwderrqgks.supabase.co → sb-kclglwxssvtwderrqgks-auth-token
+ * Get or create the tab-unique storage key used by the app's Supabase client.
+ * The app generates a UUID per tab (stored in sessionStorage as 'hommy-tab-id')
+ * and uses `sb-auth-{tabId}` as the storageKey.
+ * In tests, we ensure this key exists and return it.
  */
-function getStorageKey(): string {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-  return `sb-${projectRef}-auth-token`;
+async function getOrCreateStorageKey(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    let tabId = sessionStorage.getItem('hommy-tab-id');
+    if (!tabId) {
+      tabId = crypto.randomUUID();
+      sessionStorage.setItem('hommy-tab-id', tabId);
+    }
+    return `sb-auth-${tabId}`;
+  });
 }
 
 /**
@@ -56,7 +63,6 @@ function getStorageKey(): string {
 export async function loginAs(page: Page, role: UserRole): Promise<void> {
   const user = TEST_USERS[role];
   const session = await getSupabaseSession(user.email, user.password);
-  const storageKey = getStorageKey();
 
   const sessionData = {
     access_token: session.access_token,
@@ -67,7 +73,7 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
     user: session.user,
   };
 
-  // Navigate to origin first so localStorage is accessible
+  // Navigate to origin first so sessionStorage is accessible
   const currentUrl = page.url();
   if (
     currentUrl === 'about:blank' ||
@@ -76,23 +82,27 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
   }
 
+  // Get the tab-unique storage key (creates hommy-tab-id if needed)
+  const storageKey = await getOrCreateStorageKey(page);
+
   // Clear existing Supabase sessions from both storages, then set in sessionStorage
-  // (the app now uses sessionStorage for tab-isolated sessions)
   await page.evaluate(
     ({ key, data }) => {
       Object.keys(localStorage)
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => localStorage.removeItem(k));
       Object.keys(sessionStorage)
-        .filter((k) => k.startsWith('sb-'))
-        .forEach((k) => sessionStorage.removeItem(k));
+        .filter((k) => k.startsWith('sb-') || k === 'hommy-tab-id')
+        .forEach((k) => {
+          if (k !== 'hommy-tab-id') sessionStorage.removeItem(k);
+        });
 
       sessionStorage.setItem(key, JSON.stringify(data));
     },
     { key: storageKey, data: sessionData }
   );
 
-  // Reload so the Supabase client re-initializes with the new session from sessionStorage.
+  // Reload so the Supabase client re-initializes with the new session
   await page.reload({ waitUntil: 'networkidle' });
 }
 
@@ -106,7 +116,6 @@ export async function loginAsUser(
   password: string
 ): Promise<void> {
   const session = await getSupabaseSession(email, password);
-  const storageKey = getStorageKey();
 
   const sessionData = {
     access_token: session.access_token,
@@ -125,14 +134,19 @@ export async function loginAsUser(
     await page.goto('/', { waitUntil: 'domcontentloaded' });
   }
 
+  // Get the tab-unique storage key (creates hommy-tab-id if needed)
+  const storageKey = await getOrCreateStorageKey(page);
+
   await page.evaluate(
     ({ key, data }) => {
       Object.keys(localStorage)
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => localStorage.removeItem(k));
       Object.keys(sessionStorage)
-        .filter((k) => k.startsWith('sb-'))
-        .forEach((k) => sessionStorage.removeItem(k));
+        .filter((k) => k.startsWith('sb-') || k === 'hommy-tab-id')
+        .forEach((k) => {
+          if (k !== 'hommy-tab-id') sessionStorage.removeItem(k);
+        });
 
       sessionStorage.setItem(key, JSON.stringify(data));
     },
