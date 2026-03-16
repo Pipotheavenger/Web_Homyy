@@ -19,7 +19,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+    ...(typeof window !== 'undefined' && { storage: window.sessionStorage }),
   }
 })
 
@@ -37,7 +37,7 @@ export function getSupabaseAdmin(): typeof supabase {
         persistSession: true,
         detectSessionInUrl: false,
         storageKey: 'hommy-admin-auth-token',
-        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+        ...(typeof window !== 'undefined' && { storage: window.sessionStorage }),
       }
     })
   }

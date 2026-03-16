@@ -80,6 +80,14 @@ export const useAuthForm = () => {
     setErrors({});
 
     try {
+      // Clean up old localStorage tokens from previous deployments.
+      // Safe because the app now uses sessionStorage for auth persistence.
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => localStorage.removeItem(k));
+      }
+
       // Race signIn against a 10s timeout to prevent hanging
       const { data, error } = await Promise.race([
         supabase.auth.signInWithPassword({
