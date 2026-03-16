@@ -230,7 +230,7 @@ export function containsSensitiveData(text: string): boolean {
   escapedNumberWords.sort((a, b) => b.length - a.length);
   
   // Crear patrón regex que busque números en palabras SIN word boundaries
-  const regexPattern = `(${escapedNumberWords.join('|')})`;
+  const regexPattern = `\\b(${escapedNumberWords.join('|')})\\b`;
   const numberWordsPattern = new RegExp(regexPattern, 'gi');
   
   // Normalizar el texto completamente (sin acentos, todo minúsculas, sin puntuación)

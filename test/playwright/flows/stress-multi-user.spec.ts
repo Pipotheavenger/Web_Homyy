@@ -271,6 +271,9 @@ test.describe.serial('Stress: 10 usuarios, 5 ciclos completos', () => {
       ).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Confirmar' }).click();
 
+      // Wait for the app's auto-redirect to dashboard (alert + setTimeout 2s)
+      await page.waitForURL(/\/user\/dashboard/, { timeout: 10_000 }).catch(() => {});
+
       // Wait for PIN to be generated in DB (polling)
       let pin: string | null = null;
       for (let attempt = 0; attempt < 20; attempt++) {
