@@ -80,10 +80,19 @@ export const useAuthForm = () => {
     setErrors({});
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      // Clear any corrupted session state before attempting login
+      await supabase.auth.signOut().catch(() => {});
+
+      // Race signIn against a 10s timeout to prevent hanging on corrupted state
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 10_000)
+        ),
+      ]);
 
       // Manejar todos los errores específicos sin lanzar excepciones
       if (error) {
@@ -134,10 +143,19 @@ export const useAuthForm = () => {
         }
       }
     } catch (error: any) {
-      // Capturar cualquier otro error inesperado
-      setErrors({
-        general: '❌ Error inesperado. Por favor, intenta de nuevo.'
-      });
+      if (error?.message === 'TIMEOUT') {
+        // Clear corrupted session state on timeout
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => localStorage.removeItem(k));
+        setErrors({
+          general: '⏰ La conexión tardó demasiado. Recarga la página e intenta de nuevo.'
+        });
+      } else {
+        setErrors({
+          general: '❌ Error inesperado. Por favor, intenta de nuevo.'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
