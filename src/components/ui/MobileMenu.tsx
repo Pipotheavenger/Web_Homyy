@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X, LogOut } from 'lucide-react';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { type NotificationCounts } from '@/hooks/useNotificationCounts';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
 
@@ -64,20 +64,12 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
     onClose();
   };
 
+  const { signOut } = useAuth();
+
   const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error al cerrar sesión:', error);
-        alert('Error al cerrar sesión. Por favor, intenta de nuevo.');
-      } else {
-        localStorage.removeItem('userType');
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Error inesperado al cerrar sesión:', error);
-      alert('Error inesperado. Por favor, intenta de nuevo.');
-    }
+    await signOut();
+    router.push('/login');
+    onClose();
   };
 
   // Colores específicos para el menú móvil

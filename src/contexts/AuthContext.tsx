@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { getUserProfile, UserProfile } from '@/lib/auth-utils';
 import { getCachedData, setCachedData, clearCachedData, clearAllCache } from '@/lib/cache-utils';
@@ -31,6 +32,7 @@ const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_BASE_DELAY = 1000; // 1 second
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
@@ -41,6 +43,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userIdRef = useRef<string | null>(null);
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Force-clear ALL session data (React Query + localStorage + Supabase keys)
+  const purgeAllSessionData = useCallback(() => {
+    queryClient.clear();
+    clearAllCache();
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('sb-') || k === 'userType')
+      .forEach(k => localStorage.removeItem(k));
+    Object.keys(sessionStorage)
+      .filter(k => k.startsWith('sb-'))
+      .forEach(k => sessionStorage.removeItem(k));
+  }, [queryClient]);
 
   const loadUserProfile = useCallback(async (
     userId: string,
@@ -124,8 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userIdRef.current = null;
           retryCountRef.current = 0;
           if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-          clearAllCache();
-          localStorage.removeItem('userType');
+          purgeAllSessionData();
           setAuthState({ user: null, profile: null, loading: false, error: null });
           return;
         }
@@ -135,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userIdRef.current = session.user.id;
 
           if (isNewUser) {
+            // Clear previous user's cached data before loading new profile
+            queryClient.clear();
+            clearAllCache();
             const profile = await loadUserProfile(session.user.id);
             setAuthState({
               user: session.user,
@@ -158,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
-  }, [loadUserProfile]);
+  }, [loadUserProfile, purgeAllSessionData, queryClient]);
 
   // Recovery: if user exists but profile is null after loading, retry
   useEffect(() => {
@@ -178,16 +194,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error al cerrar sesion:', error);
-        setAuthState(prev => ({ ...prev, error: error.message }));
+      // Race signOut against a 5s timeout to prevent hanging
+      const result = await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<{ error: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ error: { message: 'Timeout' } }), 5000)
+        ),
+      ]);
+      if (result.error) {
+        console.warn('signOut error/timeout:', result.error);
       }
     } catch (error: any) {
       console.error('Error inesperado al cerrar sesion:', error);
-      setAuthState(prev => ({ ...prev, error: error.message }));
+    } finally {
+      // ALWAYS purge all data, whether signOut succeeded or not
+      userIdRef.current = null;
+      retryCountRef.current = 0;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      purgeAllSessionData();
+      setAuthState({ user: null, profile: null, loading: false, error: null });
     }
-  }, []);
+  }, [purgeAllSessionData]);
 
   const value: AuthContextType = {
     user: authState.user,

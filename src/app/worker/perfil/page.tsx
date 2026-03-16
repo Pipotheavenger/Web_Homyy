@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
 import { useWorkerProfileCurrent } from '@/hooks/useWorkerProfileCurrent';
 import { supabase } from '@/lib/supabase';
-import { clearAllCache } from '@/lib/cache-utils';
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
@@ -129,17 +129,12 @@ export default function PerfilWorkerPage() {
     }
   }, [usuario]);
 
+  const { signOut } = useAuth();
+
   const handleLogout = async () => {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.error('Error en signOut:', error);
-      } finally {
-        localStorage.removeItem('userType');
-        clearAllCache();
-        router.push('/login');
-      }
+      await signOut();
+      router.push('/login');
     }
   };
 

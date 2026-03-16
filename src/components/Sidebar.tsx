@@ -5,7 +5,7 @@ import { useUserType } from '@/contexts/UserTypeContext';
 import { UserType } from '@/contexts/UserTypeContext';
 import { NavigationItem } from '@/utils/userTypeUtils';
 import { LogOut } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { type NotificationCounts } from '@/hooks/useNotificationCounts';
 import { ASSETS_CONFIG } from '@/lib/assets-config';
 
@@ -169,23 +169,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     router.push(href);
   };
 
+  const { signOut } = useAuth();
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error al cerrar sesión:', error);
-        alert('Error al cerrar sesión. Por favor, intenta de nuevo.');
-      } else {
-        localStorage.removeItem('userType');
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Error inesperado al cerrar sesión:', error);
-      alert('Error inesperado. Por favor, intenta de nuevo.');
-    } finally {
-      setIsLoggingOut(false);
-    }
+    await signOut();
+    router.push('/login');
+    setIsLoggingOut(false);
   };
 
   return (

@@ -41,6 +41,13 @@ export const useDetallesPostulantes = () => {
       ]).finally(() => setLoading(false));
     } else if (!serviceId) {
       setLoading(false);
+    } else if (serviceId && !user?.id) {
+      // Auth not available yet — timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        setLoading(false);
+        setError('No se pudo verificar tu sesión. Recarga la página.');
+      }, 10_000);
+      return () => clearTimeout(timeout);
     }
   }, [serviceId, user?.id]);
 
