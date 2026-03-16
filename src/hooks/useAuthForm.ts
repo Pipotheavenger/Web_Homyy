@@ -80,8 +80,16 @@ export const useAuthForm = () => {
     setErrors({});
 
     try {
-      // Clear any corrupted session state before attempting login
-      await supabase.auth.signOut().catch(() => {});
+      // Clear any corrupted session state before login (without triggering
+      // onAuthStateChange events that could race with the new sign-in)
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => localStorage.removeItem(k));
+        Object.keys(sessionStorage)
+          .filter(k => k.startsWith('sb-'))
+          .forEach(k => sessionStorage.removeItem(k));
+      }
 
       // Race signIn against a 10s timeout to prevent hanging on corrupted state
       const { data, error } = await Promise.race([
