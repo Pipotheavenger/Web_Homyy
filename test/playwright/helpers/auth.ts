@@ -76,7 +76,8 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
   }
 
-  // Clear existing Supabase sessions, then set the new one
+  // Clear existing Supabase sessions from both storages, then set in sessionStorage
+  // (the app now uses sessionStorage for tab-isolated sessions)
   await page.evaluate(
     ({ key, data }) => {
       Object.keys(localStorage)
@@ -86,13 +87,12 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => sessionStorage.removeItem(k));
 
-      localStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(key, JSON.stringify(data));
     },
     { key: storageKey, data: sessionData }
   );
 
-  // Reload so the Supabase client re-initializes with the new session from localStorage.
-  // Without this, switching between users (e.g. client → worker) leaves the old session in memory.
+  // Reload so the Supabase client re-initializes with the new session from sessionStorage.
   await page.reload({ waitUntil: 'networkidle' });
 }
 
@@ -134,7 +134,7 @@ export async function loginAsUser(
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => sessionStorage.removeItem(k));
 
-      localStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(key, JSON.stringify(data));
     },
     { key: storageKey, data: sessionData }
   );

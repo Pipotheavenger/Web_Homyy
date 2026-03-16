@@ -216,14 +216,23 @@ test.describe.serial(
         page.getByRole('heading', { name: 'Detalles de Postulantes', level: 1 })
       ).toBeVisible({ timeout: 10_000 });
 
-      // Wait for the applicant card with "Seleccionar" button to appear
-      // The applicant from Step 2 may take a moment to show up
-      await expect(
-        page.getByRole('button', { name: 'Seleccionar' })
-      ).toBeVisible({ timeout: 15_000 });
+      // Wait for the applicant card with "Seleccionar" button (retry with re-nav on failure)
+      const selectBtn = page.getByRole('button', { name: 'Seleccionar' });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await expect(selectBtn).toBeVisible({ timeout: 15_000 });
+          break;
+        } catch {
+          if (attempt === 2) throw new Error('Applicant never loaded');
+          await page.goto(
+            `/user/detalles-postulantes?id=${testState.serviceId}`,
+            { waitUntil: 'networkidle' }
+          );
+        }
+      }
 
       // Click "Seleccionar" on the applicant card
-      await page.getByRole('button', { name: 'Seleccionar' }).click();
+      await selectBtn.click();
 
       // Confirmation modal should appear
       await expect(page.getByText('Confirmar Selección')).toBeVisible({

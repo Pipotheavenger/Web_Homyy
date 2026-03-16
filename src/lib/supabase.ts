@@ -11,11 +11,15 @@ const getBaseUrl = () => {
   return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 }
 
+// Use sessionStorage so each browser tab has its own independent session.
+// This prevents session crossing when multiple accounts are open in different tabs.
+// sessionStorage persists across page reloads within the same tab, but not across new tabs.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
   }
 })
 
@@ -32,7 +36,8 @@ export function getSupabaseAdmin(): typeof supabase {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
-        storageKey: 'hommy-admin-auth-token'
+        storageKey: 'hommy-admin-auth-token',
+        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
       }
     })
   }

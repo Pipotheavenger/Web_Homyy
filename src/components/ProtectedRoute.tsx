@@ -55,9 +55,16 @@ export const ProtectedRoute = ({
     );
   }
 
-  // Si no está autenticado o no tiene permisos, no renderizar nada
+  // Si no está autenticado o no tiene permisos, mostrar spinner mientras redirige
   if (!user || !profile || (userType && !allowedUserTypes.includes(userType))) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-lavender">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#743fc6] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   // Renderizar el contenido si todo está correcto
