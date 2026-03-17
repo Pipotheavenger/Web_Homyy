@@ -129,7 +129,7 @@ export const useAuthForm = () => {
           setIsLoading(false);
           
           // Cerrar la sesión si el email no está confirmado
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           return;
         }
 

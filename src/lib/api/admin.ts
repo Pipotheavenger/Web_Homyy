@@ -1,5 +1,4 @@
 import { ensureAdminSession, getSupabaseAdmin } from '../supabase';
-const supabase = getSupabaseAdmin();
 import type { ApiResponse } from '@/types/database';
 
 // =====================================================
@@ -31,7 +30,7 @@ export const adminService = {
     try {
       await ensureAdminSession();
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseAdmin()
         .from('system_settings')
         .select('*')
         .order('key');
@@ -59,7 +58,7 @@ export const adminService = {
     try {
       await ensureAdminSession();
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseAdmin()
         .from('system_settings')
         .select('*')
         .eq('key', key)
@@ -96,7 +95,7 @@ export const adminService = {
       };
       
       // Primero verificar si existe el registro
-      const { data: existingData } = await supabase
+      const { data: existingData } = await getSupabaseAdmin()
         .from('system_settings')
         .select('*')
         .eq('key', key)
@@ -106,7 +105,7 @@ export const adminService = {
 
       if (existingData) {
         // Actualizar registro existente
-        const result = await supabase
+        const result = await getSupabaseAdmin()
           .from('system_settings')
           .update({
             value: JSON.stringify(value),
@@ -120,7 +119,7 @@ export const adminService = {
         error = result.error;
       } else {
         // Crear nuevo registro
-        const result = await supabase
+        const result = await getSupabaseAdmin()
           .from('system_settings')
           .insert(settingData)
           .select()
@@ -152,7 +151,7 @@ export const adminService = {
   async getCommissionPercentage(): Promise<ApiResponse<number>> {
     try {
       // Acceso directo sin verificar sesión de admin
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseAdmin()
         .from('system_settings')
         .select('value')
         .eq('key', 'commission_percentage')
@@ -229,7 +228,7 @@ export const adminService = {
     try {
       await ensureAdminSession();
 
-      let query = supabase
+      let query = getSupabaseAdmin()
         .from('user_profiles')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
@@ -273,7 +272,7 @@ export const adminService = {
     try {
       await ensureAdminSession();
 
-      let query = supabase
+      let query = getSupabaseAdmin()
         .from('transactions')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
@@ -317,7 +316,7 @@ export const adminService = {
     try {
       await ensureAdminSession();
 
-      let query = supabase
+      let query = getSupabaseAdmin()
         .from('services')
         .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
@@ -364,7 +363,7 @@ export const adminService = {
       await ensureAdminSession();
 
       // Calcular balance usando GROUP BY: recargas - débitos - retiros
-      const { data: transactions, error } = await supabase
+      const { data: transactions, error } = await getSupabaseAdmin()
         .from('transactions')
         .select('type, amount')
         .eq('user_id', userId)
@@ -406,13 +405,13 @@ export const adminService = {
       await ensureAdminSession();
 
       // Obtener la transacción antes de actualizar para verificar el estado anterior
-      const { data: oldTransaction } = await supabase
+      const { data: oldTransaction } = await getSupabaseAdmin()
         .from('transactions')
         .select('*')
         .eq('id', transactionId)
         .single();
 
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseAdmin()
         .from('transactions')
         .update({ status })
         .eq('id', transactionId)
@@ -473,18 +472,18 @@ export const adminService = {
         { count: completedServices },
         { count: pendingServices }
       ] = await Promise.all([
-        supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('worker_profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('services').select('*', { count: 'exact', head: true }),
-        supabase.from('applications').select('*', { count: 'exact', head: true }),
-        supabase.from('escrow_transactions').select('*', { count: 'exact', head: true }),
-        supabase.from('transactions').select('*', { count: 'exact', head: true }),
-        supabase.from('services').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-        supabase.from('services').select('*', { count: 'exact', head: true }).eq('status', 'contratando')
+        getSupabaseAdmin().from('user_profiles').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('worker_profiles').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('services').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('applications').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('escrow_transactions').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('transactions').select('*', { count: 'exact', head: true }),
+        getSupabaseAdmin().from('services').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+        getSupabaseAdmin().from('services').select('*', { count: 'exact', head: true }).eq('status', 'contratando')
       ]);
 
       // Calcular volumen total de transacciones
-      const { data: transactions } = await supabase
+      const { data: transactions } = await getSupabaseAdmin()
         .from('transactions')
         .select('amount, type')
         .eq('status', 'completed');
@@ -494,7 +493,7 @@ export const adminService = {
       }, 0) || 0;
 
       // Calcular comisiones ganadas usando consulta SQL directa
-      const { data: commissionData } = await supabase
+      const { data: commissionData } = await getSupabaseAdmin()
         .from('escrow_transactions')
         .select(`
           amount,

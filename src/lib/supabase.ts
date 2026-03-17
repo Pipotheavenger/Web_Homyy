@@ -13,6 +13,82 @@ export const ADMIN_EMAIL = 'admin@hommy.app'
 
 const SESSION_SCOPE_SEPARATOR = ':'
 
+// ---------------------------------------------------------------------------
+// In-memory lock — replaces navigator.locks to avoid bfcache contention
+// on page refresh (old page can hold the lock while the new page loads).
+// ---------------------------------------------------------------------------
+const tabLocks = new Map<string, Promise<void>>()
+
+async function inMemoryLock<R>(
+  name: string,
+  _acquireTimeout: number,
+  fn: () => Promise<R>
+): Promise<R> {
+  const prev = tabLocks.get(name) ?? Promise.resolve()
+  let release!: () => void
+  const current = new Promise<void>(r => { release = r })
+  tabLocks.set(name, current)
+  try {
+    await prev
+    return await fn()
+  } finally {
+    release()
+    if (tabLocks.get(name) === current) tabLocks.delete(name)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Duplicate-tab detection (synchronous, runs during module evaluation).
+//
+// When a tab is duplicated the browser clones sessionStorage into the new tab.
+// We detect this by checking the Navigation Timing API:
+//   - "reload"       → page refresh  → keep session
+//   - "back_forward" → history nav   → keep session
+//   - "navigate"     → new navigation; if sessionStorage already contains
+//                      hommy-tab-id it means the data was *cloned* from
+//                      the parent tab → duplicate → clear session
+// ---------------------------------------------------------------------------
+const purgeDuplicateTabSession = () => {
+  if (globalThis.window === undefined) return
+
+  let navType = 'navigate'
+  try {
+    const entries = performance.getEntriesByType('navigation')
+    if (entries.length > 0) {
+      navType = (entries[0] as PerformanceNavigationTiming).type
+    }
+  } catch {
+    // Fallback for older browsers
+    if (typeof performance !== 'undefined' && performance.navigation) {
+      navType = performance.navigation.type === 1 ? 'reload'
+               : performance.navigation.type === 2 ? 'back_forward'
+               : 'navigate'
+    }
+  }
+
+  // Reload / back-forward → same tab, keep everything
+  if (navType !== 'navigate') return
+
+  // "navigate" with no existing tab id → fresh tab, nothing to purge
+  if (sessionStorage.getItem(SESSION_SCOPE_STORAGE_KEY) === null) return
+
+  // Duplicate detected: clear all cloned auth data so the new tab starts
+  // with a clean slate (will redirect to login).
+  const keysToClear = Object.keys(sessionStorage).filter(
+    k => k.startsWith('sb-') || k.startsWith('admin-') || k === SESSION_SCOPE_STORAGE_KEY
+  )
+  for (const k of keysToClear) {
+    sessionStorage.removeItem(k)
+  }
+}
+
+// Run detection immediately during module evaluation, BEFORE createClient.
+purgeDuplicateTabSession()
+
+// ---------------------------------------------------------------------------
+// Session-scope helpers
+// ---------------------------------------------------------------------------
+
 const generateSessionScopeId = () => {
   if (globalThis.crypto !== undefined && typeof globalThis.crypto.randomUUID === 'function') {
     return globalThis.crypto.randomUUID()
@@ -118,11 +194,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    lock: inMemoryLock,
     ...(globalThis.window !== undefined && {
       storage: globalThis.window.sessionStorage,
-      // Scope auth storage to the current tab session.
-      // A duplicated tab clones sessionStorage and therefore keeps the same scope,
-      // while a fresh tab gets a brand-new scope and stays isolated.
       storageKey: resolveScopedStorageKey(STORAGE_KEY),
     }),
   }
@@ -140,6 +214,7 @@ export function getSupabaseAdmin(): typeof supabase {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
+      lock: inMemoryLock,
       ...(globalThis.window !== undefined && {
         storage: globalThis.window.sessionStorage,
         storageKey: resolveScopedStorageKey(ADMIN_STORAGE_KEY),
@@ -176,7 +251,7 @@ export const ensureAdminSession = async () => {
 
 export const clearAdminSession = async () => {
   try {
-    await getSupabaseAdmin().auth.signOut()
+    await getSupabaseAdmin().auth.signOut({ scope: 'local' })
   } catch (error) {
     console.warn('Error cerrando sesión de admin:', error)
   } finally {

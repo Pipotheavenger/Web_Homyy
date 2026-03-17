@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     try {
       // Race signOut against a 5s timeout to prevent hanging
       const result = await Promise.race([
-        supabase.auth.signOut(),
+        supabase.auth.signOut({ scope: 'local' }),
         new Promise<{ error: { message: string } }>((resolve) =>
           setTimeout(() => resolve({ error: { message: 'Timeout' } }), 5000)
         ),

@@ -83,7 +83,7 @@ export class DebugErrorBoundary extends React.Component<ErrorBoundaryProps, Erro
   handleSignOut = async () => {
     try {
       const { supabase } = await import('@/lib/supabase');
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
       window.location.href = '/login';
     } catch {
       localStorage.clear();

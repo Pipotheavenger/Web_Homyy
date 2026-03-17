@@ -67,8 +67,13 @@ test.describe('Persistencia de sesión por pestaña', () => {
     await expectPageBodyToContain(page, /No tienes conversaciones activas|Selecciona una conversación/);
 
     const duplicatedTab = await openDuplicatedTab(page);
-    await assertAuthenticatedPage(duplicatedTab, '/user/dashboard', 'Mis Servicios');
+    await duplicatedTab.goto('/user/dashboard', { waitUntil: 'networkidle' });
+    await duplicatedTab.waitForURL(/\/login$/, { timeout: 5_000 });
+    await expect(duplicatedTab.locator('body')).toContainText('Iniciar con mi cuenta');
     await duplicatedTab.close();
+
+    // Verify original tab is still authenticated after duplicate was rejected
+    await assertAuthenticatedPage(page, '/user/dashboard', 'Mis Servicios');
   });
 
   test('worker mantiene sesión al refrescar dashboard y pagos', async ({
