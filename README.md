@@ -1,6 +1,6 @@
 # 🏠 Hommy - Frontend
 
-Aplicación web moderna para conectar usuarios con expertos del hogar, construida con Next.js 15, TypeScript y Supabase.
+Aplicación web moderna para conectar usuarios con expertos del hogar, construida con Next.js 15, TypeScript y Supabase.ss
 
 ## 📁 Estructura del Proyecto
 
