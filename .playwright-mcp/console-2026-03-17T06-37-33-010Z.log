@@ -1,0 +1,1 @@
+[    3012ms] [ERROR] %c[06:37:36.021] [NETWORK] color: #66BB6A; font-weight: bold; Network error: POST failed {url: /__nextjs_original-stack-frames, error: Failed to fetch, duration: 8648ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225

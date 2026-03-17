@@ -1,0 +1,82 @@
+[   24508ms] [ERROR] %c[06:37:27.026] [NETWORK] color: #66BB6A; font-weight: bold; Network error: GET failed {url: http://localhost:3000/worker/dashboard?_rsc=1et1u, error: Failed to fetch, duration: 17239ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24509ms] [ERROR] %c[06:37:27.027] [NETWORK] color: #66BB6A; font-weight: bold; Network error: GET failed {url: http://localhost:3000/worker/dashboard?_rsc=1et1u, error: Failed to fetch, duration: 6430ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24509ms] [ERROR] %c[06:37:27.027] [NETWORK] color: #66BB6A; font-weight: bold; Network error: GET failed {url: http://localhost:3000/worker/dashboard?_rsc=1et1u, error: Failed to fetch, duration: 68963ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24510ms] [ERROR] Failed to fetch RSC payload for http://localhost:3000/worker/dashboard. Falling back to browser navigation. TypeError: Failed to fetch
+    at window.fetch (http://localhost:3000/_next/static/chunks/src_d7977708._.js:1562:40)
+    at createFetch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2756:12)
+    at fetchServerResponse (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2685:27)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:106
+    at Object.task (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3856:38)
+    at PromiseQueue.processNext (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3907:186)
+    at PromiseQueue.enqueue (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3871:76)
+    at createLazyPrefetchEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:49)
+    at getOrCreatePrefetchCacheEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4078:12)
+    at navigateReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:17399:82)
+    at clientReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18356:61)
+    at Object.action (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18569:55)
+    at runAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18479:38)
+    at dispatchAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18549:9)
+    at Object.dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18567:40)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2135:29
+    at startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:7014:31)
+    at dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2134:13)
+    at dispatchAppRouterAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2118:5)
+    at dispatchNavigateAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18622:49)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18674:13
+    at exports.startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1636:31)
+    at Object.push (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18672:36)
+    at handleSubmit (http://localhost:3000/_next/static/chunks/_fbd58777._.js:126:28) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24510ms] [ERROR] Failed to fetch RSC payload for http://localhost:3000/worker/dashboard. Falling back to browser navigation. TypeError: Failed to fetch
+    at window.fetch (http://localhost:3000/_next/static/chunks/src_d7977708._.js:1562:40)
+    at createFetch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2756:12)
+    at fetchServerResponse (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2685:27)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:106
+    at Object.task (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3856:38)
+    at PromiseQueue.processNext (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3907:186)
+    at PromiseQueue.enqueue (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3871:76)
+    at createLazyPrefetchEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:49)
+    at getOrCreatePrefetchCacheEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4078:12)
+    at navigateReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:17399:82)
+    at clientReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18356:61)
+    at Object.action (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18569:55)
+    at runAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18479:38)
+    at dispatchAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18549:9)
+    at Object.dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18567:40)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2135:29
+    at startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:7014:31)
+    at dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2134:13)
+    at dispatchAppRouterAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2118:5)
+    at dispatchNavigateAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18622:49)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18674:13
+    at exports.startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1636:31)
+    at Object.push (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18672:36)
+    at handleSubmit (http://localhost:3000/_next/static/chunks/_fbd58777._.js:126:28) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24510ms] [ERROR] Failed to fetch RSC payload for http://localhost:3000/worker/dashboard. Falling back to browser navigation. TypeError: Failed to fetch
+    at window.fetch (http://localhost:3000/_next/static/chunks/src_d7977708._.js:1562:40)
+    at createFetch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2756:12)
+    at fetchServerResponse (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2685:27)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:106
+    at Object.task (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3856:38)
+    at PromiseQueue.processNext (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3907:186)
+    at PromiseQueue.enqueue (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:3871:76)
+    at createLazyPrefetchEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4131:49)
+    at getOrCreatePrefetchCacheEntry (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:4078:12)
+    at navigateReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:17399:82)
+    at clientReducer (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18356:61)
+    at Object.action (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18569:55)
+    at runAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18479:38)
+    at dispatchAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18533:9)
+    at Object.dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18567:40)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2135:29
+    at startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:7014:31)
+    at dispatch (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2134:13)
+    at dispatchAppRouterAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:2118:5)
+    at dispatchNavigateAction (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18622:49)
+    at http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18674:13
+    at exports.startTransition (http://localhost:3000/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js:1636:31)
+    at Object.push (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:18672:36)
+    at handleSubmit (http://localhost:3000/_next/static/chunks/_fbd58777._.js:126:28) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24847ms] [ERROR] %c[06:37:27.365] [NETWORK] color: #66BB6A; font-weight: bold; Network error: POST failed {url: /__nextjs_original-stack-frames, error: Failed to fetch, duration: 330ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24847ms] [ERROR] %c[06:37:27.365] [NETWORK] color: #66BB6A; font-weight: bold; Network error: POST failed {url: /__nextjs_original-stack-frames, error: Failed to fetch, duration: 317ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24847ms] [ERROR] %c[06:37:27.365] [NETWORK] color: #66BB6A; font-weight: bold; Network error: POST failed {url: /__nextjs_original-stack-frames, error: Failed to fetch, duration: 314ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225
+[   24847ms] [ERROR] %c[06:37:27.365] [NETWORK] color: #66BB6A; font-weight: bold; Network error: POST failed {url: /__nextjs_original-stack-frames, error: Failed to fetch, duration: 322ms} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js:1225

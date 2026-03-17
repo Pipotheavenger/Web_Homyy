@@ -58,12 +58,17 @@ const purgeDuplicateTabSession = () => {
       navType = (entries[0] as PerformanceNavigationTiming).type
     }
   } catch {
-    // Fallback for older browsers
-    if (typeof performance !== 'undefined' && performance.navigation) {
-      navType = performance.navigation.type === 1 ? 'reload'
-               : performance.navigation.type === 2 ? 'back_forward'
-               : 'navigate'
-    }
+    // ignore — fallback below handles both exception and empty-entries cases
+  }
+
+  // Always try deprecated API when modern API didn't resolve navType.
+  // performance.getEntriesByType('navigation') can return [] during very early
+  // module evaluation; without this fallback, navType stays 'navigate' and the
+  // function incorrectly purges the session on a page refresh.
+  if (navType === 'navigate' && typeof performance !== 'undefined' && performance.navigation) {
+    const legacyType = performance.navigation.type
+    if (legacyType === 1) navType = 'reload'
+    else if (legacyType === 2) navType = 'back_forward'
   }
 
   // Reload / back-forward → same tab, keep everything
