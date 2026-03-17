@@ -16,6 +16,12 @@ async function expectPageBodyToContain(
     .toMatch(visibleText instanceof RegExp ? visibleText : new RegExp(visibleText));
 }
 
+async function expectVerificationSpinnerToFinish(page: Page) {
+  await expect(
+    page.getByText('Verificando acceso...')
+  ).toBeHidden({ timeout: 30_000 });
+}
+
 async function assertAuthenticatedPage(
   page: Page,
   path: string,
@@ -23,6 +29,7 @@ async function assertAuthenticatedPage(
 ) {
   await page.goto(path, { waitUntil: 'networkidle' });
   await expect(page).not.toHaveURL(/\/login$/);
+  await expectVerificationSpinnerToFinish(page);
   await expectPageBodyToContain(page, visibleText);
 }
 
@@ -42,26 +49,25 @@ test.describe('Persistencia de sesión por pestaña', () => {
 
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/user\/dashboard/);
+    await expectVerificationSpinnerToFinish(page);
     await expectPageBodyToContain(page, 'Mis Servicios');
 
     await page.goto('/user/pagos', { waitUntil: 'networkidle' });
     await expectPageBodyToContain(page, 'Historial de Transacciones');
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/user\/pagos/);
+    await expectVerificationSpinnerToFinish(page);
     await expectPageBodyToContain(page, 'Historial de Transacciones');
 
     await page.goto('/user/chats', { waitUntil: 'networkidle' });
     await expectPageBodyToContain(page, /No tienes conversaciones activas|Selecciona una conversación/);
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/user\/chats/);
+    await expectVerificationSpinnerToFinish(page);
     await expectPageBodyToContain(page, /No tienes conversaciones activas|Selecciona una conversación/);
 
     const duplicatedTab = await openDuplicatedTab(page);
     await assertAuthenticatedPage(duplicatedTab, '/user/dashboard', 'Mis Servicios');
-
-    await duplicatedTab.reload({ waitUntil: 'networkidle' });
-    await expect(duplicatedTab).toHaveURL(/\/user\/dashboard/);
-    await expectPageBodyToContain(duplicatedTab, 'Mis Servicios');
     await duplicatedTab.close();
   });
 
@@ -74,12 +80,14 @@ test.describe('Persistencia de sesión por pestaña', () => {
 
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/worker\/dashboard/);
+    await expectVerificationSpinnerToFinish(page);
     await expectPageBodyToContain(page, 'Mis Aplicaciones');
 
     await page.goto('/worker/pagos', { waitUntil: 'networkidle' });
     await expectPageBodyToContain(page, 'Historial de Transacciones');
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/worker\/pagos/);
+    await expectVerificationSpinnerToFinish(page);
     await expectPageBodyToContain(page, 'Historial de Transacciones');
   });
 

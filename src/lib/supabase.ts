@@ -79,6 +79,16 @@ const resolveScopedStorageKey = (baseKey: string) => {
   return scopedKey
 }
 
+export const clearCurrentUserAuthStorage = () => {
+  if (globalThis.window === undefined) return
+  removeSessionStorage(resolveScopedStorageKey(STORAGE_KEY))
+}
+
+export const clearCurrentAdminAuthStorage = () => {
+  if (globalThis.window === undefined) return
+  removeSessionStorage(resolveScopedStorageKey(ADMIN_STORAGE_KEY))
+}
+
 const buildAuthCookie = (maxAgeSeconds?: number) => {
   const parts = [`${ADMIN_AUTH_COOKIE_NAME}=true`, 'path=/', 'SameSite=Strict']
 
@@ -170,6 +180,7 @@ export const clearAdminSession = async () => {
   } catch (error) {
     console.warn('Error cerrando sesión de admin:', error)
   } finally {
+    clearCurrentAdminAuthStorage()
     clearAdminSessionMarkers()
   }
 }

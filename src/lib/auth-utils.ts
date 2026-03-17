@@ -6,6 +6,14 @@ export interface UserProfile {
   email: string;
 }
 
+export type UserProfileLookupStatus = 'found' | 'missing' | 'error';
+
+export interface UserProfileLookupResult {
+  profile: UserProfile | null;
+  status: UserProfileLookupStatus;
+  error: string | null;
+}
+
 /**
  * Obtiene el tipo de usuario (user o worker) desde la base de datos
  */
@@ -33,6 +41,17 @@ export const getUserType = async (userId: string): Promise<'user' | 'worker' | n
  * Obtiene el perfil completo del usuario
  */
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  const result = await getUserProfileResult(userId);
+  return result.profile;
+};
+
+/**
+ * Obtiene el perfil completo del usuario diferenciando
+ * entre perfil faltante y error real de consulta.
+ */
+export const getUserProfileResult = async (
+  userId: string
+): Promise<UserProfileLookupResult> => {
   try {
     const { data, error } = await supabase
       .from('user_profiles')
@@ -48,16 +67,37 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         hint: error.hint,
         userId,
       });
-      return null;
+      return {
+        profile: null,
+        status: 'error',
+        error: error.message || 'Error consultando el perfil del usuario',
+      };
     }
 
-    return data;
+    if (!data) {
+      return {
+        profile: null,
+        status: 'missing',
+        error: null,
+      };
+    }
+
+    return {
+      profile: data,
+      status: 'found',
+      error: null,
+    };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error('Error inesperado obteniendo perfil de usuario:',
-      error instanceof Error ? error.message : String(error),
+      message,
       { userId }
     );
-    return null;
+    return {
+      profile: null,
+      status: 'error',
+      error: message,
+    };
   }
 };
 

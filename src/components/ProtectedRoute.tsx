@@ -10,25 +10,35 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
+const PROFILE_REFRESH_TIMEOUT_MS = 15000;
+
 export const ProtectedRoute = ({ 
   children, 
   allowedUserTypes = ['user', 'worker'], 
   redirectTo 
 }: ProtectedRouteProps) => {
-  const { user, profile, loading, userType, refreshProfile } = useAuth();
+  const { user, profile, loading, error, profileState, userType, refreshProfile } = useAuth();
   const router = useRouter();
   const attemptedProfileRefreshRef = useRef<string | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [profileCheckTimedOut, setProfileCheckTimedOut] = useState(false);
 
   useEffect(() => {
     if (loading || !user) {
       attemptedProfileRefreshRef.current = null;
       setCheckingProfile(false);
+      setProfileCheckTimedOut(false);
       return;
     }
 
     if (profile) {
       attemptedProfileRefreshRef.current = null;
+      setCheckingProfile(false);
+      setProfileCheckTimedOut(false);
+      return;
+    }
+
+    if (profileState === 'missing' || profileState === 'error') {
       setCheckingProfile(false);
       return;
     }
@@ -39,13 +49,33 @@ export const ProtectedRoute = ({
 
     attemptedProfileRefreshRef.current = user.id;
     let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     setCheckingProfile(true);
-    refreshProfile()
+    setProfileCheckTimedOut(false);
+
+    Promise.race([
+      refreshProfile().then(() => 'completed' as const),
+      new Promise<'timeout'>((resolve) => {
+        timeoutId = setTimeout(() => resolve('timeout'), PROFILE_REFRESH_TIMEOUT_MS);
+      }),
+    ])
+      .then((result) => {
+        if (!isMounted) return;
+        if (result === 'timeout') {
+          console.warn('La verificación de perfil agotó el tiempo de espera');
+          setProfileCheckTimedOut(true);
+        }
+      })
       .catch((error) => {
+        if (!isMounted) return;
         console.warn('No se pudo refrescar el perfil del usuario:', error);
+        setProfileCheckTimedOut(true);
       })
       .finally(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         if (isMounted) {
           setCheckingProfile(false);
         }
@@ -53,10 +83,15 @@ export const ProtectedRoute = ({
 
     return () => {
       isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [loading, user, profile, refreshProfile]);
+  }, [loading, user, profile, profileState, refreshProfile]);
 
   useEffect(() => {
+    const hasAuthFailure = !!error || profileState === 'error' || profileCheckTimedOut;
+
     if (!loading && !checkingProfile) {
       // Si no está autenticado, redirigir al login
       if (!user) {
@@ -64,10 +99,21 @@ export const ProtectedRoute = ({
         return;
       }
 
+      if (hasAuthFailure) {
+        console.warn('No se pudo resolver el acceso autenticado, redirigiendo al login');
+        router.replace('/login');
+        return;
+      }
+
       // Si el usuario está autenticado pero no tiene perfil
-      if (user && !profile) {
+      if (user && !profile && profileState === 'missing') {
         console.warn('Usuario autenticado pero sin perfil en la base de datos');
         router.replace('/register');
+        return;
+      }
+
+      if (user && !profile) {
+        router.replace('/login');
         return;
       }
 
@@ -79,7 +125,7 @@ export const ProtectedRoute = ({
         return;
       }
     }
-  }, [user, profile, loading, checkingProfile, userType, allowedUserTypes, redirectTo, router]);
+  }, [user, profile, loading, checkingProfile, error, profileState, profileCheckTimedOut, userType, allowedUserTypes, redirectTo, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (loading || checkingProfile) {
@@ -94,7 +140,7 @@ export const ProtectedRoute = ({
   }
 
   // Si no está autenticado o no tiene permisos, mostrar spinner mientras redirige
-  if (!user || !profile || (userType && !allowedUserTypes.includes(userType))) {
+  if (!user || !profile || !!error || profileState === 'error' || profileCheckTimedOut || (userType && !allowedUserTypes.includes(userType))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-lavender">
         <div className="text-center">
