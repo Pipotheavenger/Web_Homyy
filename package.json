@@ -18,6 +18,7 @@
     "test:ci": "start-server-and-test start http://localhost:3000 'cypress run --config-file test/cypress.config.ts --browser chrome'",
     "playwright:ci": "start-server-and-test start http://localhost:3000 'npx playwright test'",
     "playwright:test": "npx playwright test",
+    "playwright:test:session-tabs": "npx playwright test test/playwright/flows/tab-session-persistence.spec.ts",
     "playwright:test:headed": "npx playwright test --headed",
     "playwright:test:ui": "npx playwright test --ui",
     "playwright:report": "npx playwright show-report test/playwright/reports",

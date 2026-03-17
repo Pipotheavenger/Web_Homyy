@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TrendingUp,
@@ -38,7 +38,7 @@ interface MetodoPago {
 }
 
 export default function PagosPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [showRecargar, setShowRecargar] = useState(false);
   const [showRetirar, setShowRetirar] = useState(false);
@@ -53,9 +53,37 @@ export default function PagosPage() {
   const [modalAmount, setModalAmount] = useState(0);
   const loadingRef = useRef(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const loadData = useCallback(async () => {
+    if (!user?.id) {
+      setTransactions([]);
+      setBalance(0);
+      setLoading(false);
+      return;
+    }
+
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    setLoading(true);
+
+    try {
+      // Cargar balance
+      const balanceResponse = await transactionsService.getBalance();
+      if (balanceResponse.success && balanceResponse.data !== null) {
+        setBalance(balanceResponse.data);
+      }
+
+      // Cargar transacciones
+      const transactionsResponse = await transactionsService.getMyTransactions();
+      if (transactionsResponse.success) {
+        setTransactions(transactionsResponse.data);
+      }
+    } catch (error) {
+      console.error('Error cargando datos de pagos:', error);
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  }, [user?.id]);
 
   // Realtime: refresh balance & transactions when admin approves
   useEffect(() => {
@@ -81,32 +109,20 @@ export default function PagosPage() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, loadData]);
 
-  const loadData = async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    setLoading(true);
+  useEffect(() => {
+    if (authLoading) return;
 
-    try {
-      // Cargar balance
-      const balanceResponse = await transactionsService.getBalance();
-      if (balanceResponse.success && balanceResponse.data !== null) {
-        setBalance(balanceResponse.data);
-      }
-
-      // Cargar transacciones
-      const transactionsResponse = await transactionsService.getMyTransactions();
-      if (transactionsResponse.success) {
-        setTransactions(transactionsResponse.data);
-      }
-    } catch (error) {
-      console.error('Error cargando datos de pagos:', error);
-    } finally {
+    if (!user?.id) {
+      setTransactions([]);
+      setBalance(0);
       setLoading(false);
-      loadingRef.current = false;
+      return;
     }
-  };
+
+    loadData();
+  }, [authLoading, user?.id, loadData]);
 
   const handleVolver = () => {
     router.back();
@@ -285,6 +301,17 @@ export default function PagosPage() {
     }
   };
 
+  const getTransactionTypeLabel = (type: string) => {
+    switch (type) {
+      case 'recarga':
+        return 'Recarga';
+      case 'debito':
+        return 'Pago de Servicio';
+      default:
+        return 'Retiro';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('es-CO', {
@@ -294,6 +321,76 @@ export default function PagosPage() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const renderTransactionsContent = () => {
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse bg-gray-100 rounded-xl p-4 h-20"></div>
+          ))}
+        </div>
+      );
+    }
+
+    if (transactions.length > 0) {
+      return (
+        <div className="space-y-3 sm:space-y-4">
+          {transactions.map((transaction) => (
+            <div
+              key={transaction.id}
+              className={`bg-gradient-to-r ${getStatusColor(transaction.status)} border rounded-xl p-3 sm:p-4 w-full max-w-full overflow-hidden`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1">
+                  <div className="flex-shrink-0">{getTypeIcon(transaction.type)}</div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-gray-800 text-sm sm:text-base break-words">
+                      {getTransactionTypeLabel(transaction.type)} {transaction.payment_method?.toUpperCase() || ''}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
+                    {transaction.transaction_reference && (
+                      <p className="text-xs text-gray-500 font-mono break-all">{transaction.transaction_reference}</p>
+                    )}
+                    {transaction.description && (
+                      <p className="text-xs text-gray-500 break-words">{transaction.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-left sm:text-right w-full sm:w-auto flex-shrink-0">
+                  <div className={`font-semibold text-base sm:text-lg ${
+                    transaction.type === 'recarga' ? 'text-green-600' : 'text-red-600'
+                  } break-words`}>
+                    {transaction.type === 'recarga' ? '+' : '-'}{formatPrice(Number(transaction.amount))}
+                  </div>
+                  <div className="flex items-center space-x-1 text-xs sm:text-sm mt-1">
+                    {getStatusIcon(transaction.status)}
+                    <span className="text-gray-600">{getStatusText(transaction.status)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Wallet size={24} className="text-gray-400" />
+        </div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">No hay transacciones</h4>
+        <p className="text-gray-600 mb-4">Aún no has realizado ninguna transacción</p>
+        <button
+          onClick={handleRecargar}
+          className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+        >
+          Hacer mi primera recarga
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -359,68 +456,8 @@ export default function PagosPage() {
         {/* Transaction History */}
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_8px_32px_rgba(116,63,198,0.08)] border border-white/30 p-4 sm:p-6 w-full max-w-full overflow-hidden">
           <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Historial de Transacciones</h3>
-          
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl p-4 h-20"></div>
-              ))}
-            </div>
-          ) : transactions.length > 0 ? (
-            <div className="space-y-3 sm:space-y-4">
-              {transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className={`bg-gradient-to-r ${getStatusColor(transaction.status)} border rounded-xl p-3 sm:p-4 w-full max-w-full overflow-hidden`}
-                >
-                  {/* Layout vertical para pantallas <425px, horizontal para pantallas más grandes */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                    <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1">
-                      <div className="flex-shrink-0">{getTypeIcon(transaction.type)}</div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base break-words">
-                          {transaction.type === 'recarga' ? 'Recarga' :
-                           transaction.type === 'debito' ? 'Pago de Servicio' : 'Retiro'} {transaction.payment_method?.toUpperCase() || ''}
-                        </h4>
-                        <p className="text-xs sm:text-sm text-gray-600">{formatDate(transaction.created_at)}</p>
-                        {transaction.transaction_reference && (
-                          <p className="text-xs text-gray-500 font-mono break-all">{transaction.transaction_reference}</p>
-                        )}
-                        {transaction.description && (
-                          <p className="text-xs text-gray-500 break-words">{transaction.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-left sm:text-right w-full sm:w-auto flex-shrink-0">
-                      <div className={`font-semibold text-base sm:text-lg ${
-                        transaction.type === 'recarga' ? 'text-green-600' : 'text-red-600'
-                      } break-words`}>
-                        {transaction.type === 'recarga' ? '+' : '-'}{formatPrice(Number(transaction.amount))}
-                      </div>
-                      <div className="flex items-center space-x-1 text-xs sm:text-sm mt-1">
-                        {getStatusIcon(transaction.status)}
-                        <span className="text-gray-600">{getStatusText(transaction.status)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wallet size={24} className="text-gray-400" />
-              </div>
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">No hay transacciones</h4>
-              <p className="text-gray-600 mb-4">Aún no has realizado ninguna transacción</p>
-              <button
-                onClick={handleRecargar}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
-              >
-                Hacer mi primera recarga
-              </button>
-            </div>
-          )}
+
+          {renderTransactionsContent()}
         </div>
       </div>
 

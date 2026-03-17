@@ -27,6 +27,7 @@ import { formatPrice } from '@/lib/utils';
 import { CommissionSettings } from '@/components/ui/CommissionSettings';
 import { useCommission } from '@/hooks/useCommission';
 import { NotificationsSettingsTab } from '@/components/admin/NotificationsSettingsTab';
+import { clearAdminSession } from '@/lib/supabase';
 
 export default function AdminDashboardPage() {
   return (
@@ -146,15 +147,10 @@ function AdminDashboard() {
     setLoading(false);
   };
 
-  const handleLogout = () => {
-    // Limpiar sessionStorage
-    sessionStorage.removeItem('admin_authenticated');
-    
-    // Limpiar cookies
-    document.cookie = 'admin_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    
+  const handleLogout = async () => {
+    await clearAdminSession();
     console.log('🔐 Admin logout successful');
-    router.push('/admin');
+    router.replace('/admin');
   };
 
   const handleUpdateTransactionStatus = async (

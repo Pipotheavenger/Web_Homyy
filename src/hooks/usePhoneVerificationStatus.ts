@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PhoneVerificationStatus {
   isVerified: boolean | null;
@@ -11,6 +12,7 @@ interface PhoneVerificationStatus {
 }
 
 export const usePhoneVerificationStatus = (): PhoneVerificationStatus => {
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<PhoneVerificationStatus>({
     isVerified: null,
     phone: null,
@@ -20,13 +22,13 @@ export const usePhoneVerificationStatus = (): PhoneVerificationStatus => {
 
   useEffect(() => {
     const checkStatus = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setStatus({ isVerified: null, phone: null, userId: null, loading: false });
-          return;
-        }
+      if (!user?.id) {
+        setStatus({ isVerified: null, phone: null, userId: null, loading: false });
+        return;
+      }
 
+      try {
+        setStatus(prev => ({ ...prev, loading: true }));
         const { data, error } = await supabase
           .from('user_profiles')
           .select('user_id, movil_verificado, phone')
@@ -49,8 +51,9 @@ export const usePhoneVerificationStatus = (): PhoneVerificationStatus => {
       }
     };
 
+    if (authLoading) return;
     checkStatus();
-  }, []);
+  }, [authLoading, user?.id]);
 
   return status;
 };

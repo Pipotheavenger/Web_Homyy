@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { profileService, bookingsService, reviewsService } from '@/lib/services';
 import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useProfile = () => {
+  const { user, loading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('informacion');
   const [loading, setLoading] = useState(true);
@@ -25,20 +27,28 @@ export const useProfile = () => {
     ubicacion: ''
   });
 
-  useEffect(() => {
-    loadProfileData();
-  }, []);
+  const loadProfileData = useCallback(async (forceReload: boolean = false) => {
+    const currentUserId = user?.id;
+    if (!currentUserId) {
+      setProfile(null);
+      setBookings([]);
+      setReviews([]);
+      setBookingStats({
+        completed: 0,
+        in_progress: 0,
+        scheduled: 0,
+        cancelled: 0
+      });
+      setLoading(false);
+      return;
+    }
 
-  const loadProfileData = async (forceReload: boolean = false) => {
     try {
-      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay perfil previo o si se fuerza recarga
-      if (profile === null || forceReload) {
-        setLoading(true);
-      }
+      setLoading(true);
       
       // ✅ OPTIMIZACIÓN: Cargar perfil primero (crítico para mostrar UI)
       // Forzar recarga desde la base de datos ignorando cualquier caché
-      const profileResponse = await profileService.getProfile();
+      const profileResponse = await profileService.getProfile(currentUserId);
       if (profileResponse.success && profileResponse.data) {
         const data = profileResponse.data;
         const nameParts = (data.name || '').split(' ');
@@ -78,16 +88,12 @@ export const useProfile = () => {
         
         // ✅ Quitar loading lo antes posible
         setLoading(false);
-      }
-
-      // ✅ OPTIMIZACIÓN: Cargar bookings en segundo plano (no bloquea UI)
-      // Obtener usuario primero para usar en todas las consultas
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      } else {
         setLoading(false);
         return;
       }
 
+      // ✅ OPTIMIZACIÓN: Cargar bookings en segundo plano (no bloquea UI)
       Promise.allSettled([
         // Cargar bookings como cliente (igual que trabajador)
         bookingsService.getMyBookingsAsClient().then(async (response) => {
@@ -117,7 +123,7 @@ export const useProfile = () => {
               const { data: completedEscrows } = await supabase
                 .from('escrow_transactions')
                 .select('service_id')
-                .eq('client_id', user.id)
+                .eq('client_id', currentUserId)
                 .eq('status', 'completada');
               
               console.log('📊 Escrows completados encontrados:', completedEscrows?.length || 0);
@@ -144,7 +150,7 @@ export const useProfile = () => {
                   service:services(id, title, description, location),
                   worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url)
                 `)
-                .eq('client_id', user.id)
+                .eq('client_id', currentUserId)
                 .order('start_date', { ascending: false });
               
               console.log('📊 Bookings directos desde Supabase:', directBookings?.length || 0, directError);
@@ -167,7 +173,7 @@ export const useProfile = () => {
                   const { data: completedEscrows } = await supabase
                     .from('escrow_transactions')
                     .select('service_id')
-                    .eq('client_id', user.id)
+                    .eq('client_id', currentUserId)
                     .eq('status', 'completada');
                   
                   console.log('📊 Escrows completados (fallback):', completedEscrows?.length || 0);
@@ -189,71 +195,69 @@ export const useProfile = () => {
         }),
         // Cargar reseñas que el usuario ha hecho (igual que trabajador)
         (async () => {
-          if (user) {
-            try {
-              // Primero intentar con relaciones
-              const { data: userReviews, error: reviewsError } = await supabase
+          try {
+            // Primero intentar con relaciones
+            const { data: userReviews, error: reviewsError } = await supabase
+              .from('reviews')
+              .select(`
+                *,
+                service:services(id, title)
+              `)
+              .eq('reviewer_id', currentUserId)
+              .order('created_at', { ascending: false });
+            
+            if (reviewsError) {
+              console.warn('Error cargando reseñas con relaciones:', reviewsError);
+              // Si falla, cargar sin relaciones y luego cargar servicios manualmente
+              const { data: simpleReviews } = await supabase
                 .from('reviews')
-                .select(`
-                  *,
-                  service:services(id, title)
-                `)
-                .eq('reviewer_id', user.id)
+                .select('*')
+                .eq('reviewer_id', currentUserId)
                 .order('created_at', { ascending: false });
               
-              if (reviewsError) {
-                console.warn('Error cargando reseñas con relaciones:', reviewsError);
-                // Si falla, cargar sin relaciones y luego cargar servicios manualmente
-                const { data: simpleReviews } = await supabase
-                  .from('reviews')
-                  .select('*')
-                  .eq('reviewer_id', user.id)
-                  .order('created_at', { ascending: false });
-                
-                if (simpleReviews && simpleReviews.length > 0) {
-                  // Cargar servicios para cada reseña manualmente
-                  const reviewsWithServices = await Promise.all(
-                    simpleReviews.map(async (review: any) => {
-                      const { data: serviceData } = await supabase
-                        .from('services')
-                        .select('id, title')
-                        .eq('id', review.service_id)
-                        .maybeSingle();
-                      
-                      return {
-                        ...review,
-                        service: serviceData || { id: review.service_id, title: null }
-                      };
-                    })
-                  );
-                  
-                  setReviews(reviewsWithServices);
-                }
-              } else if (userReviews) {
-                // Asegurar que todas las reseñas tengan el servicio cargado
+              if (simpleReviews && simpleReviews.length > 0) {
+                // Cargar servicios para cada reseña manualmente
                 const reviewsWithServices = await Promise.all(
-                  userReviews.map(async (review: any) => {
-                    // Si no tiene servicio o no tiene título, cargarlo manualmente
-                    if (!review.service || !review.service.title) {
-                      const { data: serviceData } = await supabase
-                        .from('services')
-                        .select('id, title')
-                        .eq('id', review.service_id)
-                        .maybeSingle();
-                      
-                      return {
-                        ...review,
-                        service: serviceData || { id: review.service_id, title: null }
-                      };
-                    }
-                    return review;
+                  simpleReviews.map(async (review: any) => {
+                    const { data: serviceData } = await supabase
+                      .from('services')
+                      .select('id, title')
+                      .eq('id', review.service_id)
+                      .maybeSingle();
+                    
+                    return {
+                      ...review,
+                      service: serviceData || { id: review.service_id, title: null }
+                    };
                   })
                 );
+                
                 setReviews(reviewsWithServices);
               }
-            } catch (err) {
-              console.error('Error cargando reseñas:', err);
+            } else if (userReviews) {
+              // Asegurar que todas las reseñas tengan el servicio cargado
+              const reviewsWithServices = await Promise.all(
+                userReviews.map(async (review: any) => {
+                  // Si no tiene servicio o no tiene título, cargarlo manualmente
+                  if (!review.service || !review.service.title) {
+                    const { data: serviceData } = await supabase
+                      .from('services')
+                      .select('id, title')
+                      .eq('id', review.service_id)
+                      .maybeSingle();
+                    
+                    return {
+                      ...review,
+                      service: serviceData || { id: review.service_id, title: null }
+                    };
+                  }
+                  return review;
+                })
+              );
+              setReviews(reviewsWithServices);
             }
+          } catch (err) {
+            console.error('Error cargando reseñas:', err);
           }
         })()
       ]).catch(err => {
@@ -264,7 +268,12 @@ export const useProfile = () => {
       console.error('Error cargando perfil:', error);
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    void loadProfileData();
+  }, [authLoading, loadProfileData]);
 
   const handleSave = async () => {
     try {

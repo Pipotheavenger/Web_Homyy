@@ -13,9 +13,11 @@ export const TEST_USERS = {
 } as const;
 
 type UserRole = keyof typeof TEST_USERS;
+type StorageEntry = [string, string];
 
-// Must match the fixed key in src/lib/supabase.ts
+// Must match the scoped key format in src/lib/supabase.ts
 const STORAGE_KEY = 'sb-hommy-auth';
+const SESSION_SCOPE_STORAGE_KEY = 'hommy-tab-id';
 
 /**
  * Authenticate via Supabase API and return the session object.
@@ -40,6 +42,16 @@ async function getSupabaseSession(email: string, password: string) {
   return data.session;
 }
 
+async function ensureAppOrigin(page: Page): Promise<void> {
+  const currentUrl = page.url();
+  if (
+    currentUrl === 'about:blank' ||
+    !currentUrl.startsWith('http://localhost:3000')
+  ) {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  }
+}
+
 /**
  * Login as a test user and inject the session into the browser's sessionStorage.
  *
@@ -49,6 +61,7 @@ async function getSupabaseSession(email: string, password: string) {
 export async function loginAs(page: Page, role: UserRole): Promise<void> {
   const user = TEST_USERS[role];
   const session = await getSupabaseSession(user.email, user.password);
+  const scopeId = `playwright-${role}-${Date.now()}`;
 
   const sessionData = {
     access_token: session.access_token,
@@ -60,17 +73,11 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
   };
 
   // Navigate to origin first so sessionStorage is accessible
-  const currentUrl = page.url();
-  if (
-    currentUrl === 'about:blank' ||
-    !currentUrl.startsWith('http://localhost:3000')
-  ) {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-  }
+  await ensureAppOrigin(page);
 
   // Clear existing Supabase sessions from both storages, then set in sessionStorage
   await page.evaluate(
-    ({ key, data }) => {
+    ({ key, data, scopeId, sessionScopeKey }) => {
       Object.keys(localStorage)
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => localStorage.removeItem(k));
@@ -78,9 +85,10 @@ export async function loginAs(page: Page, role: UserRole): Promise<void> {
         .filter((k) => k.startsWith('sb-') || k === 'hommy-tab-id')
         .forEach((k) => sessionStorage.removeItem(k));
 
-      sessionStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(sessionScopeKey, scopeId);
+      sessionStorage.setItem(`${key}:${scopeId}`, JSON.stringify(data));
     },
-    { key: STORAGE_KEY, data: sessionData }
+    { key: STORAGE_KEY, data: sessionData, scopeId, sessionScopeKey: SESSION_SCOPE_STORAGE_KEY }
   );
 
   // Reload so the Supabase client re-initializes with the new session
@@ -97,6 +105,7 @@ export async function loginAsUser(
   password: string
 ): Promise<void> {
   const session = await getSupabaseSession(email, password);
+  const scopeId = `playwright-user-${Date.now()}`;
 
   const sessionData = {
     access_token: session.access_token,
@@ -107,16 +116,10 @@ export async function loginAsUser(
     user: session.user,
   };
 
-  const currentUrl = page.url();
-  if (
-    currentUrl === 'about:blank' ||
-    !currentUrl.startsWith('http://localhost:3000')
-  ) {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-  }
+  await ensureAppOrigin(page);
 
   await page.evaluate(
-    ({ key, data }) => {
+    ({ key, data, scopeId, sessionScopeKey }) => {
       Object.keys(localStorage)
         .filter((k) => k.startsWith('sb-'))
         .forEach((k) => localStorage.removeItem(k));
@@ -124,10 +127,58 @@ export async function loginAsUser(
         .filter((k) => k.startsWith('sb-') || k === 'hommy-tab-id')
         .forEach((k) => sessionStorage.removeItem(k));
 
-      sessionStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(sessionScopeKey, scopeId);
+      sessionStorage.setItem(`${key}:${scopeId}`, JSON.stringify(data));
     },
-    { key: STORAGE_KEY, data: sessionData }
+    { key: STORAGE_KEY, data: sessionData, scopeId, sessionScopeKey: SESSION_SCOPE_STORAGE_KEY }
   );
 
   await page.reload({ waitUntil: 'networkidle' });
+}
+
+export async function captureSessionStorage(
+  page: Page
+): Promise<StorageEntry[]> {
+  await ensureAppOrigin(page);
+  return page.evaluate(() =>
+    Object.entries(sessionStorage).map(([key, value]) => [key, value])
+  );
+}
+
+export async function restoreSessionStorage(
+  page: Page,
+  entries: StorageEntry[]
+): Promise<void> {
+  await ensureAppOrigin(page);
+  await page.evaluate((storageEntries) => {
+    sessionStorage.clear();
+    for (const [key, value] of storageEntries) {
+      sessionStorage.setItem(key, value);
+    }
+  }, entries);
+}
+
+export async function cloneSessionStorageToPage(
+  sourcePage: Page,
+  targetPage: Page
+): Promise<void> {
+  const entries = await captureSessionStorage(sourcePage);
+  await restoreSessionStorage(targetPage, entries);
+}
+
+export async function openDuplicatedTab(sourcePage: Page): Promise<Page> {
+  const entries = await captureSessionStorage(sourcePage);
+  const context = sourcePage.context();
+
+  // This init script intentionally persists for the lifetime of the test context.
+  // Each Playwright test gets its own isolated context, so this does not leak
+  // across tests and lets us preload sessionStorage before the duplicated tab boots.
+  await context.addInitScript((storageEntries: StorageEntry[]) => {
+    sessionStorage.clear();
+    for (const [key, value] of storageEntries) {
+      sessionStorage.setItem(key, value);
+    }
+  }, entries);
+
+  return context.newPage();
 }

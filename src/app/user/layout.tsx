@@ -1,5 +1,6 @@
 'use client';
 import { UserTypeProvider } from '@/contexts/UserTypeContext';
+import { UserOnlyRoute } from '@/components/ProtectedRoute';
 
 export default function UserLayout({
   children,
@@ -8,7 +9,7 @@ export default function UserLayout({
 }) {
   return (
     <UserTypeProvider initialUserType="user">
-      {children}
+      <UserOnlyRoute>{children}</UserOnlyRoute>
     </UserTypeProvider>
   );
 } 

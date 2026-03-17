@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { bookingsService, reviewsService } from '@/lib/services';
 import { formatPrice, formatDate } from '@/lib/utils/empty-state-helpers';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useWorkerProfileCurrent = () => {
+  const { user, loading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('informacion');
   const [loading, setLoading] = useState(true);
@@ -36,23 +38,27 @@ export const useWorkerProfileCurrent = () => {
     hourly_rate: ''
   });
 
-  useEffect(() => {
-    loadWorkerProfileData();
-  }, []);
-
-  const loadWorkerProfileData = async () => {
-    try {
-      // ✅ OPTIMIZACIÓN: Solo mostrar loading si no hay datos previos
-      if (!usuario) {
-        setLoading(true);
-      }
+  const loadWorkerProfileData = useCallback(async () => {
+    const currentUserId = user?.id;
+    if (!currentUserId) {
+      setUsuario(null);
+      setWorkerProfile(null);
+      setBookings([]);
+      setReviews([]);
+      setBookingStats({
+        completed: 0,
+        in_progress: 0,
+        scheduled: 0,
+        cancelled: 0
+      });
       setError(null);
+      setLoading(false);
+      return;
+    }
 
-      // Obtener usuario actual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuario no autenticado');
-      }
+    try {
+      setLoading(true);
+      setError(null);
 
       // ✅ OPTIMIZACIÓN: Cargar perfiles en paralelo (más rápido)
       const [userProfileResult, workerProfileResult] = await Promise.allSettled([
@@ -60,14 +66,14 @@ export const useWorkerProfileCurrent = () => {
         supabase
           .from('user_profiles')
           .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado, whatsapp_notifications_enabled')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUserId)
           .single(),
         
         // Cargar perfil de trabajador (puede no existir)
         supabase
           .from('worker_profiles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUserId)
           .maybeSingle()
       ]);
 
@@ -159,7 +165,7 @@ export const useWorkerProfileCurrent = () => {
               const { data: completedEscrows } = await supabase
                 .from('escrow_transactions')
                 .select('service_id')
-                .eq('worker_id', user.id)
+                .eq('worker_id', currentUserId)
                 .eq('status', 'completada');
               
               if (completedEscrows && completedEscrows.length > 0) {
@@ -183,7 +189,7 @@ export const useWorkerProfileCurrent = () => {
                 `)
                 .eq('status', 'completed')
                 .neq('status', 'deleted')
-                .eq('applications.worker_id', user.id)
+                .eq('applications.worker_id', currentUserId)
                 .eq('applications.status', 'accepted');
               
               if (completedServices && completedServices.length > 0) {
@@ -217,7 +223,7 @@ export const useWorkerProfileCurrent = () => {
                 `)
                 .eq('status', 'completed')
                 .neq('status', 'deleted')
-                .eq('applications.worker_id', user.id)
+                .eq('applications.worker_id', currentUserId)
                 .eq('applications.status', 'accepted');
               
               const fallbackStats = {
@@ -243,7 +249,7 @@ export const useWorkerProfileCurrent = () => {
         supabase
           .from('professionals')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('user_id', currentUserId)
           .maybeSingle()
           .then(({ data: professional }) => {
             if (professional && professional.id) {
@@ -265,12 +271,16 @@ export const useWorkerProfileCurrent = () => {
       setError(err.message || 'Error al cargar el perfil');
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    void loadWorkerProfileData();
+  }, [authLoading, loadWorkerProfileData]);
 
   const handleSave = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      if (!user?.id) throw new Error('Usuario no autenticado');
 
       const fullName = `${formData.nombre} ${formData.apellido}`.trim();
       

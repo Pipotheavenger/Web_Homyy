@@ -2,9 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { getSupabaseAdmin } from '@/lib/supabase';
-
-const ADMIN_EMAIL = 'admin@hommy.app';
+import { ADMIN_EMAIL, clearAdminSession, getSupabaseAdmin, hasValidAdminSession, setAdminSessionMarkers } from '@/lib/supabase';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,13 +15,11 @@ export default function AdminLoginPage() {
   useEffect(() => {
     // Verificar si ya está autenticado con Supabase
     const checkAuth = async () => {
-      const { data: { session } } = await getSupabaseAdmin().auth.getSession();
+      const { isValid } = await hasValidAdminSession();
       
-      if (session?.user && session.user.email === ADMIN_EMAIL) {
+      if (isValid) {
         console.log('🔐 Admin already authenticated, redirecting to dashboard');
-        sessionStorage.setItem('admin_authenticated', 'true');
-        document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict';
-        router.push('/admin/dashboard');
+        router.replace('/admin/dashboard');
         return;
       }
     };
@@ -64,18 +60,17 @@ export default function AdminLoginPage() {
       if (data.user && data.session) {
         // Verificar que el email sea el de admin
         if (data.user.email !== ADMIN_EMAIL) {
-          await getSupabaseAdmin().auth.signOut();
+          await clearAdminSession();
           setError('Solo el administrador autorizado puede acceder');
           setLoading(false);
           return;
         }
 
         // Establecer la autenticación de admin
-        sessionStorage.setItem('admin_authenticated', 'true');
-        document.cookie = 'admin_authenticated=true; path=/; max-age=3600; SameSite=Strict'; // 1 hora
+        setAdminSessionMarkers();
         
         console.log('🔐 Admin authentication successful');
-        router.push('/admin/dashboard');
+        router.replace('/admin/dashboard');
       }
     } catch (error: any) {
       console.error('Error en login:', error);

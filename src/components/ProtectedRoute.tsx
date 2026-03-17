@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -15,21 +15,59 @@ export const ProtectedRoute = ({
   allowedUserTypes = ['user', 'worker'], 
   redirectTo 
 }: ProtectedRouteProps) => {
-  const { user, profile, loading, userType } = useAuth();
+  const { user, profile, loading, userType, refreshProfile } = useAuth();
   const router = useRouter();
+  const attemptedProfileRefreshRef = useRef<string | null>(null);
+  const [checkingProfile, setCheckingProfile] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (loading || !user) {
+      attemptedProfileRefreshRef.current = null;
+      setCheckingProfile(false);
+      return;
+    }
+
+    if (profile) {
+      attemptedProfileRefreshRef.current = null;
+      setCheckingProfile(false);
+      return;
+    }
+
+    if (attemptedProfileRefreshRef.current === user.id) {
+      return;
+    }
+
+    attemptedProfileRefreshRef.current = user.id;
+    let isMounted = true;
+
+    setCheckingProfile(true);
+    refreshProfile()
+      .catch((error) => {
+        console.warn('No se pudo refrescar el perfil del usuario:', error);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setCheckingProfile(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loading, user, profile, refreshProfile]);
+
+  useEffect(() => {
+    if (!loading && !checkingProfile) {
       // Si no está autenticado, redirigir al login
       if (!user) {
-        router.push('/login');
+        router.replace('/login');
         return;
       }
 
       // Si el usuario está autenticado pero no tiene perfil
       if (user && !profile) {
         console.warn('Usuario autenticado pero sin perfil en la base de datos');
-        router.push('/register');
+        router.replace('/register');
         return;
       }
 
@@ -37,14 +75,14 @@ export const ProtectedRoute = ({
       if (userType && !allowedUserTypes.includes(userType)) {
         // Redirigir al dashboard apropiado según el tipo de usuario
         const targetDashboard = userType === 'worker' ? '/worker/dashboard' : '/user/dashboard';
-        router.push(redirectTo || targetDashboard);
+        router.replace(redirectTo || targetDashboard);
         return;
       }
     }
-  }, [user, profile, loading, userType, allowedUserTypes, redirectTo, router]);
+  }, [user, profile, loading, checkingProfile, userType, allowedUserTypes, redirectTo, router]);
 
   // Mostrar loading mientras se verifica la autenticación
-  if (loading) {
+  if (loading || checkingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-lavender">
         <div className="text-center">

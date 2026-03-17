@@ -1,5 +1,6 @@
 'use client';
 import { UserTypeProvider } from '@/contexts/UserTypeContext';
+import { WorkerOnlyRoute } from '@/components/ProtectedRoute';
 
 export default function WorkerLayout({
   children,
@@ -8,7 +9,7 @@ export default function WorkerLayout({
 }) {
   return (
     <UserTypeProvider initialUserType="worker">
-      {children}
+      <WorkerOnlyRoute>{children}</WorkerOnlyRoute>
     </UserTypeProvider>
   );
 } 

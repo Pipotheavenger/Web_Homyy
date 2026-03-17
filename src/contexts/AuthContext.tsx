@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -31,7 +31,7 @@ const PROFILE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_BASE_DELAY = 1000; // 1 second
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const queryClient = useQueryClient();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Force-clear ALL session data (React Query + localStorage + Supabase keys)
+  // Clear cached data plus the scoped Supabase session payload for this tab group.
   const purgeAllSessionData = useCallback(() => {
     queryClient.clear();
     clearAllCache();
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .filter(k => k.startsWith('sb-') || k === 'userType')
       .forEach(k => localStorage.removeItem(k));
     Object.keys(sessionStorage)
-      .filter(k => k.startsWith('sb-') || k === 'hommy-tab-id')
+      .filter(k => k.startsWith('sb-'))
       .forEach(k => sessionStorage.removeItem(k));
   }, [queryClient]);
 
@@ -62,11 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<UserProfile | null> => {
     const cacheKey = `user_profile_${userId}`;
 
-    if (!options?.skipCache) {
+    if (options?.skipCache) {
+      clearCachedData(cacheKey);
+    } else {
       const cached = getCachedData<UserProfile>(cacheKey, PROFILE_CACHE_TTL);
       if (cached) return cached;
-    } else {
-      clearCachedData(cacheKey);
     }
 
     const profile = await getUserProfile(userId);
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [purgeAllSessionData]);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     user: authState.user,
     profile: authState.profile,
     loading: authState.loading,
@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!authState.user,
     userType: authState.profile?.user_type || null,
     refreshProfile,
-  };
+  }), [authState.user, authState.profile, authState.loading, authState.error, signOut, refreshProfile]);
 
   return (
     <AuthContext.Provider value={value}>

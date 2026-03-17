@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from '../supabase';
+import { ensureAdminSession, getSupabaseAdmin } from '../supabase';
 const supabase = getSupabaseAdmin();
 import type { ApiResponse } from '@/types/database';
 
@@ -29,13 +29,7 @@ export const adminService = {
    */
   async getSystemSettings(): Promise<ApiResponse<SystemSetting[]>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       const { data, error } = await supabase
         .from('system_settings')
@@ -63,13 +57,7 @@ export const adminService = {
    */
   async getSetting(key: string): Promise<ApiResponse<SystemSetting>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       const { data, error } = await supabase
         .from('system_settings')
@@ -98,13 +86,7 @@ export const adminService = {
    */
   async updateSetting(key: string, value: any, description?: string): Promise<ApiResponse<SystemSetting>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       const settingData = {
         key,
@@ -245,13 +227,7 @@ export const adminService = {
    */
   async getUsers(params: { search?: string; limit?: number; offset?: number } = {}): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       let query = supabase
         .from('user_profiles')
@@ -295,13 +271,7 @@ export const adminService = {
    */
   async getTransactions(params: { status?: string; limit?: number; offset?: number } = {}): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       let query = supabase
         .from('transactions')
@@ -345,13 +315,7 @@ export const adminService = {
    */
   async getServices(params: { status?: string; limit?: number; offset?: number } = {}): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       let query = supabase
         .from('services')
@@ -397,13 +361,7 @@ export const adminService = {
    */
   async getUserBalance(userId: string): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       // Calcular balance usando GROUP BY: recargas - débitos - retiros
       const { data: transactions, error } = await supabase
@@ -445,13 +403,7 @@ export const adminService = {
    */
   async updateTransactionStatus(transactionId: string, status: string): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       // Obtener la transacción antes de actualizar para verificar el estado anterior
       const { data: oldTransaction } = await supabase
@@ -508,13 +460,7 @@ export const adminService = {
    */
   async getSystemStats(): Promise<ApiResponse<any>> {
     try {
-      // Simplificado: solo verificar que la sesión de admin esté activa
-      if (typeof window !== 'undefined') {
-        const adminAuth = sessionStorage.getItem('admin_authenticated');
-        if (adminAuth !== 'true') {
-          throw new Error('Sesión de admin no válida');
-        }
-      }
+      await ensureAdminSession();
 
       // Obtener estadísticas básicas
       const [

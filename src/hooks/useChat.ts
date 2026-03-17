@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { chatService, type Chat, type ChatMessage } from '@/lib/api/chat';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useChat = (chatId?: string) => {
+  const { user, loading: authLoading } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +14,13 @@ export const useChat = (chatId?: string) => {
 
   // Cargar lista de chats
   const loadChats = useCallback(async () => {
+    if (!user?.id) {
+      setChats([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     // ✅ OPTIMIZACIÓN: No bloquear UI mientras carga chats
     // Solo mostrar loading si no hay chats previos
     if (chats.length === 0) {
@@ -29,10 +38,16 @@ export const useChat = (chatId?: string) => {
       setError(response.error);
       setLoading(false);
     }
-  }, [chats.length]);
+  }, [chats.length, user?.id]);
 
   // Cargar mensajes de un chat específico
   const loadMessages = useCallback(async (id: string) => {
+    if (!user?.id) {
+      setMessages([]);
+      setError(null);
+      return;
+    }
+
     // ✅ OPTIMIZACIÓN: Limpiar mensajes anteriores inmediatamente para feedback visual
     setMessages([]);
     setError(null);
@@ -51,7 +66,7 @@ export const useChat = (chatId?: string) => {
     } else {
       setError(response.error);
     }
-  }, []);
+  }, [user?.id]);
 
   // Enviar mensaje
   const sendMessage = useCallback(async (message: string, currentChatId?: string, type: 'text' | 'image' | 'document' = 'text') => {
@@ -117,6 +132,22 @@ export const useChat = (chatId?: string) => {
   useEffect(() => {
     let mounted = true;
 
+    if (authLoading) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    if (!user?.id) {
+      setChats([]);
+      setMessages([]);
+      setLoading(false);
+      setError(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
     if (!chatId && mounted) {
       // ✅ OPTIMIZACIÓN: Cargar chats inmediatamente sin esperar
       loadChats();
@@ -125,11 +156,24 @@ export const useChat = (chatId?: string) => {
     return () => {
       mounted = false;
     };
-  }, [chatId, loadChats]);
+  }, [chatId, loadChats, authLoading, user?.id]);
 
   // Efecto para cargar mensajes cuando se selecciona un chat
   useEffect(() => {
     let mounted = true;
+
+    if (authLoading) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    if (!user?.id) {
+      setMessages([]);
+      return () => {
+        mounted = false;
+      };
+    }
 
     if (chatId && mounted) {
       // Limpiar mensajes anteriores antes de cargar nuevos
@@ -143,11 +187,11 @@ export const useChat = (chatId?: string) => {
     return () => {
       mounted = false;
     };
-  }, [chatId, loadMessages]);
+  }, [chatId, loadMessages, authLoading, user?.id]);
 
   // Efecto para suscribirse a mensajes en tiempo real
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || authLoading || !user?.id) return;
 
     let mounted = true;
 
@@ -187,7 +231,7 @@ export const useChat = (chatId?: string) => {
       mounted = false;
       unsubscribe();
     };
-  }, [chatId]);
+  }, [chatId, authLoading, user?.id]);
 
   return {
     chats,
