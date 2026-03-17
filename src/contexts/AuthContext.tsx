@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .filter(k => k.startsWith('sb-') || k === 'userType')
       .forEach(k => localStorage.removeItem(k));
     Object.keys(sessionStorage)
-      .filter(k => k.startsWith('sb-'))
+      .filter(k => k.startsWith('sb-') || k === 'hommy-tab-id')
       .forEach(k => sessionStorage.removeItem(k));
   }, [queryClient]);
 
