@@ -168,17 +168,17 @@ export async function cloneSessionStorageToPage(
 
 export async function openDuplicatedTab(sourcePage: Page): Promise<Page> {
   const entries = await captureSessionStorage(sourcePage);
-  const context = sourcePage.context();
+  const newPage = await sourcePage.context().newPage();
 
-  // This init script intentionally persists for the lifetime of the test context.
-  // Each Playwright test gets its own isolated context, so this does not leak
-  // across tests and lets us preload sessionStorage before the duplicated tab boots.
-  await context.addInitScript((storageEntries: StorageEntry[]) => {
+  // Page-scoped init script: only the duplicated tab gets the cloned
+  // sessionStorage. Using page.addInitScript (not context.addInitScript)
+  // so the original tab's future navigations are not affected.
+  await newPage.addInitScript((storageEntries: StorageEntry[]) => {
     sessionStorage.clear();
     for (const [key, value] of storageEntries) {
       sessionStorage.setItem(key, value);
     }
   }, entries);
 
-  return context.newPage();
+  return newPage;
 }

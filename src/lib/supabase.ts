@@ -11,6 +11,7 @@ export const ADMIN_AUTH_FLAG_KEY = 'admin_authenticated'
 export const ADMIN_AUTH_COOKIE_NAME = 'admin_authenticated'
 export const ADMIN_EMAIL = 'admin@hommy.app'
 
+const RELOAD_FLAG_KEY = 'hommy-tab-reloading'
 const SESSION_SCOPE_SEPARATOR = ':'
 
 // ---------------------------------------------------------------------------
@@ -40,45 +41,31 @@ async function inMemoryLock<R>(
 // ---------------------------------------------------------------------------
 // Duplicate-tab detection (synchronous, runs during module evaluation).
 //
-// When a tab is duplicated the browser clones sessionStorage into the new tab.
-// We detect this by checking the Navigation Timing API:
-//   - "reload"       → page refresh  → keep session
-//   - "back_forward" → history nav   → keep session
-//   - "navigate"     → new navigation; if sessionStorage already contains
-//                      hommy-tab-id it means the data was *cloned* from
-//                      the parent tab → duplicate → clear session
+// When a tab is duplicated the browser clones sessionStorage. We detect this
+// using a pagehide flag: before every unload we write a marker. On the next
+// load, if the marker is present → reload (same tab). If absent but
+// hommy-tab-id exists → the data was cloned from another tab → purge.
+//
+// Why pagehide instead of Navigation Timing API: some browsers report
+// "reload" for duplicated tabs, causing false negatives.
+// Why pagehide instead of beforeunload: preserves bfcache eligibility.
 // ---------------------------------------------------------------------------
 const purgeDuplicateTabSession = () => {
   if (globalThis.window === undefined) return
 
-  let navType = 'navigate'
-  try {
-    const entries = performance.getEntriesByType('navigation')
-    if (entries.length > 0) {
-      navType = (entries[0] as PerformanceNavigationTiming).type
-    }
-  } catch {
-    // ignore — fallback below handles both exception and empty-entries cases
-  }
-
-  // Always try deprecated API when modern API didn't resolve navType.
-  // performance.getEntriesByType('navigation') can return [] during very early
-  // module evaluation; without this fallback, navType stays 'navigate' and the
-  // function incorrectly purges the session on a page refresh.
-  if (navType === 'navigate' && typeof performance !== 'undefined' && performance.navigation) {
-    const legacyType = performance.navigation.type
-    if (legacyType === 1) navType = 'reload'
-    else if (legacyType === 2) navType = 'back_forward'
-  }
-
-  // Reload / back-forward → same tab, keep everything
-  if (navType !== 'navigate') return
-
-  // "navigate" with no existing tab id → fresh tab, nothing to purge
+  // No tab ID → fresh tab, nothing to purge
   if (sessionStorage.getItem(SESSION_SCOPE_STORAGE_KEY) === null) return
 
-  // Duplicate detected: clear all cloned auth data so the new tab starts
-  // with a clean slate (will redirect to login).
+  // If the reload flag exists, the previous page in this tab set it via
+  // pagehide → this is a reload or back/forward navigation → keep session.
+  const reloading = sessionStorage.getItem(RELOAD_FLAG_KEY)
+  sessionStorage.removeItem(RELOAD_FLAG_KEY) // Always clean up
+
+  if (reloading) return
+
+  // sessionStorage has a tab ID but no reload flag → the data was CLONED
+  // from another tab (duplicate). Clear all auth data so the new tab
+  // starts with a clean slate (will redirect to login).
   const keysToClear = Object.keys(sessionStorage).filter(
     k => k.startsWith('sb-') || k.startsWith('admin-') || k === SESSION_SCOPE_STORAGE_KEY
   )
@@ -89,6 +76,13 @@ const purgeDuplicateTabSession = () => {
 
 // Run detection immediately during module evaluation, BEFORE createClient.
 purgeDuplicateTabSession()
+
+// Mark future unloads so the next load in this tab knows it's a reload.
+if (globalThis.window !== undefined) {
+  window.addEventListener('pagehide', () => {
+    sessionStorage.setItem(RELOAD_FLAG_KEY, '1')
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Session-scope helpers
