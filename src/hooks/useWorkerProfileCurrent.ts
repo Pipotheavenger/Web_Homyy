@@ -245,15 +245,15 @@ export const useWorkerProfileCurrent = () => {
           }
         }),
         
-        // Cargar reviews recibidas - primero obtener el professional_id
+        // Cargar reviews recibidas - usar el worker_profile_id
         supabase
-          .from('professionals')
+          .from('worker_profiles')
           .select('id')
           .eq('user_id', currentUserId)
           .maybeSingle()
-          .then(({ data: professional }) => {
-            if (professional && professional.id) {
-              return reviewsService.getByProfessional(professional.id);
+          .then(({ data: workerProfile }) => {
+            if (workerProfile && workerProfile.id) {
+              return reviewsService.getByProfessional(workerProfile.id);
             }
             return { success: true, data: [], error: null };
           })

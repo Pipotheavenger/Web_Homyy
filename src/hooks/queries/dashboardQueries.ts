@@ -168,9 +168,9 @@ export function useReviewedServices(
       
       if (workerIds.length === 0) return {};
       
-      // Cargar profesionales
+      // Cargar perfiles de trabajadores
       const { data: professionals } = await supabase
-        .from('professionals')
+        .from('worker_profiles')
         .select('id, user_id')
         .in('user_id', workerIds);
       

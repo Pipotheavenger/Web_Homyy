@@ -98,25 +98,25 @@ export default function Dashboard() {
         return false;
       }
 
-      // Obtener el professional_id desde la tabla professionals usando el user_id
-      const { data: professional, error: profError } = await supabase
-        .from('professionals')
+      // Obtener el worker_profile_id desde la tabla worker_profiles usando el user_id
+      const { data: workerProfile, error: profError } = await supabase
+        .from('worker_profiles')
         .select('id')
         .eq('user_id', workerUserId)
         .maybeSingle();
 
       if (profError) {
-        console.error('Error fetching professional:', profError);
+        console.error('Error fetching worker profile:', profError);
         alert('Error al buscar el perfil profesional: ' + profError.message);
         return false;
       }
 
-      if (!professional || !professional.id) {
+      if (!workerProfile || !workerProfile.id) {
         alert('El trabajador no tiene un perfil profesional registrado');
         return false;
       }
 
-      const professionalId = professional.id;
+      const professionalId = workerProfile.id;
 
       // Verificar si ya existe una reseña para este servicio y trabajador
       const { data: existingReview } = await supabase

@@ -33,9 +33,9 @@ export const workerStatsService = {
 
       if (profileError) throw new Error('Error al obtener perfil del usuario');
 
-      // Obtener ID del profesional
+      // Obtener ID del perfil de trabajador
       const { data: professional, error: professionalError } = await supabase
-        .from('professionals')
+        .from('worker_profiles')
         .select('id, rating, total_services')
         .eq('user_id', user.id)
         .single();

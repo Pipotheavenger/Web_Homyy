@@ -23,16 +23,16 @@ export const useWorkerProfile = (workerId: string) => {
     if (!worker?.user_id) return;
     
     try {
-      // Obtener el professional_id desde la tabla professionals
-      const { data: professional } = await supabase
-        .from('professionals')
+      // Obtener el worker_profile_id desde worker_profiles
+      const { data: workerProfileData } = await supabase
+        .from('worker_profiles')
         .select('id')
         .eq('user_id', worker.user_id)
         .maybeSingle();
 
       // Cargar reseñas usando el servicio
-      if (professional && professional.id) {
-        const reviewsResponse = await reviewsService.getByProfessional(professional.id);
+      if (workerProfileData && workerProfileData.id) {
+        const reviewsResponse = await reviewsService.getByProfessional(workerProfileData.id);
         if (reviewsResponse.success && reviewsResponse.data) {
           setReviews(reviewsResponse.data);
           console.log('✅ Reseñas actualizadas:', reviewsResponse.data.length);
@@ -103,17 +103,17 @@ export const useWorkerProfile = (workerId: string) => {
         console.log('⚠️ No se encontró perfil de trabajador para:', userProfile.user_id);
       }
 
-      // Obtener el professional_id desde la tabla professionals
-      const { data: professional } = await supabase
-        .from('professionals')
+      // Obtener el worker_profile_id desde worker_profiles
+      const { data: wpData } = await supabase
+        .from('worker_profiles')
         .select('id')
         .eq('user_id', userProfile.user_id)
         .maybeSingle();
 
       // Cargar reseñas usando el servicio que maneja mejor los errores
-      if (professional && professional.id) {
+      if (wpData && wpData.id) {
         try {
-          const reviewsResponse = await reviewsService.getByProfessional(professional.id);
+          const reviewsResponse = await reviewsService.getByProfessional(wpData.id);
           if (reviewsResponse.success && reviewsResponse.data) {
             setReviews(reviewsResponse.data);
             if (reviewsResponse.data.length > 0) {

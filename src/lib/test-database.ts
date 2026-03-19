@@ -126,7 +126,7 @@ export async function checkDatabaseStructure() {
   
   try {
     // Verificar tablas
-    const tables = ['categories', 'services', 'schedules', 'professionals', 'reviews', 'transactions'];
+    const tables = ['categories', 'services', 'schedules', 'worker_profiles', 'reviews', 'transactions'];
     
     for (const table of tables) {
       const { error } = await supabase

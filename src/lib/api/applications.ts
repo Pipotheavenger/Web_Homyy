@@ -248,8 +248,8 @@ export const applicationsService = {
       // Batch: obtener todos los worker_ids unicos
       const workerIds = [...new Set(apps.map(a => a.worker_id).filter(Boolean))];
 
-      // 3 queries batch en paralelo (en vez de 3*N queries individuales)
-      const [usersResult, workerProfilesResult, professionalsResult] = await Promise.all([
+      // 2 queries batch en paralelo
+      const [usersResult, workerProfilesResult] = await Promise.all([
         supabase
           .from('user_profiles')
           .select('user_id, id, name, email, phone, profile_picture_url')
@@ -257,10 +257,6 @@ export const applicationsService = {
         supabase
           .from('worker_profiles')
           .select('user_id, profession, experience_years, rating, total_services, bio, location, is_verified, is_available')
-          .in('user_id', workerIds),
-        supabase
-          .from('professionals')
-          .select('user_id, rating, total_services')
           .in('user_id', workerIds),
       ]);
 
@@ -271,26 +267,16 @@ export const applicationsService = {
       const workerProfilesMap = new Map(
         (workerProfilesResult.data || []).map(w => [w.user_id, w])
       );
-      const professionalsMap = new Map(
-        (professionalsResult.data || []).map(p => [p.user_id, p])
-      );
 
       // Ensamblar resultados
       const applicationsWithData = apps.map(app => {
         const workerUser = usersMap.get(app.worker_id) || null;
         const workerProfile = workerProfilesMap.get(app.worker_id) || null;
-        const professional = professionalsMap.get(app.worker_id);
-
-        const updatedWorkerProfile = workerProfile ? {
-          ...workerProfile,
-          rating: professional?.rating ?? workerProfile.rating ?? 0,
-          total_services: professional?.total_services ?? workerProfile.total_services ?? 0,
-        } : null;
 
         return {
           ...app,
           worker: workerUser,
-          worker_profile: updatedWorkerProfile,
+          worker_profile: workerProfile,
         };
       });
 
