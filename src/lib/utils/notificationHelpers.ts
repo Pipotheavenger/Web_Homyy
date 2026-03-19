@@ -210,8 +210,8 @@ export const notifyPaymentProcessed = async (
   amount: number,
   transactionId: string,
   isClient: boolean,
-  /** Solo cuando isClient es false: 'retiro' = descarga procesada, 'escrow' = pago por servicio */
-  source?: 'retiro' | 'escrow'
+  /** 'retiro' = descarga procesada, 'escrow' = pago por servicio, 'debito' = débito al cliente por contratación */
+  source?: 'retiro' | 'escrow' | 'debito'
 ) => {
   const formattedAmount = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -221,7 +221,10 @@ export const notifyPaymentProcessed = async (
 
   let title: string;
   let message: string;
-  if (isClient) {
+  if (isClient && source === 'debito') {
+    title = 'Pago realizado';
+    message = `Se debitaron ${formattedAmount} de tu cuenta para la contratación del servicio.`;
+  } else if (isClient) {
     title = 'Recarga acreditada';
     message = `Tu recarga de ${formattedAmount} fue acreditada en tu cuenta.`;
   } else if (source === 'retiro') {

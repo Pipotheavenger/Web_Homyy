@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       // Intentar actualizar también en worker_profiles (puede no existir)
       await supabaseAdmin
         .from('worker_profiles')
-        .update({ movil_verificado: true })
+        .update({ movil_verificado: true, whatsapp_notifications_enabled: true })
         .eq('user_id', userId);
     }
 

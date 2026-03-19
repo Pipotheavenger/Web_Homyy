@@ -133,23 +133,40 @@ export async function POST(request: NextRequest) {
     const shouldSendWhatsApp = importantTypes.includes(type) && isNotificationEnabled && isWhatsAppEnabled;
 
     if (shouldSendWhatsApp) {
-      // Verificar si el usuario tiene WhatsApp habilitado: primero user_profiles, luego worker_profiles
-      const { data: userProfile } = await supabaseAdmin
-        .from('user_profiles')
-        .select('whatsapp_notifications_enabled, phone, name')
-        .eq('user_id', userId)
-        .single();
+      // Determinar la tabla correcta según el tipo de notificación
+      const workerNotificationTypes: NotificationType[] = ['payment_released', 'client_selected_you'];
+      const clientNotificationTypes: NotificationType[] = ['payment_processed', 'new_professional_applied'];
 
-      const canSendFromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone;
+      let canSendWhatsApp = false;
 
-      let canSendWhatsApp = canSendFromUser;
-      if (!canSendFromUser) {
-        const { data: workerProfile } = await supabaseAdmin
-          .from('worker_profiles')
-          .select('whatsapp_notifications_enabled, phone, name')
+      if (workerNotificationTypes.includes(type)) {
+        // Notificación para trabajador → whatsapp_enabled de worker_profiles, phone de user_profiles
+        const [workerResult, userResult] = await Promise.all([
+          supabaseAdmin.from('worker_profiles').select('whatsapp_notifications_enabled').eq('user_id', userId).single(),
+          supabaseAdmin.from('user_profiles').select('phone').eq('user_id', userId).single(),
+        ]);
+        canSendWhatsApp = !!(workerResult.data?.whatsapp_notifications_enabled && userResult.data?.phone);
+      } else if (clientNotificationTypes.includes(type)) {
+        // Notificación para cliente → buscar solo en user_profiles
+        const { data: userProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('whatsapp_notifications_enabled, phone')
           .eq('user_id', userId)
           .single();
-        canSendWhatsApp = !!(workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone);
+        canSendWhatsApp = !!(userProfile?.whatsapp_notifications_enabled && userProfile?.phone);
+      } else {
+        // Tipo desconocido o payment_issue → verificar ambas tablas
+        const [userResult, workerResult] = await Promise.all([
+          supabaseAdmin.from('user_profiles').select('phone, whatsapp_notifications_enabled').eq('user_id', userId).single(),
+          supabaseAdmin.from('worker_profiles').select('whatsapp_notifications_enabled').eq('user_id', userId).single(),
+        ]);
+        // Si es worker con whatsapp habilitado en worker_profiles
+        if (workerResult.data?.whatsapp_notifications_enabled && userResult.data?.phone) {
+          canSendWhatsApp = true;
+        } else if (userResult.data?.whatsapp_notifications_enabled && userResult.data?.phone) {
+          // Si es cliente con whatsapp habilitado en user_profiles
+          canSendWhatsApp = true;
+        }
       }
 
       if (canSendWhatsApp) {

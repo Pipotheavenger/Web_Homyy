@@ -183,10 +183,24 @@ export const escrowService = {
         throw new Error('Error al seleccionar trabajador');
       }
 
+      // Notificar al cliente que se le debitó el monto
+      try {
+        const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
+        await notifyPaymentProcessed(
+          user.id,
+          finalPrice,
+          result.escrow_transaction_id,
+          true,
+          'debito'
+        );
+      } catch (notifError) {
+        console.warn('⚠️ Error enviando notificación de débito al cliente:', notifError);
+      }
+
       return {
-        data: { 
-          pin: result.pin, 
-          escrowId: result.escrow_transaction_id 
+        data: {
+          pin: result.pin,
+          escrowId: result.escrow_transaction_id
         },
         error: null,
         success: true
@@ -299,7 +313,7 @@ export const escrowService = {
           .select('id, amount, worker_id')
           .eq('service_id', serviceId)
           .eq('worker_id', user.id)
-          .eq('status', 'completed')
+          .eq('status', 'completada')
           .order('updated_at', { ascending: false })
           .limit(1);
 

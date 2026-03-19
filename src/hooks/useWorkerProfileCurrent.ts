@@ -109,7 +109,7 @@ export const useWorkerProfileCurrent = () => {
         is_active: userProfile.is_active,
         balance: userProfile.balance || 0,
         movil_verificado: userProfile.movil_verificado || false,
-        whatsapp_notifications_enabled: userProfile.whatsapp_notifications_enabled ?? true
+        whatsapp_notifications_enabled: workerData?.whatsapp_notifications_enabled ?? true
       };
 
       setUsuario(formattedUser);

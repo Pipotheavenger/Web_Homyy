@@ -745,7 +745,7 @@ export default function PerfilWorkerPage() {
                                 if (!user) return;
 
                                 const { error } = await supabase
-                                  .from('user_profiles')
+                                  .from('worker_profiles')
                                   .update({ whatsapp_notifications_enabled: newValue })
                                   .eq('user_id', user.id);
 

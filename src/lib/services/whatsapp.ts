@@ -54,31 +54,59 @@ export async function sendWhatsAppTemplateToUser(
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: userProfile } = await supabaseAdmin
-    .from('user_profiles')
-    .select('phone, whatsapp_notifications_enabled, name')
-    .eq('user_id', userId)
-    .single();
+  // Determinar la tabla correcta según el tipo de notificación
+  const workerNotificationTypes = ['payment_released', 'client_selected_you'];
+  const clientNotificationTypes = ['payment_processed', 'new_professional_applied'];
+  const notificationType = options?.type || '';
 
-  const canSendFromUser = userProfile?.whatsapp_notifications_enabled && userProfile?.phone;
   let profile: { phone: string; name: string | null } | null = null;
   let whatsappEnabled = false;
 
-  if (canSendFromUser) {
-    profile = { phone: userProfile!.phone, name: userProfile!.name || null };
-    whatsappEnabled = true;
-  } else {
-    const { data: workerProfile } = await supabaseAdmin
-      .from('worker_profiles')
+  if (workerNotificationTypes.includes(notificationType)) {
+    // Notificación para trabajador → whatsapp_enabled de worker_profiles, phone/name de user_profiles
+    const [workerResult, userResult] = await Promise.all([
+      supabaseAdmin.from('worker_profiles').select('whatsapp_notifications_enabled').eq('user_id', userId).single(),
+      supabaseAdmin.from('user_profiles').select('phone, name').eq('user_id', userId).single(),
+    ]);
+
+    if (workerResult.data?.whatsapp_notifications_enabled && userResult.data?.phone) {
+      profile = { phone: userResult.data.phone, name: userResult.data.name || null };
+      whatsappEnabled = true;
+    }
+  } else if (clientNotificationTypes.includes(notificationType)) {
+    // Notificación para cliente → buscar solo en user_profiles
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
       .select('phone, whatsapp_notifications_enabled, name')
       .eq('user_id', userId)
       .single();
 
-    if (workerProfile?.whatsapp_notifications_enabled && workerProfile?.phone) {
-      profile = { phone: workerProfile.phone, name: workerProfile.name || null };
+    if (userProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
+      profile = { phone: userProfile.phone, name: userProfile.name || null };
       whatsappEnabled = true;
-    } else if (userProfile?.phone) {
-      return { success: false, error: 'Notificaciones WhatsApp deshabilitadas para este usuario' };
+    }
+  } else {
+    // Tipo desconocido o payment_issue → buscar primero en worker_profiles, luego user_profiles
+    const { data: userProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('phone, name, whatsapp_notifications_enabled')
+      .eq('user_id', userId)
+      .single();
+
+    const { data: workerProfile } = await supabaseAdmin
+      .from('worker_profiles')
+      .select('whatsapp_notifications_enabled')
+      .eq('user_id', userId)
+      .single();
+
+    // Si es worker y tiene whatsapp habilitado en worker_profiles
+    if (workerProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
+      profile = { phone: userProfile.phone, name: userProfile.name || null };
+      whatsappEnabled = true;
+    } else if (userProfile?.whatsapp_notifications_enabled && userProfile?.phone) {
+      // Si es cliente con whatsapp habilitado en user_profiles
+      profile = { phone: userProfile.phone, name: userProfile.name || null };
+      whatsappEnabled = true;
     }
   }
 
