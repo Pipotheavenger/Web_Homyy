@@ -1,1 +1,2 @@
 [     321ms] [WARNING] %c[22:16:28.747] [AUTH] color: #FF6B6B; font-weight: bold; No initial session found @ http://localhost:3000/_next/static/chunks/src_d7977708._.js:968
+[  228046ms] [WARNING] %c[22:20:16.473] [AUTH] color: #FF6B6B; font-weight: bold; User signed out @ http://localhost:3000/_next/static/chunks/src_d7977708._.js:968

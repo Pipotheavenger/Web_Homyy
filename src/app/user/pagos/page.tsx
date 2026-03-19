@@ -492,10 +492,11 @@ export default function PagosPage() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
                   <input
-                    type="number"
-                    value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
-                    placeholder="50,000"
+                    type="text"
+                    inputMode="numeric"
+                    value={monto ? Number(monto).toLocaleString('es-CO') : ''}
+                    onChange={(e) => setMonto(e.target.value.replace(/\D/g, ''))}
+                    placeholder="50.000"
                     className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold text-gray-900 placeholder-gray-400"
                   />
                 </div>
@@ -584,10 +585,11 @@ export default function PagosPage() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
                   <input
-                    type="number"
-                    value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
-                    placeholder="50,000"
+                    type="text"
+                    inputMode="numeric"
+                    value={monto ? Number(monto).toLocaleString('es-CO') : ''}
+                    onChange={(e) => setMonto(e.target.value.replace(/\D/g, ''))}
+                    placeholder="50.000"
                     max={balance}
                     className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80 backdrop-blur-sm text-lg font-semibold text-gray-900 placeholder:text-gray-400"
                   />

@@ -22,7 +22,11 @@
     "playwright:test:headed": "npx playwright test --headed",
     "playwright:test:ui": "npx playwright test --ui",
     "playwright:report": "npx playwright show-report test/playwright/reports",
-    "test:e2e:lifecycle": "start-server-and-test dev http://localhost:3000 'npx playwright test service-lifecycle'"
+    "test:e2e:lifecycle": "start-server-and-test dev http://localhost:3000 'npx playwright test service-lifecycle'",
+    "stress:setup": "npx tsx test/stress/setup.ts",
+    "stress:run": "k6 run test/stress/k6-lifecycle.js",
+    "stress:cleanup": "npx tsx test/stress/cleanup.ts",
+    "stress:full": "bash test/stress/run-stress-test.sh"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.997.0",
