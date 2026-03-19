@@ -207,7 +207,8 @@ export const serviceService = {
           created_at,
           updated_at,
           escrow_amount,
-          worker_final_amount
+          worker_final_amount,
+          categories(id, name)
         `)
         .eq('status', 'active')
         .neq('status', 'deleted') // Excluir servicios eliminados del frontend
@@ -223,11 +224,9 @@ export const serviceService = {
         return { data: [], error: null, success: true };
       }
 
-      // Retornar servicios básicos primero (sin relaciones)
-      // Las relaciones se pueden cargar después si es necesario
       const basicServices = services.map(service => ({
         ...service,
-        category: undefined,
+        category: (service as any).categories || null,
         client: null,
         schedules: []
       }));

@@ -113,7 +113,7 @@ export default function TrabajosDisponiblesPage() {
                 placeholder="Buscar trabajos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-gray-800 placeholder:text-gray-400"
               />
             </div>
 
@@ -121,7 +121,7 @@ export default function TrabajosDisponiblesPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="px-4 py-3 bg-white/80 backdrop-blur-sm rounded-xl border border-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-gray-800"
             >
               {categorias.map(categoria => (
                 <option key={categoria} value={categoria}>
