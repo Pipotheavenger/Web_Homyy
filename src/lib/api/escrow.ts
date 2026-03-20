@@ -93,7 +93,7 @@ export const escrowService = {
       // Verificar que el usuario es dueño del servicio
       const { data: service, error: serviceError } = await supabase
         .from('services')
-        .select('user_id, status')
+        .select('user_id, status, title')
         .eq('id', serviceId)
         .single();
 
@@ -195,6 +195,26 @@ export const escrowService = {
         );
       } catch (notifError) {
         console.warn('⚠️ Error enviando notificación de débito al cliente:', notifError);
+      }
+
+      // Notificar al worker que fue seleccionado
+      try {
+        const { data: clientProfile } = await supabase
+          .from('user_profiles')
+          .select('name')
+          .eq('user_id', user.id)
+          .single();
+        const clientName = clientProfile?.name || 'Cliente';
+
+        const { notifyClientSelectedYou } = await import('@/lib/utils/notificationHelpers');
+        await notifyClientSelectedYou(
+          workerId,
+          clientName,
+          service.title,
+          serviceId
+        );
+      } catch (notifError) {
+        console.warn('⚠️ Error enviando notificación al worker:', notifError);
       }
 
       return {
@@ -329,6 +349,8 @@ export const escrowService = {
               'escrow' // Pago al trabajador cuando el sistema libera fondos
             );
           }
+        } else {
+          console.warn('⚠️ No se encontró escrow_transaction completada para servicio:', serviceId);
         }
       } catch (notifError) {
         // No fallar la operación si la notificación falla
