@@ -93,7 +93,7 @@ export const escrowService = {
       // Verificar que el usuario es dueño del servicio
       const { data: service, error: serviceError } = await supabase
         .from('services')
-        .select('user_id, status, title')
+        .select('user_id, status')
         .eq('id', serviceId)
         .single();
 
@@ -195,26 +195,6 @@ export const escrowService = {
         );
       } catch (notifError) {
         console.warn('⚠️ Error enviando notificación de débito al cliente:', notifError);
-      }
-
-      // Notificar al worker que fue seleccionado
-      try {
-        const { data: clientProfile } = await supabase
-          .from('user_profiles')
-          .select('name')
-          .eq('user_id', user.id)
-          .single();
-        const clientName = clientProfile?.name || 'Cliente';
-
-        const { notifyClientSelectedYou } = await import('@/lib/utils/notificationHelpers');
-        await notifyClientSelectedYou(
-          workerId,
-          clientName,
-          service.title,
-          serviceId
-        );
-      } catch (notifError) {
-        console.warn('⚠️ Error enviando notificación al worker:', notifError);
       }
 
       return {
@@ -327,30 +307,18 @@ export const escrowService = {
 
       // Enviar notificación al trabajador cuando se liberan los fondos
       try {
-        // Obtener la transacción de escrow para este servicio (la más reciente que esté completada)
-        const { data: escrowTransactions } = await supabase
-          .from('escrow_transactions')
-          .select('id, amount, worker_id')
-          .eq('service_id', serviceId)
-          .eq('worker_id', user.id)
-          .eq('status', 'completada')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
-        if (escrowTransactions && escrowTransactions.length > 0) {
-          const escrowTransaction = escrowTransactions[0];
-          if (escrowTransaction && escrowTransaction.amount) {
-            const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
-            await notifyPaymentProcessed(
-              escrowTransaction.worker_id,
-              escrowTransaction.amount,
-              escrowTransaction.id,
-              false,
-              'escrow' // Pago al trabajador cuando el sistema libera fondos
-            );
-          }
+        // Usar datos del resultado de la RPC directamente (evita re-consulta con posibles issues de timing/RLS)
+        if (result.worker_amount && result.payout_transaction_id) {
+          const { notifyPaymentProcessed } = await import('@/lib/utils/notificationHelpers');
+          await notifyPaymentProcessed(
+            user.id,                          // worker autenticado
+            result.worker_amount,             // monto del RPC
+            result.payout_transaction_id,     // txn id del RPC
+            false,
+            'escrow'
+          );
         } else {
-          console.warn('⚠️ No se encontró escrow_transaction completada para servicio:', serviceId);
+          console.warn('⚠️ RPC no retornó worker_amount o payout_transaction_id:', result);
         }
       } catch (notifError) {
         // No fallar la operación si la notificación falla
