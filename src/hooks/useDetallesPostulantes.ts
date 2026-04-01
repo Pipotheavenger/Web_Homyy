@@ -275,6 +275,20 @@ export const useDetallesPostulantes = () => {
         if (bookings && bookings.length > 0) {
           const bookingId = bookings[0].id;
           await chatService.getOrCreateChat(bookingId);
+
+          // Notificar al trabajador por WhatsApp que fue seleccionado
+          try {
+            const { notifyClientSelectedYou } = await import('@/lib/utils/notificationHelpers');
+            const clientName = user?.user_metadata?.name || 'Un cliente';
+            await notifyClientSelectedYou(
+              candidateToConfirm.workerId,
+              clientName,
+              servicio?.title || 'el servicio',
+              bookingId
+            );
+          } catch (notifError) {
+            console.warn('⚠️ Error enviando notificación al trabajador:', notifError);
+          }
         }
 
         setSelectedCandidate(candidateToConfirm.id);
