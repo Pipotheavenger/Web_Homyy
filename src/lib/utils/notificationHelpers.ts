@@ -164,7 +164,7 @@ export const notifyClientSelectedYou = async (
     userId: workerId,
     type: 'client_selected_you',
     title: '¡Felicidades!',
-    message: `Fuiste seleccionado para el servicio de ${serviceTitle}`,
+    message: `¡Felicitaciones! Tu postulación ha sido aceptada para el servicio "${serviceTitle}"`,
     metadata: {
       booking_id: bookingId,
       service_title: serviceTitle,

@@ -1,5 +1,6 @@
 /**
- * Servicio para enviar mensajes por WhatsApp usando Infobip
+ * Servicio para enviar mensajes por WhatsApp usando Meta Cloud API
+ * Migrado desde Infobip para evitar bloqueos por spam detection del intermediario
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -7,9 +8,9 @@ import { createClient } from '@supabase/supabase-js';
 // Función para normalizar el número de teléfono
 function normalizePhoneNumber(phone: string): string {
   if (!phone) return '';
-  
+
   let cleaned = phone.replace(/[^\d+]/g, '');
-  
+
   if (!cleaned.startsWith('+')) {
     if (cleaned.length === 10) {
       cleaned = '+57' + cleaned;
@@ -17,12 +18,12 @@ function normalizePhoneNumber(phone: string): string {
       cleaned = '+57' + cleaned.replace(/^57/, '');
     }
   }
-  
+
   return cleaned;
 }
 
 /**
- * Envía un mensaje de WhatsApp usando el template "notificacion" de Infobip.
+ * Envía un mensaje de WhatsApp usando el template "notificacion" de Meta Cloud API.
  * Obtiene teléfono y nombre desde user_profiles o worker_profiles (Supabase admin).
  * Usar desde API routes o server-side; evita llamadas HTTP internas (401 en Vercel).
  */
@@ -30,24 +31,24 @@ export async function sendWhatsAppTemplateToUser(
   userId: string,
   message: string,
   options?: { title?: string; type?: string }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; messageId?: string }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const infobipApiKey = process.env.INFOBIP_API_KEY;
-  const infobipBaseUrl = process.env.INFOBIP_BASE_URL || 'https://api.infobip.com';
-  const infobipWhatsAppSender = process.env.INFOBIP_WHATSAPP_SENDER_ID;
+  const metaAccessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+  const apiVersion = process.env.META_WHATSAPP_API_VERSION || 'v21.0';
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('SUPABASE no configurado para sendWhatsAppTemplateToUser');
     return { success: false, error: 'Configuración de servidor no disponible' };
   }
-  if (!infobipApiKey) {
-    console.error('INFOBIP_API_KEY no está configurada');
+  if (!metaAccessToken) {
+    console.error('META_WHATSAPP_ACCESS_TOKEN no está configurada');
     return { success: false, error: 'Configuración de WhatsApp no disponible' };
   }
-  if (!infobipWhatsAppSender) {
-    console.error('INFOBIP_WHATSAPP_SENDER_ID no está configurada');
-    return { success: false, error: 'Sender ID de WhatsApp no configurado' };
+  if (!phoneNumberId) {
+    console.error('META_WHATSAPP_PHONE_NUMBER_ID no está configurada');
+    return { success: false, error: 'Phone Number ID de WhatsApp no configurado' };
   }
 
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -119,69 +120,64 @@ export async function sendWhatsAppTemplateToUser(
 
   const userName = profile.name || 'Usuario';
   const normalizedPhone = normalizePhoneNumber(profile.phone);
-  const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
-  if (!phoneForInfobip) {
+  // Meta Cloud API requiere el número sin el '+' inicial
+  const phoneForMeta = normalizedPhone.replace(/\+/g, '');
+  if (!phoneForMeta) {
     return { success: false, error: 'Número de teléfono no válido' };
   }
 
-  let baseUrl = infobipBaseUrl;
-  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-    baseUrl = `https://${baseUrl}`;
-  }
-
-  const templateName = 'notificacion';
-  let templateLanguage = process.env.INFOBIP_WHATSAPP_TEMPLATE_LANGUAGE || 'es_CO';
-  if (templateLanguage === 'es') templateLanguage = 'es_CO';
+  const templateName = process.env.META_WHATSAPP_TEMPLATE_NAME || 'notificacion';
+  const templateLanguage = process.env.META_WHATSAPP_TEMPLATE_LANGUAGE || 'es_CO';
 
   const payload = {
-    messages: [
-      {
-        from: infobipWhatsAppSender,
-        to: phoneForInfobip,
-        content: {
-          templateName,
-          templateData: {
-            body: { placeholders: [userName] },
-          },
-          language: templateLanguage,
-        },
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: phoneForMeta,
+    type: 'template',
+    template: {
+      name: templateName,
+      language: {
+        code: templateLanguage,
       },
-    ],
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            {
+              type: 'text',
+              text: userName,
+            },
+          ],
+        },
+      ],
+    },
   };
 
-  console.log('[whatsapp] before infobip | template:', templateName, '| to:', phoneForInfobip);
+  const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+
+  console.log('[whatsapp] before meta | template:', templateName, '| to:', phoneForMeta);
   try {
-    const response = await fetch(`${baseUrl}/whatsapp/1/message/template`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `App ${infobipApiKey}`,
+        Authorization: `Bearer ${metaAccessToken}`,
         'Content-Type': 'application/json',
-        Accept: 'application/json',
       },
       body: JSON.stringify(payload),
     });
 
-    const responseBodyRaw = await response.text();
-    const bodyPreview = responseBodyRaw.slice(0, 300);
-    console.log('[whatsapp] after infobip | status:', response.status, '| bodyPreview:', bodyPreview);
+    const responseBody = await response.json();
+    console.log('[whatsapp] after meta | status:', response.status, '| response:', JSON.stringify(responseBody).slice(0, 300));
 
     if (!response.ok) {
-      let errorData: unknown;
-      try {
-        errorData = JSON.parse(responseBodyRaw);
-      } catch {
-        errorData = responseBodyRaw;
-      }
-      console.error('❌ Error enviando WhatsApp:', errorData);
-      return {
-        success: false,
-        error: typeof errorData === 'object' && errorData !== null && 'message' in errorData
-          ? String((errorData as { message: string }).message)
-          : `Error ${response.status}`,
-      };
+      console.error('❌ Error enviando WhatsApp (Meta):', responseBody);
+      const errorMessage = responseBody?.error?.message || `Error ${response.status}`;
+      return { success: false, error: errorMessage };
     }
-    console.log('✅ WhatsApp enviado exitosamente para usuario', userId);
-    return { success: true };
+
+    const messageId = responseBody?.messages?.[0]?.id || '';
+    console.log('✅ WhatsApp enviado exitosamente para usuario', userId, '| messageId:', messageId);
+    return { success: true, messageId };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('❌ Error en sendWhatsAppTemplateToUser:', err);
@@ -190,7 +186,7 @@ export async function sendWhatsAppTemplateToUser(
 }
 
 /**
- * Enviar un mensaje de WhatsApp usando Infobip
+ * Enviar un mensaje de WhatsApp de texto libre usando Meta Cloud API
  * @param phoneNumber Número de teléfono del destinatario (con o sin formato)
  * @param message Mensaje a enviar
  * @returns Promise con el resultado del envío
@@ -198,78 +194,64 @@ export async function sendWhatsAppTemplateToUser(
 export async function sendWhatsAppMessage(
   phoneNumber: string,
   message: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; messageId?: string }> {
   try {
-    const infobipApiKey = process.env.INFOBIP_API_KEY;
-    const infobipBaseUrl = process.env.INFOBIP_BASE_URL || 'https://api.infobip.com';
-    const infobipWhatsAppSender = process.env.INFOBIP_WHATSAPP_SENDER_ID;
+    const metaAccessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
+    const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+    const apiVersion = process.env.META_WHATSAPP_API_VERSION || 'v21.0';
 
-    if (!infobipApiKey) {
-      console.error('INFOBIP_API_KEY no está configurada');
+    if (!metaAccessToken) {
+      console.error('META_WHATSAPP_ACCESS_TOKEN no está configurada');
       return { success: false, error: 'Configuración de WhatsApp no disponible' };
     }
 
-    if (!infobipWhatsAppSender) {
-      console.error('INFOBIP_WHATSAPP_SENDER_ID no está configurada');
-      return { success: false, error: 'Sender ID de WhatsApp no configurado' };
+    if (!phoneNumberId) {
+      console.error('META_WHATSAPP_PHONE_NUMBER_ID no está configurada');
+      return { success: false, error: 'Phone Number ID de WhatsApp no configurado' };
     }
 
-    // Normalizar y limpiar el número de teléfono
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    const phoneForInfobip = normalizedPhone.replace(/\+/g, '');
+    const phoneForMeta = normalizedPhone.replace(/\+/g, '');
 
-    // Asegurar que la URL tenga el protocolo https://
-    let baseUrl = infobipBaseUrl;
-    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      baseUrl = `https://${baseUrl}`;
-    }
-
-    // Usar el endpoint de WhatsApp de Infobip
-    // Para mensajes de texto simples, usamos el endpoint de texto
-    // Nota: Para usar templates, necesitarías usar /whatsapp/1/message/template
     const payload = {
-      messages: [
-        {
-          destinations: [{ to: phoneForInfobip }],
-          from: infobipWhatsAppSender,
-          text: message,
-        },
-      ],
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: phoneForMeta,
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: message,
+      },
     };
 
-    const response = await fetch(`${baseUrl}/whatsapp/1/message/text`, {
+    const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `App ${infobipApiKey}`,
+        Authorization: `Bearer ${metaAccessToken}`,
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
     });
 
+    const responseBody = await response.json();
+
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = await response.text();
-      }
-      console.error('❌ Error enviando WhatsApp:', errorData);
-      return { 
-        success: false, 
-        error: errorData?.message || `Error ${response.status}: ${response.statusText}` 
+      console.error('❌ Error enviando WhatsApp (Meta):', responseBody);
+      return {
+        success: false,
+        error: responseBody?.error?.message || `Error ${response.status}: ${response.statusText}`,
       };
     }
 
-    const result = await response.json();
-    console.log('✅ WhatsApp enviado exitosamente:', result);
-    return { success: true };
-  } catch (error: any) {
+    const messageId = responseBody?.messages?.[0]?.id || '';
+    console.log('✅ WhatsApp enviado exitosamente:', messageId);
+    return { success: true, messageId };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error('❌ Error en sendWhatsAppMessage:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Error desconocido al enviar WhatsApp' 
-    };
+    return { success: false, error: msg };
   }
 }
 
@@ -281,7 +263,7 @@ export async function sendWhatsAppMessage(
 export async function isWhatsAppEnabled(userId: string): Promise<boolean> {
   try {
     const { supabase } = await import('@/lib/supabase');
-    
+
     const { data, error } = await supabase
       .from('user_profiles')
       .select('movil_verificado, whatsapp_notifications_enabled')
@@ -309,7 +291,7 @@ export async function isWhatsAppEnabled(userId: string): Promise<boolean> {
 export async function getUserPhoneNumber(userId: string): Promise<string | null> {
   try {
     const { supabase } = await import('@/lib/supabase');
-    
+
     const { data, error } = await supabase
       .from('user_profiles')
       .select('phone')
@@ -326,5 +308,3 @@ export async function getUserPhoneNumber(userId: string): Promise<string | null>
     return null;
   }
 }
-
-

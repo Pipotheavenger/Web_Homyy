@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * API Route para verificar el estado de un mensaje de WhatsApp
- * Permite consultar el estado de entrega de un mensaje enviado
+ * Usa Meta Cloud API (Graph API) para consultar el estado
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,31 +16,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener las credenciales de Infobip
-    const infobipApiKey = process.env.INFOBIP_API_KEY;
-    const infobipBaseUrl = process.env.INFOBIP_BASE_URL || 'https://api.infobip.com';
+    const metaAccessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
+    const apiVersion = process.env.META_WHATSAPP_API_VERSION || 'v21.0';
 
-    if (!infobipApiKey) {
+    if (!metaAccessToken) {
       return NextResponse.json(
-        { error: 'INFOBIP_API_KEY no está configurada' },
+        { error: 'META_WHATSAPP_ACCESS_TOKEN no está configurada' },
         { status: 500 }
       );
     }
 
-    // Asegurar que la URL tenga el protocolo https://
-    let baseUrl = infobipBaseUrl;
-    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-      baseUrl = `https://${baseUrl}`;
-    }
-
-    // Consultar el estado del mensaje
-    const response = await fetch(`${baseUrl}/whatsapp/1/reports?messageId=${messageId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `App ${infobipApiKey}`,
-        'Accept': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://graph.facebook.com/${apiVersion}/${messageId}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${metaAccessToken}`,
+          Accept: 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       let errorData;
@@ -50,9 +45,9 @@ export async function GET(request: NextRequest) {
         errorData = await response.text();
       }
       return NextResponse.json(
-        { 
+        {
           error: 'Error al consultar el estado del mensaje',
-          details: errorData
+          details: errorData,
         },
         { status: response.status }
       );
@@ -61,18 +56,17 @@ export async function GET(request: NextRequest) {
     const result = await response.json();
     return NextResponse.json({
       success: true,
-      data: result
+      data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     console.error('❌ Error en check-status WhatsApp API:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Error interno del servidor',
-        details: error.message 
+        details: msg,
       },
       { status: 500 }
     );
   }
 }
-
-
