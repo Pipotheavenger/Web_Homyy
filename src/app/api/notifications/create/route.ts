@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       'client_selected_you',
       'service_cancelled',
       'service_completed',
+      'client_rejected_application',
       'new_message',
     ];
 
@@ -117,11 +118,12 @@ export async function POST(request: NextRequest) {
 
     // Enviar WhatsApp si es una notificación importante (pagos y eventos vitales)
     const importantTypes: NotificationType[] = [
-      'new_professional_applied',  // Cuando un trabajador postula a un servicio
-      'client_selected_you',       // Cuando se selecciona al trabajador
-      'payment_processed',        // Recarga/carga completada → acreditación en cuenta
-      'payment_released',          // Retiro completado o pago al trabajador (escrow)
-      'payment_issue',             // Problema con un pago (rechazo, error)
+      'new_professional_applied',      // Cuando un trabajador postula a un servicio
+      'client_selected_you',           // Cuando se selecciona al trabajador
+      'payment_processed',             // Recarga/carga completada → acreditación en cuenta
+      'payment_released',              // Retiro completado o pago al trabajador (escrow)
+      'payment_issue',                 // Problema con un pago (rechazo, error)
+      'client_rejected_application',   // Cuando el cliente rechaza a un postulante
     ];
 
     // Solo enviar WhatsApp si:
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     if (shouldSendWhatsApp) {
       // Determinar la tabla correcta según el tipo de notificación
-      const workerNotificationTypes: NotificationType[] = ['payment_released', 'client_selected_you'];
+      const workerNotificationTypes: NotificationType[] = ['payment_released', 'client_selected_you', 'client_rejected_application'];
       const clientNotificationTypes: NotificationType[] = ['payment_processed', 'new_professional_applied'];
 
       let canSendWhatsApp = false;
@@ -170,9 +172,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (canSendWhatsApp) {
-        console.log(`[notifications/create] enviando WhatsApp | tipo=${type} userId=${userId}`);
+        // Extraer templateConfig de metadata si fue provisto por el helper
+        const templateConfig = metadata?.whatsapp_template as { name: string; parameters: string[] } | undefined;
+        console.log(`[notifications/create] enviando WhatsApp | tipo=${type} userId=${userId} template=${templateConfig?.name || 'notificacion'}`);
         try {
-          const result = await sendWhatsAppTemplateToUser(userId, message, { title, type });
+          const result = await sendWhatsAppTemplateToUser(userId, message, { title, type, templateConfig });
           if (result.success) {
             console.log(`✅ WhatsApp enviado exitosamente para usuario ${userId}`);
           } else {

@@ -6,6 +6,7 @@ import {
   Eye,
   CheckCircle,
   UserCheck,
+  UserMinus,
   DollarSign,
   Clock,
   MessageSquare
@@ -37,14 +38,16 @@ interface PostulanteCardProps {
   postulante: Postulante;
   onVerPerfil: (id: string) => void;
   onSelectCandidate: (id: string) => void;
+  onRejectCandidate: (id: string) => void;
   isSelected: boolean;
 }
 
-export const PostulanteCard = ({ 
-  postulante, 
-  onVerPerfil, 
+export const PostulanteCard = ({
+  postulante,
+  onVerPerfil,
   onSelectCandidate,
-  isSelected 
+  onRejectCandidate,
+  isSelected
 }: PostulanteCardProps) => {
   const { calculateInflatedPrice, formatPrice: formatPriceWithCommission } = useCommission();
 
@@ -181,6 +184,15 @@ export const PostulanteCard = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {!isSelected && (
+            <button
+              onClick={() => onRejectCandidate(postulante.id)}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all duration-300 border border-red-200 hover:border-red-300 hover:shadow-md"
+            >
+              <UserMinus size={16} />
+              <span>Rechazar</span>
+            </button>
+          )}
           <button
             onClick={() => onVerPerfil(postulante.workerId)}
             className="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-300 border border-purple-200 hover:border-purple-300 hover:shadow-md"
@@ -188,7 +200,7 @@ export const PostulanteCard = ({
             <Eye size={16} />
             <span>Ver Perfil</span>
           </button>
-          
+
            <button
              onClick={() => onSelectCandidate(postulante.id)}
              className={`flex items-center space-x-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 ${

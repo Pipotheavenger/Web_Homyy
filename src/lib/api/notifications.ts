@@ -17,6 +17,7 @@ export type NotificationType =
   | 'client_selected_you'
   | 'service_cancelled'
   | 'service_completed'
+  | 'client_rejected_application'
   // Vitales - Chat
   | 'new_message';
 

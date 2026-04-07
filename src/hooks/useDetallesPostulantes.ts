@@ -26,6 +26,9 @@ export const useDetallesPostulantes = () => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [candidateToConfirm, setCandidateToConfirm] = useState<any>(null);
   const [showCancelServiceModal, setShowCancelServiceModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [candidateToReject, setCandidateToReject] = useState<any>(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,8 +155,8 @@ export const useDetallesPostulantes = () => {
   const filteredPostulantes = useMemo(() => {
     if (!applications) return [];
 
-    // Primero excluir aplicaciones retiradas (withdrawn)
-    let filtered = applications.filter(app => app.status !== 'withdrawn');
+    // Primero excluir aplicaciones retiradas (withdrawn) y rechazadas (rejected)
+    let filtered = applications.filter(app => app.status !== 'withdrawn' && app.status !== 'rejected');
 
     // Luego aplicar el filtro seleccionado
     filtered = filtered.filter(app => {
@@ -278,7 +281,7 @@ export const useDetallesPostulantes = () => {
 
           // Notificar al trabajador por WhatsApp que fue seleccionado
           try {
-            const { notifyClientSelectedYou } = await import('@/lib/utils/notificationHelpers');
+            const { notifyClientSelectedYou, notifyApplicationRejected } = await import('@/lib/utils/notificationHelpers');
             const clientName = user?.user_metadata?.name || 'Un cliente';
             await notifyClientSelectedYou(
               candidateToConfirm.workerId,
@@ -286,8 +289,26 @@ export const useDetallesPostulantes = () => {
               servicio?.title || 'el servicio',
               bookingId
             );
+
+            // Notificar a los demás postulantes no seleccionados
+            const otherApplicants = applications.filter(
+              (app) => app.worker_id !== candidateToConfirm.workerId && app.status === 'pending'
+            );
+            for (const app of otherApplicants) {
+              try {
+                const workerName = app.worker?.name || app.worker?.full_name || 'Profesional';
+                await notifyApplicationRejected(
+                  app.worker_id,
+                  workerName,
+                  servicio?.title || 'el servicio',
+                  serviceId
+                );
+              } catch (rejectError) {
+                console.warn('⚠️ Error notificando rechazo a trabajador:', app.worker_id, rejectError);
+              }
+            }
           } catch (notifError) {
-            console.warn('⚠️ Error enviando notificación al trabajador:', notifError);
+            console.warn('⚠️ Error enviando notificaciones:', notifError);
           }
         }
 
@@ -375,6 +396,53 @@ export const useDetallesPostulantes = () => {
     setShowCancelServiceModal(false);
   };
 
+  const handleRejectCandidate = (candidateId: string) => {
+    const candidate = filteredPostulantes.find(p => p.id === candidateId);
+    if (candidate) {
+      setCandidateToReject(candidate);
+      setShowRejectModal(true);
+    }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!candidateToReject || !serviceId) return;
+
+    setRejectLoading(true);
+    try {
+      const response = await applicationsService.reject(candidateToReject.id);
+
+      if (response.success) {
+        // Enviar notificación al trabajador
+        try {
+          const { notifyApplicationRejected } = await import('@/lib/utils/notificationHelpers');
+          await notifyApplicationRejected(
+            candidateToReject.workerId,
+            candidateToReject.nombre,
+            servicio?.titulo || 'el servicio',
+            serviceId
+          );
+        } catch (notifError) {
+          console.warn('⚠️ Error enviando notificación de rechazo:', notifError);
+        }
+
+        setShowRejectModal(false);
+        setCandidateToReject(null);
+        await loadApplications();
+      } else {
+        alert('Error al rechazar postulante: ' + response.error);
+      }
+    } catch (error) {
+      alert('Error al rechazar al postulante');
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
+  const handleCloseRejectModal = () => {
+    setShowRejectModal(false);
+    setCandidateToReject(null);
+  };
+
   const handleAnswerQuestion = async (questionId: string, answer: string): Promise<boolean> => {
     try {
       const response = await questionsService.answer(questionId, { answer });
@@ -436,6 +504,12 @@ export const useDetallesPostulantes = () => {
     handleCancelService,
     handleConfirmCancelService,
     handleCloseCancelModal,
+    showRejectModal,
+    candidateToReject,
+    rejectLoading,
+    handleRejectCandidate,
+    handleConfirmReject,
+    handleCloseRejectModal,
     loadPreguntas,
     handleAnswerQuestion
   };

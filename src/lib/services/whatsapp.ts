@@ -30,7 +30,14 @@ function normalizePhoneNumber(phone: string): string {
 export async function sendWhatsAppTemplateToUser(
   userId: string,
   message: string,
-  options?: { title?: string; type?: string }
+  options?: {
+    title?: string;
+    type?: string;
+    templateConfig?: {
+      name: string;
+      parameters: string[];
+    };
+  }
 ): Promise<{ success: boolean; error?: string; messageId?: string }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -56,7 +63,7 @@ export async function sendWhatsAppTemplateToUser(
   });
 
   // Determinar la tabla correcta según el tipo de notificación
-  const workerNotificationTypes = ['payment_released', 'client_selected_you'];
+  const workerNotificationTypes = ['payment_released', 'client_selected_you', 'client_rejected_application'];
   const clientNotificationTypes = ['payment_processed', 'new_professional_applied'];
   const notificationType = options?.type || '';
 
@@ -126,8 +133,21 @@ export async function sendWhatsAppTemplateToUser(
     return { success: false, error: 'Número de teléfono no válido' };
   }
 
-  const templateName = process.env.META_WHATSAPP_TEMPLATE_NAME || 'notificacion';
   const templateLanguage = process.env.META_WHATSAPP_TEMPLATE_LANGUAGE || 'es_CO';
+
+  // Si se provee templateConfig, usar template específico con múltiples placeholders
+  // Si no, usar el template genérico "notificacion" con solo el nombre (backward compatible)
+  const templateConfig = options?.templateConfig;
+  const templateName = templateConfig?.name || process.env.META_WHATSAPP_TEMPLATE_NAME || 'notificacion';
+
+  // Construir parámetros: si hay templateConfig, reemplazar {{name}} con el nombre real del usuario
+  // Si no hay templateConfig, solo enviar el nombre como único parámetro (backward compatible)
+  const templateParameters = templateConfig?.parameters
+    ? templateConfig.parameters.map((value) => ({
+        type: 'text' as const,
+        text: value === '{{name}}' ? userName : value,
+      }))
+    : [{ type: 'text' as const, text: userName }];
 
   const payload = {
     messaging_product: 'whatsapp',
@@ -142,12 +162,7 @@ export async function sendWhatsAppTemplateToUser(
       components: [
         {
           type: 'body',
-          parameters: [
-            {
-              type: 'text',
-              text: userName,
-            },
-          ],
+          parameters: templateParameters,
         },
       ],
     },
@@ -155,7 +170,7 @@ export async function sendWhatsAppTemplateToUser(
 
   const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
 
-  console.log('[whatsapp] before meta | template:', templateName, '| to:', phoneForMeta);
+  console.log('[whatsapp] before meta | template:', templateName, '| params:', templateParameters.map(p => p.text).join(', '), '| to:', phoneForMeta);
   try {
     const response = await fetch(url, {
       method: 'POST',

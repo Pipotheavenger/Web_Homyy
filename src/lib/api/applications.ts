@@ -494,6 +494,51 @@ export const applicationsService = {
   },
 
   /**
+   * Rechazar una aplicación (solo el dueño del servicio)
+   */
+  async reject(id: string): Promise<ApiResponse<Application>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Obtener la aplicación para verificar permisos
+      const { data: application, error: appError } = await supabase
+        .from('applications')
+        .select('*, service:services(user_id)')
+        .eq('id', id)
+        .single();
+
+      if (appError) throw new Error('Aplicación no encontrada');
+
+      if (application.service.user_id !== user.id) {
+        throw new Error('No tienes permiso para actualizar esta aplicación');
+      }
+
+      // Actualizar el estado
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ status: 'rejected' })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      return {
+        data,
+        error: null,
+        success: true
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Error al rechazar aplicación',
+        success: false
+      };
+    }
+  },
+
+  /**
    * Retirar una aplicación (solo el trabajador)
    */
   async withdraw(id: string): Promise<ApiResponse<Application>> {

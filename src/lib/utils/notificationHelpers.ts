@@ -50,6 +50,7 @@ const IMPORTANT_NOTIFICATIONS_FOR_WHATSAPP: NotificationType[] = [
   'payment_processed',        // Recarga/carga completada
   'payment_released',         // Retiro completado o pago al trabajador (escrow)
   'payment_issue',            // Problema con un pago (rechazo, error)
+  'client_rejected_application', // Cuando el cliente rechaza a un postulante → notificación al trabajador
 ];
 
 /**
@@ -168,7 +169,11 @@ export const notifyClientSelectedYou = async (
     metadata: {
       booking_id: bookingId,
       service_title: serviceTitle,
-      client_name: clientName
+      client_name: clientName,
+      whatsapp_template: {
+        name: 'seleccion_trabajador',
+        parameters: ['{{name}}', serviceTitle],
+      },
     },
     isCritical: true
   });
@@ -235,6 +240,19 @@ export const notifyPaymentProcessed = async (
     message = `Recibiste ${formattedAmount} por tu servicio.`;
   }
 
+  // Determinar template de WhatsApp según el contexto del pago
+  let whatsapp_template: { name: string; parameters: string[] };
+  if (isClient && source === 'debito') {
+    whatsapp_template = { name: 'debito_cliente', parameters: ['{{name}}', formattedAmount, 'contratación de servicio'] };
+  } else if (isClient) {
+    whatsapp_template = { name: 'recarga_aprobada', parameters: ['{{name}}', formattedAmount] };
+  } else if (source === 'escrow') {
+    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, 'servicio completado'] };
+  } else {
+    // retiro u otro
+    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, 'retiro procesado'] };
+  }
+
   return createNotification({
     userId,
     type: isClient ? 'payment_processed' : 'payment_released',
@@ -243,7 +261,8 @@ export const notifyPaymentProcessed = async (
     metadata: {
       transaction_id: transactionId,
       amount,
-      source: isClient ? 'recarga' : (source ?? 'escrow')
+      source: isClient ? 'recarga' : (source ?? 'escrow'),
+      whatsapp_template,
     },
     isCritical: true
   });
@@ -263,7 +282,11 @@ export const notifyPaymentIssue = async (
     title: 'Problema con el pago',
     message: errorMessage,
     metadata: {
-      transaction_id: transactionId
+      transaction_id: transactionId,
+      whatsapp_template: {
+        name: 'problema_pago',
+        parameters: ['{{name}}', errorMessage],
+      },
     },
     isCritical: true
   });
@@ -331,6 +354,32 @@ export const notifyNewProfessionalApplication = async (
       service_title: serviceTitle,
       professional_name: professionalName
     }
+  });
+};
+
+/**
+ * Crear notificación cuando un cliente rechaza a un postulante (TRABAJADOR)
+ */
+export const notifyApplicationRejected = async (
+  workerId: string,
+  workerName: string,
+  serviceTitle: string,
+  serviceId: string
+) => {
+  return createNotification({
+    userId: workerId,
+    type: 'client_rejected_application',
+    title: 'Actualización de postulación',
+    message: `Tu postulación al servicio "${serviceTitle}" no fue seleccionada. Puedes ver otros servicios disponibles en tu app Hommy.`,
+    metadata: {
+      service_id: serviceId,
+      service_title: serviceTitle,
+      whatsapp_template: {
+        name: 'postulacion_rechazada',
+        parameters: ['{{name}}', serviceTitle],
+      },
+    },
+    isCritical: true
   });
 };
 

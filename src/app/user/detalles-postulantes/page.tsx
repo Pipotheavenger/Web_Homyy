@@ -8,6 +8,7 @@ import { PostulanteCard } from '@/components/ui/PostulanteCard';
 import { PublicQuestionsSection } from '@/components/ui/PublicQuestionsSection';
 import dynamic from 'next/dynamic';
 import { WorkerSelectionModal } from '@/components/ui/WorkerSelectionModal';
+import { RejectWorkerModal } from '@/components/ui/RejectWorkerModal';
 const CancelServiceModal = dynamic(
   () => import('@/components/ui/CancelServiceModal').then(mod => ({ default: mod.CancelServiceModal })),
   { ssr: false }
@@ -39,6 +40,12 @@ function DetallesPostulantesContent() {
     handleCancelService,
     handleConfirmCancelService,
     handleCloseCancelModal,
+    showRejectModal,
+    candidateToReject,
+    rejectLoading,
+    handleRejectCandidate,
+    handleConfirmReject,
+    handleCloseRejectModal,
     handleAnswerQuestion
   } = useDetallesPostulantes();
 
@@ -277,6 +284,7 @@ function DetallesPostulantesContent() {
                         postulante={postulante}
                         onVerPerfil={handleVerPerfil}
                         onSelectCandidate={handleSelectCandidate}
+                        onRejectCandidate={handleRejectCandidate}
                         isSelected={selectedCandidate === postulante.id}
                       />
                     ))
@@ -318,6 +326,15 @@ function DetallesPostulantesContent() {
         onClose={handleCloseCancelModal}
         onConfirm={handleConfirmCancelService}
         serviceTitle={servicio.titulo}
+      />
+
+      {/* Modal de rechazo de postulante */}
+      <RejectWorkerModal
+        isOpen={showRejectModal}
+        onClose={handleCloseRejectModal}
+        onConfirm={handleConfirmReject}
+        workerName={candidateToReject ? `${candidateToReject.nombre} ${candidateToReject.apellido}`.trim() : ''}
+        loading={rejectLoading}
       />
     </Layout>
   );
