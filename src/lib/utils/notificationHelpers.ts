@@ -378,7 +378,7 @@ export const notifyApplicationRejected = async (
       service_id: serviceId,
       service_title: serviceTitle,
       whatsapp_template: {
-        name: 'postulacion_rechazada',
+        name: 'aplicacion_rechazada',
         parameters: ['{{name}}', serviceTitle],
       },
     },
