@@ -216,7 +216,9 @@ export const notifyPaymentProcessed = async (
   transactionId: string,
   isClient: boolean,
   /** 'retiro' = descarga procesada, 'escrow' = pago por servicio, 'debito' = débito al cliente por contratación */
-  source?: 'retiro' | 'escrow' | 'debito'
+  source?: 'retiro' | 'escrow' | 'debito',
+  /** Nombre del servicio para mostrar en WhatsApp */
+  serviceTitle?: string
 ) => {
   const formattedAmount = new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -241,16 +243,17 @@ export const notifyPaymentProcessed = async (
   }
 
   // Determinar template de WhatsApp según el contexto del pago
+  const serviceName = serviceTitle || 'tu servicio';
   let whatsapp_template: { name: string; parameters: string[] };
   if (isClient && source === 'debito') {
-    whatsapp_template = { name: 'debito_cliente', parameters: ['{{name}}', formattedAmount, 'contratación de servicio'] };
+    whatsapp_template = { name: 'debito_cliente', parameters: ['{{name}}', formattedAmount, serviceName] };
   } else if (isClient) {
     whatsapp_template = { name: 'recarga_aprobada', parameters: ['{{name}}', formattedAmount] };
   } else if (source === 'escrow') {
-    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, 'servicio completado'] };
+    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, serviceName] };
   } else {
     // retiro u otro
-    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, 'retiro procesado'] };
+    whatsapp_template = { name: 'pago_completado', parameters: ['{{name}}', formattedAmount, serviceName] };
   }
 
   return createNotification({

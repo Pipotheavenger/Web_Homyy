@@ -93,7 +93,7 @@ export const escrowService = {
       // Verificar que el usuario es dueño del servicio
       const { data: service, error: serviceError } = await supabase
         .from('services')
-        .select('user_id, status')
+        .select('user_id, status, title')
         .eq('id', serviceId)
         .single();
 
@@ -191,7 +191,8 @@ export const escrowService = {
           finalPrice,
           result.escrow_transaction_id,
           true,
-          'debito'
+          'debito',
+          service.title || 'tu servicio'
         );
       } catch (notifError) {
         console.warn('⚠️ Error enviando notificación de débito al cliente:', notifError);
@@ -225,10 +226,10 @@ export const escrowService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuario no autenticado');
 
-      // Obtener el servicio para acceder a las imágenes antes de completarlo
+      // Obtener el servicio para acceder a las imágenes y título antes de completarlo
       const { data: serviceData } = await supabase
         .from('services')
-        .select('images')
+        .select('images, title')
         .eq('id', serviceId)
         .single();
 
@@ -315,7 +316,8 @@ export const escrowService = {
             result.worker_amount,             // monto del RPC
             result.payout_transaction_id,     // txn id del RPC
             false,
-            'escrow'
+            'escrow',
+            serviceData?.title || 'tu servicio'
           );
         } else {
           console.warn('⚠️ RPC no retornó worker_amount o payout_transaction_id:', result);

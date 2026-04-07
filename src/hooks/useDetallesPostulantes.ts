@@ -418,7 +418,7 @@ export const useDetallesPostulantes = () => {
           await notifyApplicationRejected(
             candidateToReject.workerId,
             candidateToReject.nombre,
-            servicio?.titulo || 'el servicio',
+            servicio?.title || 'el servicio',
             serviceId
           );
         } catch (notifError) {
