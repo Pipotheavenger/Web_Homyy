@@ -80,6 +80,66 @@ export default function LoginPage() {
 
       <section className="w-full max-w-xs sm:max-w-sm md:max-w-md bg-white/90 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 pb-0 animate-fade-in-up animation-delay-200">
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-6 text-sm sm:text-base">
+
+          {/* Banner de registro */}
+          <a
+            href="/register"
+            className="group relative flex items-center justify-between w-full overflow-hidden rounded-2xl border border-[#743fc6]/18 bg-gradient-to-r from-[#743fc6]/12 to-[#8a5fd1]/12 px-4 py-3.5 shadow-sm shadow-black/5 transition-all duration-300 hover:border-[#743fc6]/28 hover:from-[#743fc6]/16 hover:to-[#8a5fd1]/16 hover:shadow-md hover:shadow-black/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#743fc6]/45 active:scale-[0.99]"
+            aria-label="Regístrate gratis en Hommy"
+          >
+            {/* Brillo / textura */}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-70"
+              aria-hidden
+              style={{
+                background:
+                  'radial-gradient(900px 140px at 20% 0%, rgba(255,255,255,0.52) 0%, rgba(255,255,255,0) 60%), radial-gradient(700px 220px at 78% 95%, rgba(138,95,209,0.18) 0%, rgba(138,95,209,0) 62%)'
+              }}
+            />
+
+            {/* Estrella decorativa (similar a la referencia) */}
+            <div className="pointer-events-none absolute -right-8 -top-7 h-24 w-24 rounded-full bg-[#8a5fd1]/16 blur-[0.5px]" aria-hidden />
+            <svg
+              className="pointer-events-none absolute right-10 top-1/2 -translate-y-1/2 text-[#743fc6]/10"
+              width="88"
+              height="88"
+              viewBox="0 0 88 88"
+              fill="none"
+              aria-hidden
+            >
+              <path
+                d="M44 6l6.7 24.6L76 18.7 63.4 41.6 82 56 57.9 56.5 44 82 30.1 56.5 6 56 24.6 41.6 12 18.7 37.3 30.6 44 6z"
+                fill="currentColor"
+              />
+            </svg>
+
+            {/* Texto */}
+            <div className="relative min-w-0 pr-12">
+              <p className="text-xs sm:text-[13px] text-slate-900/55 font-semibold leading-none">
+                ¿Nuevo en Hommy?
+              </p>
+              <p className="mt-1 text-base sm:text-[17px] font-extrabold tracking-tight text-[#743fc6]">
+                ¡Regístrate gratis!
+              </p>
+            </div>
+
+            {/* Botón circular con flecha */}
+            <div className="relative">
+              <div className="relative grid h-11 w-11 place-items-center rounded-full bg-white/60 ring-1 ring-[#743fc6]/12 shadow-sm transition-transform duration-300 group-hover:scale-[1.03]">
+                <svg
+                  className="h-5 w-5 text-[#743fc6] transition-transform duration-300 group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.6}
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </div>
+          </a>
+
           {errors.general && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium animate-shake">
               {errors.general}
@@ -145,27 +205,6 @@ export default function LoginPage() {
             </div>
           </button>
         </form>
-      </section>
-
-      {/* Tarjeta de registro */}
-      <section className="w-full max-w-xs sm:max-w-sm md:max-w-md mt-3 animate-fade-in-up animation-delay-400">
-        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/25 shadow-lg p-4 sm:p-5">
-          <p className="text-center text-xs sm:text-sm text-gray-500 mb-3 font-medium">
-            ¿Primera vez en Hommy?
-          </p>
-          <a
-            href="/register"
-            className="group flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base border-2 border-[#743fc6] text-[#743fc6] hover:bg-gradient-to-r hover:from-[#743fc6] hover:to-[#8a5fd1] hover:text-white hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-purple-500/30 transform hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
-          >
-            <svg
-              className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 transition-transform duration-300 group-hover:rotate-12"
-              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-            </svg>
-            <span>¡Regístrate gratis!</span>
-          </a>
-        </div>
       </section>
 
       {/* Modal de recuperación de contraseña */}
