@@ -39,9 +39,9 @@ export const useWorkerDashboard = () => {
 
   // Calcular userName
   const userName = useMemo(() => {
-    const nombreBase = authProfileName || user?.email || 'Profesional';
+    const nombreBase = authProfileName || 'Profesional';
     return nombreBase.split(' ')[0] || 'Profesional';
-  }, [authProfileName, user?.email]);
+  }, [authProfileName]);
 
   // Estados combinados
   // Mostrar loading solo durante la carga inicial

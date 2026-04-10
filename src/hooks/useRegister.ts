@@ -30,7 +30,6 @@ export const useRegister = (): UseRegisterReturn => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userType: 'user',
-          email: data.email,
           password: data.password,
           fullName: data.fullName,
           phone: data.phone,
@@ -71,7 +70,6 @@ export const useRegister = (): UseRegisterReturn => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userType: 'worker',
-          email: data.email,
           password: data.password,
           fullName: data.fullName,
           phone: data.phone,

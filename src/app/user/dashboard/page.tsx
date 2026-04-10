@@ -47,23 +47,29 @@ export default function Dashboard() {
 
   const handleLeaveReview = async (service: any) => {
     try {
-      // Obtener información del trabajador asignado
       const { applicationsService } = await import('@/lib/services');
+      const { supabase } = await import('@/lib/supabase');
       const applicationsResponse = await applicationsService.getByService(service.id);
-      
+
       if (applicationsResponse.success && applicationsResponse.data) {
         const acceptedApplication = applicationsResponse.data.find(
           (app: any) => app.status === 'accepted'
         );
-        
-        if (acceptedApplication && acceptedApplication.worker) {
-          // Agregar información del trabajador al servicio
-          const serviceWithWorker = {
+
+        if (acceptedApplication?.worker_id) {
+          // Cargar professional_id aquí para no hacer query extra en handleSubmitReview
+          const { data: workerProfile } = await supabase
+            .from('worker_profiles')
+            .select('id')
+            .eq('user_id', acceptedApplication.worker_id)
+            .maybeSingle();
+
+          setSelectedServiceForReview({
             ...service,
-            workerName: acceptedApplication.worker.name,
-            workerId: acceptedApplication.worker_id
-          };
-          setSelectedServiceForReview(serviceWithWorker);
+            workerName: acceptedApplication.worker?.name,
+            workerId: acceptedApplication.worker_id,
+            workerProfileId: workerProfile?.id ?? null,
+          });
         } else {
           setSelectedServiceForReview(service);
         }
@@ -98,25 +104,13 @@ export default function Dashboard() {
         return false;
       }
 
-      // Obtener el worker_profile_id desde la tabla worker_profiles usando el user_id
-      const { data: workerProfile, error: profError } = await supabase
-        .from('worker_profiles')
-        .select('id')
-        .eq('user_id', workerUserId)
-        .maybeSingle();
+      // Usar el workerProfileId precargado en handleLeaveReview
+      const professionalId = selectedServiceForReview.workerProfileId;
 
-      if (profError) {
-        console.error('Error fetching worker profile:', profError);
-        alert('Error al buscar el perfil profesional: ' + profError.message);
-        return false;
-      }
-
-      if (!workerProfile || !workerProfile.id) {
+      if (!professionalId) {
         alert('El trabajador no tiene un perfil profesional registrado');
         return false;
       }
-
-      const professionalId = workerProfile.id;
 
       // Verificar si ya existe una reseña para este servicio y trabajador
       const { data: existingReview } = await supabase

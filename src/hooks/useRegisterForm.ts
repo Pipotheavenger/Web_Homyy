@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { isValidMxPhone10Digits, normalizePhoneToDigits, phoneToAuthEmail } from '@/lib/utils/phone-auth';
 
 interface FormData {
-  email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
 }
 
 interface Errors {
-  email?: string;
+  phone?: string;
   password?: string;
   confirmPassword?: string;
   general?: string;
@@ -16,7 +17,7 @@ interface Errors {
 
 export const useRegisterForm = () => {
   const [formData, setFormData] = useState<FormData>({
-    email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -29,14 +30,12 @@ export const useRegisterForm = () => {
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
-    // Validar email
-    if (!formData.email) {
-      newErrors.email = 'El correo electrónico es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'El correo electrónico no es válido';
+    if (!formData.phone) {
+      newErrors.phone = 'El número de teléfono es requerido';
+    } else if (!isValidMxPhone10Digits(formData.phone)) {
+      newErrors.phone = 'El número debe tener exactamente 10 dígitos';
     }
 
-    // Validar contraseña
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
@@ -45,7 +44,6 @@ export const useRegisterForm = () => {
       newErrors.password = 'La contraseña debe contener al menos una mayúscula, una minúscula y un número';
     }
 
-    // Validar confirmación de contraseña
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Confirma tu contraseña';
     } else if (formData.password !== formData.confirmPassword) {
@@ -62,7 +60,6 @@ export const useRegisterForm = () => {
       [field]: value
     }));
 
-    // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[field as keyof Errors]) {
       setErrors(prev => ({
         ...prev,
@@ -70,7 +67,6 @@ export const useRegisterForm = () => {
       }));
     }
 
-    // Limpiar error general cuando el usuario empiece a escribir
     if (errors.general) {
       setErrors(prev => ({
         ...prev,
@@ -81,7 +77,7 @@ export const useRegisterForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -90,12 +86,17 @@ export const useRegisterForm = () => {
     setErrors({});
 
     try {
+      const digits = normalizePhoneToDigits(formData.phone);
+      const authEmail = phoneToAuthEmail(digits);
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: authEmail,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            phone: digits,
+          },
+        },
       });
 
       if (error) {
@@ -105,19 +106,20 @@ export const useRegisterForm = () => {
       if (data.user) {
         setShowSuccess(true);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error de registro:', error);
-      
+
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
-      
-      if (error.message) {
-        if (error.message.includes('User already registered')) {
-          errorMessage = 'Ya existe una cuenta con este correo electrónico';
-        } else if (error.message.includes('Password should be at least')) {
+
+      const msg = error instanceof Error ? error.message : '';
+      if (msg) {
+        if (msg.includes('User already registered')) {
+          errorMessage = 'Ya existe una cuenta con este número';
+        } else if (msg.includes('Password should be at least')) {
           errorMessage = 'La contraseña debe tener al menos 6 caracteres';
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = 'El correo electrónico no es válido';
-        } else if (error.message.includes('Too many requests')) {
+        } else if (msg.includes('Invalid email')) {
+          errorMessage = 'No se pudo registrar con este número';
+        } else if (msg.includes('Too many requests')) {
           errorMessage = 'Demasiados intentos. Inténtalo más tarde';
         }
       }

@@ -5,13 +5,18 @@ import { supabase } from '@/lib/supabase';
 
 export default function SuccessScreen() {
   useEffect(() => {
+    let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+    // Fallback: si algo falla, redirige al login después de 10 segundos
+    const fallbackTimer = setTimeout(() => {
+      window.location.href = '/login';
+    }, 10000);
+
     const redirectToDashboard = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user;
-        
+
         if (user) {
-          // Verificar el tipo de usuario para redirigir al dashboard correcto
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('user_type')
@@ -19,7 +24,8 @@ export default function SuccessScreen() {
             .single();
 
           if (profile) {
-            setTimeout(() => {
+            clearTimeout(fallbackTimer);
+            redirectTimer = setTimeout(() => {
               window.location.href = profile.user_type === 'worker' ? '/worker/dashboard' : '/user/dashboard';
             }, 3000);
           }
@@ -30,6 +36,11 @@ export default function SuccessScreen() {
     };
 
     redirectToDashboard();
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
   }, []);
 
   return (

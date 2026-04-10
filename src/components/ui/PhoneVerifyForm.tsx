@@ -64,7 +64,8 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
     if (hasSentRef.current) return;
     hasSentRef.current = true;
     sendCode();
-  }, [sendCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Temporizador del cooldown
   useEffect(() => {

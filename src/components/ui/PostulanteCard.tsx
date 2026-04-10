@@ -28,7 +28,6 @@ interface Postulante {
   estado: 'pendiente' | 'aprobado' | 'rechazado';
   fechaPostulacion: string;
   telefono: string;
-  email: string;
   precio: number;
   coverLetter?: string;
   estimatedDuration?: string;

@@ -22,7 +22,6 @@ export const useProfile = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    email: '',
     telefono: '',
     ubicacion: ''
   });
@@ -58,7 +57,6 @@ export const useProfile = () => {
           user_id: data.user_id,
           nombre: nameParts[0] || '',
           apellido: nameParts.slice(1).join(' ') || '',
-          email: data.email || '',
           telefono: data.phone || '',
           ubicacion: 'Bogotá, Colombia',
           fechaRegistro: data.created_at,
@@ -68,10 +66,10 @@ export const useProfile = () => {
           serviciosActivos: 0,
           balance: data.balance || 0, // ✅ Usar balance real de la BD
           movil_verificado: data.movil_verificado ?? false, // Usar nullish coalescing para manejar null
-          whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? false,
+          whatsapp_notifications_enabled: data.whatsapp_notifications_enabled ?? true,
           preferencias: {
             notificaciones: true,
-            emailMarketing: false,
+            promotionalOptIn: false,
             privacidad: true
           }
         };
@@ -81,7 +79,6 @@ export const useProfile = () => {
         setFormData({
           nombre: nameParts[0] || '',
           apellido: nameParts.slice(1).join(' ') || '',
-          email: data.email || '',
           telefono: data.phone || '',
           ubicacion: 'Bogotá, Colombia'
         });
@@ -148,7 +145,7 @@ export const useProfile = () => {
                 .select(`
                   *,
                   service:services(id, title, description, location),
-                  worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url)
+                  worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url)
                 `)
                 .eq('client_id', currentUserId)
                 .order('start_date', { ascending: false });
@@ -297,7 +294,6 @@ export const useProfile = () => {
       setFormData({
         nombre: profile.nombre || '',
         apellido: profile.apellido || '',
-        email: profile.email || '',
         telefono: profile.telefono || '',
         ubicacion: profile.ubicacion || ''
       });

@@ -1,30 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import PhoneInput from './PhoneInput';
 
 interface PersonalData {
   fullName: string;
-  email: string;
-  phone: string;
   birthDate: string;
   password: string;
   confirmPassword: string;
 }
 
 interface PersonalDataFormProps {
-  onSubmit: (data: PersonalData) => void;
+  phone: string;
+  onSubmit: (data: PersonalData & { phone: string }) => void;
   onBack: () => void;
   isLoading?: boolean;
   error?: string;
   initialData?: PersonalData;
 }
 
-export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, initialData }: PersonalDataFormProps) {
+export default function PersonalDataForm({ phone, onSubmit, onBack, isLoading, error, initialData }: PersonalDataFormProps) {
   const [formData, setFormData] = useState<PersonalData>(initialData || {
     fullName: '',
-    email: '',
-    phone: '',
     birthDate: '',
     password: '',
     confirmPassword: ''
@@ -34,6 +30,7 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<PersonalData>>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
 
   const handleInputChange = (field: keyof PersonalData, value: string) => {
     setFormData(prev => ({
@@ -49,25 +46,7 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
       }));
     }
 
-    // Validación en tiempo real para email y teléfono
-    if (field === 'email' && value.trim()) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        setErrors(prev => ({
-          ...prev,
-          email: 'El correo electrónico no es válido'
-        }));
-      }
-    }
-
-    if (field === 'phone' && value.trim()) {
-      const phoneDigits = value.replace(/\s/g, '');
-      if (!/^\d{10}$/.test(phoneDigits)) {
-        setErrors(prev => ({
-          ...prev,
-          phone: 'El número debe tener exactamente 10 dígitos'
-        }));
-      }
-    }
+    // No hay validación en tiempo real adicional por ahora
   };
 
   const validateForm = (): boolean => {
@@ -75,21 +54,6 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'El nombre completo es requerido';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'El correo electrónico es requerido';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'El correo electrónico no es válido';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'El número de teléfono es requerido';
-    } else {
-      const phoneDigits = formData.phone.replace(/\s/g, '');
-      if (!/^\d{10}$/.test(phoneDigits)) {
-        newErrors.phone = 'El número debe tener exactamente 10 dígitos';
-      }
     }
 
     if (!formData.birthDate) {
@@ -109,13 +73,16 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
     }
 
     setErrors(newErrors);
+    setTermsError(!acceptedTerms ? 'Debes aceptar los Términos y Condiciones para continuar' : null);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+    const ok = validateForm();
+    if (!acceptedTerms) return;
+    if (ok) {
+      onSubmit({ ...formData, phone });
     }
   };
 
@@ -124,13 +91,6 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
     </svg>
   );
-
-  const emailIcon = (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 21.75 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-    </svg>
-  );
-
 
   const calendarIcon = (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -209,38 +169,16 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
             </div>
           </div>
 
-          {/* Correo electrónico */}
+          {/* Número de teléfono (ya verificado) */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
-              Correo electrónico *
+              Número de teléfono *
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
-                {emailIcon}
-              </div>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="correo@ejemplo.com"
-                className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 ${
-                  errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                }`}
-              />
-              {errors.email ? (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              ) : (
-                <p className="mt-1 text-xs text-gray-500">Ingresa un correo electrónico válido</p>
-              )}
+            <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 font-medium">
+              +57 {phone}
             </div>
+            <p className="mt-1 text-xs text-gray-500">Este número ya fue verificado</p>
           </div>
-
-          {/* Número de teléfono */}
-          <PhoneInput
-            value={formData.phone}
-            onChange={(value) => handleInputChange('phone', value)}
-            error={errors.phone}
-          />
 
           {/* Fecha de nacimiento */}
           <div className="space-y-2">
@@ -326,7 +264,10 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
                 type="checkbox"
                 id="terms"
                 checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                onChange={(e) => {
+                  setAcceptedTerms(e.target.checked);
+                  if (e.target.checked) setTermsError(null);
+                }}
                 className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 cursor-pointer"
               />
               <label htmlFor="terms" className="text-sm text-gray-700 leading-relaxed cursor-pointer">
@@ -351,6 +292,9 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
                 {' '}de Hommy. Asimismo, autorizo el tratamiento de mis datos personales de acuerdo con lo establecido en la Ley 1581 de 2012 y sus decretos reglamentarios.
               </label>
             </div>
+            {termsError && (
+              <p className="text-sm text-red-600">{termsError}</p>
+            )}
           </div>
 
           {/* Botones */}
@@ -365,7 +309,7 @@ export default function PersonalDataForm({ onSubmit, onBack, isLoading, error, i
             </button>
             <button
               type="submit"
-              disabled={isLoading || !acceptedTerms}
+              disabled={isLoading}
               className="flex-1 py-4 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading && (

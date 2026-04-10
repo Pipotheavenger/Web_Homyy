@@ -2,10 +2,30 @@
 // TIPOS DE BASE DE DATOS PARA HOMMY
 // =====================================================
 
+// Constantes de estado para evitar strings literales dispersos
+export const APPLICATION_STATUS = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+  WITHDRAWN: 'withdrawn',
+} as const;
+export type ApplicationStatus = typeof APPLICATION_STATUS[keyof typeof APPLICATION_STATUS];
+
+export const SERVICE_STATUS = {
+  ACTIVE: 'active',
+  CONTRATANDO: 'contratando',
+  ELIGIENDO: 'eligiendo',
+  CONTRATADO: 'contratado',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  DELETED: 'deleted',
+  CANCELLED: 'cancelled',
+} as const;
+export type ServiceStatus = typeof SERVICE_STATUS[keyof typeof SERVICE_STATUS];
+
 export interface UserProfile {
   id: string;
   user_id: string;
-  email: string;
   name: string;
   user_type: 'user' | 'worker';
   phone: string | null;
@@ -50,7 +70,7 @@ export interface Service {
   description: string | null;
   category_id: string | null;
   location: string | null;
-  status: string; // varchar(50) según el esquema
+  status: ServiceStatus;
   images?: string[]; // Array de URLs de imágenes
   created_at: string;
   updated_at: string;
@@ -103,7 +123,8 @@ export interface Review {
   // Relaciones
   reviewer?: {
     id: string;
-    email: string;
+    name?: string | null;
+    phone?: string | null;
   };
   professional?: Professional;
 }
@@ -129,7 +150,6 @@ export interface Transaction {
 
 export interface RegisterUserData {
   fullName: string;
-  email: string;
   phone: string;
   birthDate: string;
   password: string;

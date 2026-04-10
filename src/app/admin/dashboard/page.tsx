@@ -354,7 +354,7 @@ function AdminDashboard() {
                       setSearchTerm(e.target.value);
                       setCurrentPage(1);
                     }}
-                    placeholder="Buscar por nombre, email o teléfono..."
+                    placeholder="Buscar por nombre o teléfono..."
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
@@ -630,7 +630,7 @@ function UserRow({ user, onView }: { user: any; onView: (id: string) => void }) 
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900">{user.name || 'Sin nombre'}</div>
-            <div className="text-sm text-gray-500">{user.email}</div>
+            <div className="text-sm text-gray-500">{user.phone || '—'}</div>
           </div>
         </div>
       </td>
@@ -679,7 +679,7 @@ function TransactionRow({
           const { supabase } = await import('@/lib/supabase');
           const { data } = await supabase
             .from('user_profiles')
-            .select('name, email')
+            .select('name, phone')
             .eq('user_id', transaction.user_id)
             .single();
           setUserInfo(data);
@@ -740,7 +740,7 @@ function TransactionRow({
         ) : (
           <>
             <div className="text-sm font-medium text-gray-900">{userInfo?.name || 'N/A'}</div>
-            <div className="text-xs text-gray-500">{userInfo?.email || 'N/A'}</div>
+            <div className="text-xs text-gray-500">{userInfo?.phone || 'N/A'}</div>
           </>
         )}
       </td>

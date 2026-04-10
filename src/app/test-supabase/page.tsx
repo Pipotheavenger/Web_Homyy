@@ -50,7 +50,7 @@ export default function TestSupabasePage() {
               <p className="text-gray-600">Cargando...</p>
             ) : user ? (
               <div className="text-sm space-y-1">
-                <p><span className="font-medium">Usuario:</span> {user.email}</p>
+                <p><span className="font-medium">Teléfono (perfil):</span> {profile?.phone || '—'}</p>
                 <p><span className="font-medium">Tipo:</span> {userType || 'No determinado'}</p>
                 <p><span className="font-medium">Nombre:</span> {profile?.name || 'No disponible'}</p>
                 <p><span className="font-medium">ID:</span> {user.id}</p>

@@ -93,8 +93,6 @@ export default function WorkerDashboard() {
   const handleCloseCompletionModal = () => {
     setShowCompletionModal(false);
     setSelectedService(null);
-    // Recargar datos al cerrar el modal (por si se completó el trabajo)
-    loadDashboardData();
   };
 
   const getStatusColor = (status: string) => {

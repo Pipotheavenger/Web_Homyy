@@ -234,7 +234,7 @@ export const adminService = {
         .order('created_at', { ascending: false });
 
       if (params.search) {
-        query = query.or(`name.ilike.%${params.search}%,email.ilike.%${params.search}%`);
+        query = query.or(`name.ilike.%${params.search}%,phone.ilike.%${params.search}%`);
       }
 
       if (params.limit) {

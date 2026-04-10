@@ -124,7 +124,7 @@ export const reviewsService = {
           reviewer:user_profiles!reviews_reviewer_id_fkey(
             id,
             name,
-            email,
+            phone,
             profile_picture_url
           ),
           service:services(

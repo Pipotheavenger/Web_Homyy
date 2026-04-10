@@ -20,7 +20,7 @@ export interface Application {
   worker?: {
     id: string;
     name: string;
-    email: string;
+    phone: string | null;
     profile_picture_url: string | null;
   };
   worker_profile?: {
@@ -252,7 +252,7 @@ export const applicationsService = {
       const [usersResult, workerProfilesResult] = await Promise.all([
         supabase
           .from('user_profiles')
-          .select('user_id, id, name, email, phone, profile_picture_url')
+          .select('user_id, id, name, phone, profile_picture_url')
           .in('user_id', workerIds),
         supabase
           .from('worker_profiles')
@@ -397,7 +397,7 @@ export const applicationsService = {
         .from('applications')
         .select(`
           *,
-          worker:user_profiles!applications_worker_id_fkey(id, name, email, profile_picture_url),
+          worker:user_profiles!applications_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(
             profession,
             experience_years,
@@ -463,7 +463,7 @@ export const applicationsService = {
         .eq('id', id)
         .select(`
           *,
-          worker:user_profiles!applications_worker_id_fkey(id, name, email, profile_picture_url),
+          worker:user_profiles!applications_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(
             profession,
             experience_years,

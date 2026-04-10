@@ -8,8 +8,10 @@ import RegisterSuccess from '@/components/ui/RegisterSuccess';
 import BgWave from '../login/BgWave';
 import { useRegister } from '@/hooks/useRegister';
 import { RegisterUserData, RegisterWorkerData } from '@/types/database';
+import PhoneInput from '@/components/ui/PhoneInput';
+import PhoneVerifyForm from '@/components/ui/PhoneVerifyForm';
 
-type RegistrationStep = 'role' | 'worker-info' | 'personal-data' | 'success';
+type RegistrationStep = 'role' | 'worker-info' | 'phone-verify' | 'personal-data' | 'success';
 type UserRole = 'user' | 'worker';
 
 interface WorkerInfoData {
@@ -22,8 +24,6 @@ interface WorkerInfoData {
 
 interface PersonalData {
   fullName: string;
-  email: string;
-  phone: string;
   birthDate: string;
   password: string;
   confirmPassword: string;
@@ -33,13 +33,16 @@ export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('role');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [workerInfo, setWorkerInfo] = useState<WorkerInfoData | null>(null);
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
   const { isLoading, error, registerUser, registerWorker, clearError } = useRegister();
 
   // Funciones de navegación
   const handleRoleSelection = (role: UserRole) => {
     setSelectedRole(role);
     if (role === 'user') {
-      setCurrentStep('personal-data');
+      setCurrentStep('phone-verify');
     } else {
       setCurrentStep('worker-info');
     }
@@ -47,10 +50,10 @@ export default function RegisterPage() {
 
   const handleWorkerInfoSubmit = (data: WorkerInfoData) => {
     setWorkerInfo(data);
-    setCurrentStep('personal-data');
+    setCurrentStep('phone-verify');
   };
 
-  const handlePersonalDataSubmit = async (data: PersonalData) => {
+  const handlePersonalDataSubmit = async (data: PersonalData & { phone: string }) => {
     if (!selectedRole) return;
 
     clearError();
@@ -61,7 +64,6 @@ export default function RegisterPage() {
       if (selectedRole === 'user') {
         const userData: RegisterUserData = {
           fullName: data.fullName,
-          email: data.email,
           phone: data.phone,
           birthDate: data.birthDate,
           password: data.password,
@@ -72,7 +74,6 @@ export default function RegisterPage() {
       } else if (selectedRole === 'worker' && workerInfo) {
         const workerData: RegisterWorkerData = {
           fullName: data.fullName,
-          email: data.email,
           phone: data.phone,
           birthDate: data.birthDate,
           password: data.password,
@@ -101,13 +102,15 @@ export default function RegisterPage() {
     if (currentStep === 'worker-info') {
       setCurrentStep('role');
       setSelectedRole(null);
+      setWorkerInfo(null);
+      setVerifiedPhone(null);
+      setPhone('');
+      setPhoneError(undefined);
     } else if (currentStep === 'personal-data') {
-      if (selectedRole === 'worker') {
-        setCurrentStep('worker-info');
-      } else {
-        setCurrentStep('role');
-        setSelectedRole(null);
-      }
+      setCurrentStep('phone-verify');
+    } else if (currentStep === 'phone-verify') {
+      if (selectedRole === 'worker') setCurrentStep('worker-info');
+      else setCurrentStep('role');
     }
   };
 
@@ -125,6 +128,69 @@ export default function RegisterPage() {
           />
         );
 
+      case 'phone-verify':
+        return (
+          <div className="w-full max-w-2xl mx-auto space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-black">
+                ¡Ya casi terminas!
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Solo un paso más para proteger tu cuenta
+              </p>
+            </div>
+
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 space-y-6">
+              {!verifiedPhone ? (
+                <>
+                  <PhoneInput
+                    value={phone}
+                    onChange={(v) => {
+                      setPhone(v);
+                      setPhoneError(undefined);
+                    }}
+                    error={phoneError}
+                  />
+
+                  <div className="flex gap-4 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="flex-1 py-3 px-6 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const digits = phone.replace(/\D/g, '');
+                        if (!/^\d{10}$/.test(digits)) {
+                          setPhoneError('El número debe tener exactamente 10 dígitos');
+                          return;
+                        }
+                        setVerifiedPhone(digits); // se verifica en el siguiente subpaso (OTP)
+                      }}
+                      className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-600/25"
+                    >
+                      Enviar código
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <PhoneVerifyForm
+                  phoneNumber={verifiedPhone}
+                  onBack={() => {
+                    setVerifiedPhone(null);
+                  }}
+                  onVerified={() => {
+                    setCurrentStep('personal-data');
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        );
+
       case 'personal-data':
         return (
           <PersonalDataForm
@@ -132,6 +198,7 @@ export default function RegisterPage() {
             onBack={handleBack}
             isLoading={isLoading}
             error={error || undefined}
+            phone={verifiedPhone ?? phone.replace(/\D/g, '')}
           />
         );
 

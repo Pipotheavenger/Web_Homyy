@@ -14,7 +14,6 @@ import {
   Shield,
   CheckCircle,
   Phone,
-  Mail,
   MessageSquare,
   Info,
   KeyRound
@@ -31,38 +30,6 @@ const SuccessApplicationModal = dynamic(
   { ssr: false }
 );
 import { useTrabajoDetalle } from '@/hooks/useTrabajoDetalle';
-
-interface TrabajoDetalle {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  descripcionCompleta: string;
-  precio: number;
-  ubicacion: string;
-  fecha: string;
-  categoria: string;
-  cliente: {
-    nombre: string;
-    verificado: boolean;
-    telefono: string;
-    email: string;
-    calificacion: number;
-    trabajosCompletados: number;
-    fechaRegistro: string;
-  };
-  tiempoEstimado: string;
-  requisitos: string[];
-  materiales: string[];
-  preguntas: Pregunta[];
-}
-
-interface Pregunta {
-  id: string;
-  pregunta: string;
-  respuesta?: string;
-  fecha: string;
-  respondida: boolean;
-}
 
 export default function DetalleTrabajoPage() {
   const router = useRouter();

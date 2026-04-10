@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 export interface UserProfile {
   user_type: 'user' | 'worker';
   name: string;
-  email: string;
+  phone: string | null;
 }
 
 export type UserProfileLookupStatus = 'found' | 'missing' | 'error';
@@ -55,7 +55,7 @@ export const getUserProfileResult = async (
   try {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('user_type, name, email')
+      .select('user_type, name, phone')
       .eq('user_id', userId)
       .maybeSingle();
 

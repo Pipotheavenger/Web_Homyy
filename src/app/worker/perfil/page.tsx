@@ -1,6 +1,5 @@
 'use client';
-import { 
-  Mail,
+import {
   Phone,
   MapPin,
   Calendar,
@@ -22,7 +21,8 @@ import {
   Image as ImageIcon,
   XCircle,
   Plus,
-  MessageCircle
+  MessageCircle,
+  FileText
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/Layout';
@@ -31,12 +31,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
-const PhoneVerificationModal = dynamic(
-  () => import('@/components/ui/PhoneVerificationModal'),
-  { ssr: false }
-);
-import { AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function PerfilWorkerPage() {
   const router = useRouter();
@@ -66,14 +60,11 @@ export default function PerfilWorkerPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [loadingPortfolio, setLoadingPortfolio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
   const [updatingWhatsapp, setUpdatingWhatsapp] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-
-  const handlePhoneVerified = async () => {
-    setShowVerifyModal(false);
-    await loadWorkerProfileData();
-  };
+  const [descText, setDescText] = useState('');
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [descSaved, setDescSaved] = useState(false);
 
   // Cargar imágenes del portfolio al montar el componente
   useEffect(() => {
@@ -125,11 +116,38 @@ export default function PerfilWorkerPage() {
   // Cargar preferencia de WhatsApp cuando cambia el usuario
   useEffect(() => {
     if (usuario) {
-      setWhatsappEnabled(usuario.whatsapp_notifications_enabled ?? false);
+      setWhatsappEnabled(usuario.whatsapp_notifications_enabled ?? true);
     }
   }, [usuario]);
 
+  // Sincronizar descripción con el perfil cargado
+  useEffect(() => {
+    if (workerProfile) {
+      setDescText(workerProfile.bio || workerProfile.profile_description || '');
+    }
+  }, [workerProfile]);
+
   const { signOut } = useAuth();
+
+  const handleSaveDescription = async () => {
+    setSavingDesc(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No autenticado');
+      const { error } = await supabase
+        .from('worker_profiles')
+        .update({ bio: descText, profile_description: descText })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setDescSaved(true);
+      setTimeout(() => setDescSaved(false), 2500);
+      await loadWorkerProfileData();
+    } catch (err: any) {
+      alert('Error al guardar: ' + err.message);
+    } finally {
+      setSavingDesc(false);
+    }
+  };
 
   const handleLogout = async () => {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
@@ -559,6 +577,7 @@ export default function PerfilWorkerPage() {
               {[
                 { id: 'informacion', label: 'Información', icon: User },
                 { id: 'profesional', label: 'Profesional', icon: Briefcase },
+                { id: 'descripcion', label: 'Descripción', icon: FileText },
                 { id: 'portfolio', label: 'Portfolio', icon: ImageIcon },
                 { id: 'reseñas', label: 'Reseñas', icon: Star }
               ].map((tab) => (
@@ -607,14 +626,6 @@ export default function PerfilWorkerPage() {
                         ) : (
                           <p className="text-lg font-semibold text-gray-900">{usuario?.name || 'No disponible'}</p>
                         )}
-                      </div>
-
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
-                        <label className="text-xs font-semibold text-gray-500 uppercase mb-1 flex items-center gap-2">
-                          <Mail size={14} />
-                          Email
-                        </label>
-                        <p className="text-base text-gray-900 break-all">{usuario?.email || 'No disponible'}</p>
                       </div>
 
                       <div className="p-4 bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl border border-gray-100">
@@ -677,47 +688,8 @@ export default function PerfilWorkerPage() {
                     </h3>
 
                     <div className="space-y-3">
-                      {/* Verificación - Condicional */}
-                      {usuario?.movil_verificado ? (
-                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Verificación</label>
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="text-green-600" size={20} />
-                                <span className="font-semibold text-gray-900">Cuenta Verificada</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-5 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <AlertTriangle className="text-yellow-600" size={20} />
-                            </div>
-                            <div className="flex-1">
-                              <span className="inline-block px-2 py-0.5 bg-yellow-200 text-yellow-800 text-xs font-bold rounded-md uppercase mb-2">
-                                Pendiente
-                              </span>
-                              <h4 className="font-semibold text-gray-900 mb-1">Verificación de cuenta</h4>
-                              <p className="text-sm text-gray-600 mb-3">
-                                Verifica tu número de celular para activar notificaciones por WhatsApp y acceder a todas las funciones de Hommy.
-                              </p>
-                              <button
-                                onClick={() => setShowVerifyModal(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
-                              >
-                                Verificar ahora
-                                <ArrowRight size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Toggle de Notificaciones WhatsApp */}
-                      <div className={`p-4 rounded-xl border ${!usuario?.movil_verificado ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-gradient-to-r from-gray-50 to-emerald-50 border-gray-200'}`}>
+                      <div className="p-4 rounded-xl border bg-gradient-to-r from-gray-50 to-emerald-50 border-gray-200">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-2">
@@ -725,18 +697,13 @@ export default function PerfilWorkerPage() {
                               Notificaciones por WhatsApp
                             </label>
                             <p className="text-sm text-gray-600 mt-1">
-                              {!usuario?.movil_verificado
-                                ? 'Verifica tu número de celular para activar esta opción'
-                                : 'Recibe notificaciones importantes por WhatsApp'}
+                              Recibe notificaciones importantes por WhatsApp
                             </p>
                           </div>
                           <button
+                            type="button"
                             onClick={async () => {
                               if (updatingWhatsapp) return;
-                              if (!usuario?.movil_verificado) {
-                                setShowVerifyModal(true);
-                                return;
-                              }
                               setUpdatingWhatsapp(true);
                               const newValue = !whatsappEnabled;
 
@@ -763,14 +730,14 @@ export default function PerfilWorkerPage() {
                                 setUpdatingWhatsapp(false);
                               }
                             }}
-                            disabled={updatingWhatsapp || !usuario?.movil_verificado}
+                            disabled={updatingWhatsapp}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                              whatsappEnabled && usuario?.movil_verificado ? 'bg-green-500' : 'bg-gray-300'
-                            } ${updatingWhatsapp || !usuario?.movil_verificado ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                              whatsappEnabled ? 'bg-green-500' : 'bg-gray-300'
+                            } ${updatingWhatsapp ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                whatsappEnabled && usuario?.movil_verificado ? 'translate-x-6' : 'translate-x-1'
+                                whatsappEnabled ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -933,6 +900,58 @@ export default function PerfilWorkerPage() {
               </div>
             )}
 
+            {/* Tab: Descripción */}
+            {activeTab === 'descripcion' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <FileText className="text-emerald-600" size={24} />
+                    Mi Descripción Profesional
+                  </h3>
+                  {descSaved && (
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                      <CheckCircle size={15} />
+                      Guardado
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Esta descripción es lo primero que ven los clientes en tu perfil. Cuéntales quién eres, tu experiencia y qué te diferencia.
+                  </p>
+                  <textarea
+                    value={descText}
+                    onChange={(e) => setDescText(e.target.value)}
+                    rows={10}
+                    maxLength={1000}
+                    className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none bg-white text-gray-800 leading-relaxed transition-all"
+                    placeholder="Ej: Soy técnico electricista con 8 años de experiencia en instalaciones residenciales y comerciales. Me especializo en..."
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">{descText.length}/1000 caracteres</span>
+                    <button
+                      onClick={handleSaveDescription}
+                      disabled={savingDesc || descText === (workerProfile?.bio || workerProfile?.profile_description || '')}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingDesc ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save size={17} />
+                          <span>Guardar descripción</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tab: Portfolio/Trabajos Anteriores */}
             {activeTab === 'portfolio' && (
               <div className="space-y-6">
@@ -1088,14 +1107,6 @@ export default function PerfilWorkerPage() {
         </div>
       </div>
 
-      {/* Modal de Verificación de Teléfono */}
-      <PhoneVerificationModal
-        isOpen={showVerifyModal}
-        onClose={() => setShowVerifyModal(false)}
-        onVerified={handlePhoneVerified}
-        initialPhone={usuario?.phone?.replace(/\s/g, '') || ''}
-        userId={usuario?.user_id}
-      />
     </Layout>
   );
 }

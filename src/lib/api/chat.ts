@@ -27,13 +27,13 @@ export interface Chat {
   client?: {
     id: string;
     name: string;
-    email: string;
+    phone: string | null;
     profile_picture_url: string | null;
   };
   worker?: {
     id: string;
     name: string;
-    email: string;
+    phone: string | null;
     profile_picture_url: string | null;
   };
   unread_count?: number;
@@ -134,8 +134,8 @@ export const chatService = {
             id,
             service:services(title)
           ),
-          client:user_profiles!chats_client_id_fkey(id, name, email, profile_picture_url),
-          worker:user_profiles!chats_worker_id_fkey(id, name, email, profile_picture_url)
+          client:user_profiles!chats_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!chats_worker_id_fkey(id, name, phone, profile_picture_url)
         `)
         .eq('booking_id', bookingId)
         .maybeSingle();
@@ -163,8 +163,8 @@ export const chatService = {
             id,
             service:services(title)
           ),
-          client:user_profiles!chats_client_id_fkey(id, name, email, profile_picture_url),
-          worker:user_profiles!chats_worker_id_fkey(id, name, email, profile_picture_url)
+          client:user_profiles!chats_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!chats_worker_id_fkey(id, name, phone, profile_picture_url)
         `)
         .single();
 
@@ -234,8 +234,8 @@ export const chatService = {
             status,
             service:services(title)
           ),
-          client:user_profiles!chats_client_id_fkey(id, name, email, profile_picture_url),
-          worker:user_profiles!chats_worker_id_fkey(id, name, email, profile_picture_url)
+          client:user_profiles!chats_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!chats_worker_id_fkey(id, name, phone, profile_picture_url)
         `)
         .in('booking_id', activeBookingIds)
         .order('last_message_at', { ascending: false, nullsFirst: false })

@@ -221,7 +221,6 @@ export const useDetallesPostulantes = () => {
         })(),
         fechaPostulacion: formatDate(app.created_at),
         telefono: app.worker?.phone || '',
-        email: app.worker?.email || '',
         precio: Number(app.proposed_price || 0),
         coverLetter: app.cover_letter,
         estimatedDuration: app.estimated_duration

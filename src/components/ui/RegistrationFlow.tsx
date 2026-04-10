@@ -7,7 +7,8 @@ import { WorkerRegistrationForm } from './WorkerRegistrationForm';
 import { WorkerProfileForm } from './WorkerProfileForm';
 
 interface RegistrationFlowProps {
-  userEmail: string;
+  /** Teléfono normalizado (10 dígitos) o identificador de contacto */
+  userPhone: string;
   userId: string;
   onComplete: (userData: any) => void;
   isLoading?: boolean;
@@ -16,7 +17,7 @@ interface RegistrationFlowProps {
 type RegistrationStep = 'type-selection' | 'client-form' | 'worker-basic' | 'worker-profile';
 
 export const RegistrationFlow = ({ 
-  userEmail, 
+  userPhone, 
   userId, 
   onComplete, 
   isLoading = false 
@@ -29,7 +30,7 @@ export const RegistrationFlow = ({
     console.log('🎯 === TYPE SELECTION ===');
     console.log('📊 Selected type:', type);
     console.log('🔑 User ID:', userId);
-    console.log('📧 User Email:', userEmail);
+    console.log('📱 User phone:', userPhone);
     
     setUserType(type);
     if (type === 'client') {
@@ -47,7 +48,7 @@ export const RegistrationFlow = ({
       ...userData,
       userType: 'client',
       userId,
-      email: userEmail
+      phone: userPhone
     };
     
     console.log('📤 Complete client data:', completeData);
@@ -74,13 +75,13 @@ export const RegistrationFlow = ({
       ...profileData,
       userType: 'worker',
       userId,
-      email: userEmail
+      phone: userPhone
     };
     
     console.log('📤 Complete worker data:', completeData);
     console.log('🔍 Data validation:');
     console.log('  - userId:', completeData.userId);
-    console.log('  - email:', completeData.email);
+    console.log('  - phone:', completeData.phone);
     console.log('  - name:', completeData.name);
     console.log('  - phone:', completeData.phone);
     console.log('  - birthDate:', completeData.birthDate);

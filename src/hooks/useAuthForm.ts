@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getUserType, redirectToUserDashboard } from '@/lib/auth-utils';
+import { isValidMxPhone10Digits, phoneToAuthEmail, normalizePhoneToDigits } from '@/lib/utils/phone-auth';
 
 interface FormData {
-  email: string;
+  phone: string;
   password: string;
 }
 
 interface Errors {
-  email?: string;
+  phone?: string;
   password?: string;
   general?: string;
 }
@@ -17,7 +18,7 @@ interface Errors {
 export const useAuthForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
-    email: '',
+    phone: '',
     password: ''
   });
 
@@ -28,11 +29,11 @@ export const useAuthForm = () => {
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
-    // Validar email
-    if (!formData.email) {
-      newErrors.email = 'El correo electrónico es requerido';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'El correo electrónico no es válido';
+    // Validar teléfono
+    if (!formData.phone) {
+      newErrors.phone = 'El número de teléfono es requerido';
+    } else if (!isValidMxPhone10Digits(formData.phone)) {
+      newErrors.phone = 'El número debe tener exactamente 10 dígitos';
     }
 
     // Validar contraseña
@@ -89,9 +90,11 @@ export const useAuthForm = () => {
       }
 
       // Race signIn against a 10s timeout to prevent hanging
+      const phoneDigits = normalizePhoneToDigits(formData.phone);
+      const email = phoneToAuthEmail(phoneDigits);
       const { data, error } = await Promise.race([
         supabase.auth.signInWithPassword({
-          email: formData.email,
+          email,
           password: formData.password,
         }),
         new Promise<never>((_, reject) =>
@@ -104,13 +107,14 @@ export const useAuthForm = () => {
         let errorMessage = '';
 
         if (error.message.includes('Email not confirmed')) {
-          errorMessage = '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para activar tu cuenta.';
+          errorMessage =
+            '⚠️ Tu cuenta aún no está activa. Si acabas de registrarte, espera un momento e intenta de nuevo o contacta soporte.';
         } else if (error.message.includes('Invalid login credentials')) {
-          errorMessage = '❌ Correo electrónico o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+          errorMessage = '❌ Teléfono o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
         } else if (error.message.includes('Too many requests')) {
           errorMessage = '⏰ Demasiados intentos. Por favor, espera unos minutos antes de intentar nuevamente.';
         } else if (error.message.includes('User not found')) {
-          errorMessage = '❌ No existe una cuenta con este correo electrónico. ¿Deseas registrarte?';
+          errorMessage = '❌ No existe una cuenta con este número. ¿Deseas registrarte?';
         } else {
           errorMessage = '❌ Error al iniciar sesión. ' + error.message;
         }
@@ -121,14 +125,16 @@ export const useAuthForm = () => {
       }
 
       if (data.user) {
-        // Verificar si el email está confirmado
-        if (!data.user.email_confirmed_at) {
+        // Cuentas phone_*@hommy.local se confirman en registro (Admin API); otras cuentas email pueden requerir confirmación en panel.
+        const technicalPhoneEmail =
+          typeof data.user.email === 'string' &&
+          /^phone_\d{10}@hommy\.local$/i.test(data.user.email);
+        if (!data.user.email_confirmed_at && !technicalPhoneEmail) {
           setErrors({
-            general: '⚠️ Tu cuenta está registrada pero aún no has confirmado tu correo electrónico. Por favor, revisa tu bandeja de entrada (y spam) para confirmar tu cuenta antes de iniciar sesión.'
+            general:
+              '⚠️ Revisa tu correo para confirmar la cuenta antes de entrar.',
           });
           setIsLoading(false);
-          
-          // Cerrar la sesión si el email no está confirmado
           await supabase.auth.signOut({ scope: 'local' });
           return;
         }

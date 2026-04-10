@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useAuthForm } from '@/hooks/useAuthForm';
+import { formatColombiaMobileDisplay } from '@/lib/utils/phone-auth';
 import { FormInput } from '@/components/ui/FormInput';
 import { LoginHeader } from '@/components/ui/LoginHeader';
 import dynamic from 'next/dynamic';
@@ -23,11 +24,27 @@ export default function LoginPage() {
     handleSubmit
   } = useAuthForm();
 
-  const emailIcon = (
-    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5a.75.75 0 01.75.75v12a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75v-12a.75.75 0 01.75-.75z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.75l-8.25 6-8.25-6" />
-    </svg>
+  const labelClassLogin =
+    'block text-sm font-semibold text-slate-800 mb-1.5 tracking-tight';
+
+  const colombiaPhonePrefix = (
+    <>
+      <span
+        className="inline-flex shrink-0 overflow-hidden rounded-[2px] shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.06]"
+        aria-hidden
+      >
+        <svg
+          className="h-4 w-[22px] sm:h-[17px] sm:w-6 block"
+          viewBox="0 0 20 15"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect width="20" height="5" fill="#FCD116" />
+          <rect y="5" width="20" height="5" fill="#003893" />
+          <rect y="10" width="20" height="5" fill="#CE1126" />
+        </svg>
+      </span>
+      <span className="text-slate-600 font-semibold text-sm tabular-nums">+57</span>
+    </>
   );
 
   const passwordIcon = (
@@ -70,19 +87,24 @@ export default function LoginPage() {
           )}
 
           <FormInput
-            type="email"
-            placeholder="Correo electrónico"
-            value={formData.email}
-            onChange={(value) => handleInputChange('email', value)}
-            onFocus={() => setFocusedField('email')}
+            label="Número de teléfono *"
+            labelClassName={labelClassLogin}
+            helperText="Número de 10 dígitos (ej: 300 123 4567)"
+            type="tel"
+            placeholder="300 123 4567"
+            value={formData.phone}
+            onChange={(value) => handleInputChange('phone', formatColombiaMobileDisplay(value))}
+            onFocus={() => setFocusedField('phone')}
             onBlur={() => setFocusedField(null)}
-            error={errors.email}
-            isFocused={focusedField === 'email'}
-            icon={emailIcon}
-            autoComplete="email"
+            error={errors.phone}
+            isFocused={focusedField === 'phone'}
+            leftAddon={colombiaPhonePrefix}
+            autoComplete="tel"
           />
 
           <FormInput
+            label="Contraseña"
+            labelClassName={labelClassLogin}
             type={showPwd ? 'text' : 'password'}
             placeholder="Contraseña"
             value={formData.password}

@@ -23,6 +23,8 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
     categories: [],
     bio: ''
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof WorkerInfoData, string>>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const availableCategories = [
     'Limpieza',
@@ -40,6 +42,11 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
       ...prev,
       [field]: value
     }));
+
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    if (submitError) setSubmitError(null);
   };
 
   const handleCertificationChange = (index: number, value: string) => {
@@ -81,10 +88,38 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
         categories: [...prev.categories, category]
       }));
     }
+    if (errors.categories) {
+      setErrors(prev => ({ ...prev, categories: undefined }));
+    }
+    if (submitError) setSubmitError(null);
+  };
+
+  const validateForm = (): boolean => {
+    const nextErrors: Partial<Record<keyof WorkerInfoData, string>> = {};
+
+    if (!formData.profession.trim()) nextErrors.profession = 'La profesión es requerida';
+
+    if (formData.experienceYears === '') {
+      nextErrors.experienceYears = 'Los años de experiencia son requeridos';
+    } else {
+      const years = Number(formData.experienceYears);
+      if (!Number.isFinite(years) || years < 0) {
+        nextErrors.experienceYears = 'Ingresa un número válido (0 o más)';
+      }
+    }
+
+    if (!formData.categories.length) nextErrors.categories = 'Selecciona al menos una categoría';
+    if (!formData.bio.trim()) nextErrors.bio = 'El perfil laboral es requerido';
+
+    setErrors(nextErrors);
+    const ok = Object.keys(nextErrors).length === 0;
+    setSubmitError(ok ? null : 'Revisa los campos marcados para continuar');
+    return ok;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     // Filtrar certificaciones vacías
     const cleanedData = {
       ...formData,
@@ -126,6 +161,12 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
       {/* Formulario */}
       <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+              {submitError}
+            </div>
+          )}
           
           {/* Profesión */}
           <div className="space-y-2">
@@ -141,10 +182,14 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
                 value={formData.profession}
                 onChange={(e) => handleInputChange('profession', e.target.value)}
                 placeholder="Ej: Electricista, Plomero, Jardinero"
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400"
-                required
+                className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 ${
+                  errors.profession ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
               />
             </div>
+            {errors.profession && (
+              <p className="mt-1 text-sm text-red-600">{errors.profession}</p>
+            )}
           </div>
 
           {/* Certificaciones */}
@@ -207,10 +252,14 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
                 value={formData.experienceYears}
                 onChange={(e) => handleInputChange('experienceYears', e.target.value)}
                 placeholder="Ej: 5"
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400"
-                required
+                className={`w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 ${
+                  errors.experienceYears ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}
               />
             </div>
+            {errors.experienceYears && (
+              <p className="mt-1 text-sm text-red-600">{errors.experienceYears}</p>
+            )}
           </div>
 
           {/* Categorías */}
@@ -227,6 +276,8 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
                   className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     formData.categories.includes(category)
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25'
+                      : errors.categories
+                      ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -234,7 +285,9 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
                 </button>
               ))}
             </div>
-            {formData.categories.length === 0 && (
+            {errors.categories ? (
+              <p className="text-sm text-red-600">{errors.categories}</p>
+            ) : (
               <p className="text-sm text-gray-500">Selecciona al menos una categoría</p>
             )}
           </div>
@@ -249,9 +302,13 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
               onChange={(e) => handleInputChange('bio', e.target.value)}
               placeholder="Describe tu experiencia, especialidades y qué te hace único como profesional..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 resize-none"
-              required
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-700 placeholder-gray-400 resize-none ${
+              errors.bio ? 'border-red-300 bg-red-50' : 'border-gray-200'
+            }`}
             />
+          {errors.bio && (
+            <p className="mt-1 text-sm text-red-600">{errors.bio}</p>
+          )}
           </div>
 
           {/* Botones */}
@@ -265,7 +322,6 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
             </button>
             <button
               type="submit"
-              disabled={!formData.profession || !formData.experienceYears || formData.categories.length === 0 || !formData.bio}
               className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg shadow-purple-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continuar

@@ -48,10 +48,9 @@ export default function WorkerForm({ onSuccess }: WorkerFormProps) {
         .from('user_profiles')
         .insert({
           user_id: user.id,
-          email: user.email,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
+          name: user.user_metadata?.full_name || 'Usuario',
           user_type: 'worker',
-          phone: 'Pendiente',
+          phone: (user.user_metadata?.phone as string) || 'Pendiente',
           birth_date: '2000-01-01'
         });
 

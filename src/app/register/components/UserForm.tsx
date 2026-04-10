@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { capitalizeProperName } from '@/lib/utils';
 
@@ -10,7 +10,6 @@ interface UserFormProps {
 
 interface UserFormData {
   fullName: string;
-  email: string;
   phone: string;
   birthDate: string;
   password: string;
@@ -22,26 +21,11 @@ export default function UserForm({ onSuccess }: UserFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     fullName: '',
-    email: '',
     phone: '',
     birthDate: '',
     password: '',
     confirmPassword: ''
   });
-
-  // Pre-llenar el email si el usuario está autenticado
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.email) {
-        setFormData(prev => ({
-          ...prev,
-          email: session.user.email || ''
-        }));
-      }
-    };
-    getCurrentUser();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +47,6 @@ export default function UserForm({ onSuccess }: UserFormProps) {
         .from('user_profiles')
         .insert({
           user_id: user.id,
-          email: formData.email,
           name: formData.fullName,
           user_type: 'user',
           phone: formData.phone,
@@ -139,20 +122,6 @@ export default function UserForm({ onSuccess }: UserFormProps) {
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 placeholder="Tu nombre completo"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                placeholder="tu@email.com"
               />
             </div>
 

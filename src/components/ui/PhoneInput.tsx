@@ -58,7 +58,7 @@ export default function PhoneInput({
             <svg className="w-5 h-4" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect width="20" height="15" rx="2" fill="#FDD835"/>
               <rect y="5" width="20" height="5" fill="#1976D2"/>
-              <rect y="10" width="20" height="5" rx="0 0 2 2" fill="#D32F2F"/>
+              <rect y="10" width="20" height="5" rx="2" fill="#D32F2F"/>
             </svg>
             <span className="text-gray-600 font-medium text-sm">+57</span>
           </div>

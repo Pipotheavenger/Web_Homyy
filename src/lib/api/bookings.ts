@@ -33,14 +33,12 @@ export interface Booking {
   client?: {
     id: string;
     name: string;
-    email: string;
     phone: string | null;
     profile_picture_url: string | null;
   };
   worker?: {
     id: string;
     name: string;
-    email: string;
     phone: string | null;
     profile_picture_url: string | null;
   };
@@ -118,8 +116,8 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location),
-          client:user_profiles!bookings_client_id_fkey(id, name, email, phone, profile_picture_url),
-          worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url),
+          client:user_profiles!bookings_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(profession, rating, total_services)
         `)
         .single();
@@ -177,7 +175,7 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location, status),
-          worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url),
+          worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(profession, rating, total_services)
         `)
         .eq('client_id', user.id)
@@ -212,7 +210,7 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location),
-          client:user_profiles!bookings_client_id_fkey(id, name, email, phone, profile_picture_url)
+          client:user_profiles!bookings_client_id_fkey(id, name, phone, profile_picture_url)
         `)
         .eq('worker_id', user.id)
         .order('start_date', { ascending: false });
@@ -246,8 +244,8 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location),
-          client:user_profiles!bookings_client_id_fkey(id, name, email, phone, profile_picture_url),
-          worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url),
+          client:user_profiles!bookings_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(profession, rating, total_services)
         `)
         .eq('id', id)
@@ -307,8 +305,8 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location),
-          client:user_profiles!bookings_client_id_fkey(id, name, email, phone, profile_picture_url),
-          worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url),
+          client:user_profiles!bookings_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url),
           worker_profile:worker_profiles!worker_profiles_user_id_fkey(profession, rating, total_services)
         `)
         .single();
@@ -374,8 +372,8 @@ export const bookingsService = {
         .select(`
           *,
           service:services(id, title, description, location),
-          client:user_profiles!bookings_client_id_fkey(id, name, email, phone, profile_picture_url),
-          worker:user_profiles!bookings_worker_id_fkey(id, name, email, phone, profile_picture_url)
+          client:user_profiles!bookings_client_id_fkey(id, name, phone, profile_picture_url),
+          worker:user_profiles!bookings_worker_id_fkey(id, name, phone, profile_picture_url)
         `)
         .single();
 

@@ -341,6 +341,18 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     }
   }, [authState.user, authState.profile, authState.loading, authState.profileState, loadUserProfile]);
 
+  // Sincronizar cookies de sesión para que el middleware pueda proteger rutas
+  useEffect(() => {
+    const maxAge = 60 * 60 * 24 * 7; // 7 días (mismo margen que el refresh token de Supabase)
+    if (authState.user && authState.profile && authState.profileState === 'loaded') {
+      document.cookie = `hommy_auth=true; path=/; max-age=${maxAge}; SameSite=Strict`;
+      document.cookie = `hommy_user_type=${authState.profile.user_type}; path=/; max-age=${maxAge}; SameSite=Strict`;
+    } else if (!authState.loading && !authState.user) {
+      document.cookie = 'hommy_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+      document.cookie = 'hommy_user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
+    }
+  }, [authState.user, authState.profile, authState.profileState, authState.loading]);
+
   const signOut = useCallback(async () => {
     try {
       // Race signOut against a 5s timeout to prevent hanging

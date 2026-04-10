@@ -4,7 +4,6 @@ import { useUserType } from '@/contexts/UserTypeContext';
 import { getNavigationItems, getPageConfig } from '@/utils/userTypeUtils';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import PhoneVerificationBar from './ui/PhoneVerificationBar';
 import { useChatUnreadCount } from '@/hooks/useChatUnreadCount';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 
@@ -67,8 +66,6 @@ export default function Layout({
             currentPage={currentPage}
             counts={counts}
           />
-
-          <PhoneVerificationBar />
 
           {/* Page Content */}
           <main className="flex-1 overflow-y-auto">

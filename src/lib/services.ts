@@ -276,7 +276,7 @@ export const serviceService = {
       if (service.user_id) {
         const { data: userProfile } = await supabase
           .from('user_profiles')
-          .select('name, email, phone, profile_picture_url')
+          .select('name, phone, profile_picture_url')
           .eq('user_id', service.user_id)
           .single();
         client = userProfile;
@@ -475,7 +475,7 @@ export const workerService = {
       // Cargar los user_profiles correspondientes
       const { data: userProfiles, error: userError } = await supabase
         .from('user_profiles')
-        .select('user_id, name, email, phone, profile_picture_url')
+        .select('user_id, name, phone, profile_picture_url')
         .in('user_id', userIds);
 
       if (userError) {
@@ -529,7 +529,7 @@ export const workerService = {
       // Cargar información de usuario
       const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('name, email, phone, profile_picture_url, created_at')
+        .select('name, phone, profile_picture_url, created_at')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -587,7 +587,9 @@ export const profileService = {
 
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select(
+          'id, user_id, name, user_type, phone, birth_date, profile_picture_url, is_active, created_at, updated_at, balance, movil_verificado, whatsapp_notifications_enabled'
+        )
         .eq('user_id', targetUserId)
         .single();
 

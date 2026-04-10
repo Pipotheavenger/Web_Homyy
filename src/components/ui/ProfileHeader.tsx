@@ -5,7 +5,6 @@ interface Usuario {
   id: string;
   nombre: string;
   apellido: string;
-  email: string;
   telefono: string;
   ubicacion: string;
   fechaRegistro: string;
@@ -16,7 +15,7 @@ interface Usuario {
   balance: number;
   preferencias: {
     notificaciones: boolean;
-    emailMarketing: boolean;
+    promotionalOptIn: boolean;
     privacidad: boolean;
   };
 }

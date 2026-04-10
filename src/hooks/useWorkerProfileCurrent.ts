@@ -29,7 +29,6 @@ export const useWorkerProfileCurrent = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    email: '',
     telefono: '',
     ubicacion: '',
     profession: '',
@@ -65,7 +64,7 @@ export const useWorkerProfileCurrent = () => {
         // Cargar perfil básico del usuario (crítico)
         supabase
           .from('user_profiles')
-          .select('id, user_id, name, email, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado, whatsapp_notifications_enabled')
+          .select('id, user_id, name, phone, profile_picture_url, created_at, updated_at, user_type, birth_date, is_active, balance, movil_verificado, whatsapp_notifications_enabled')
           .eq('user_id', currentUserId)
           .single(),
         
@@ -99,7 +98,6 @@ export const useWorkerProfileCurrent = () => {
         id: userProfile.id,
         user_id: userProfile.user_id,
         name: userProfile.name || '',
-        email: userProfile.email || '',
         phone: userProfile.phone || '',
         profile_picture_url: userProfile.profile_picture_url || '',
         created_at: userProfile.created_at,
@@ -119,7 +117,6 @@ export const useWorkerProfileCurrent = () => {
       setFormData({
         nombre: userProfile.name?.split(' ')[0] || '',
         apellido: userProfile.name?.split(' ').slice(1).join(' ') || '',
-        email: userProfile.email || '',
         telefono: userProfile.phone || '',
         ubicacion: workerData?.location || 'Bogotá, Colombia',
         profession: workerData?.profession || '',
@@ -327,7 +324,6 @@ export const useWorkerProfileCurrent = () => {
       setFormData({
         nombre: nameParts[0] || '',
         apellido: nameParts.slice(1).join(' ') || '',
-        email: usuario.email || '',
         telefono: usuario.phone || '',
         ubicacion: workerProfile?.location || '',
         profession: workerProfile?.profession || '',

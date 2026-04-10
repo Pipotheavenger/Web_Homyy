@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { normalizePhoneToDigits, phoneToAuthEmail } from '@/lib/utils/phone-auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Cliente con anon key para signUp (flujo público que envía email de confirmación)
-const supabasePublic = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
-
-// Cliente con service role para operaciones de admin (crear perfiles, rollback)
+// Service role: creación de usuario sin depender de email (email técnico confirmado al crear)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
@@ -23,7 +15,6 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 interface RegisterBody {
   userType: 'user' | 'worker';
-  email: string;
   password: string;
   fullName: string;
   phone: string;
@@ -42,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     const {
       userType,
-      email,
       password,
       fullName,
       phone,
@@ -55,9 +45,17 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // 1. Validar campos requeridos
-    if (!userType || !email || !password || !fullName || !phone || !birthDate) {
+    if (!userType || !password || !fullName || !phone || !birthDate) {
       return NextResponse.json(
         { error: 'Todos los campos obligatorios son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    const phoneDigits = normalizePhoneToDigits(phone);
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      return NextResponse.json(
+        { error: 'El número debe tener exactamente 10 dígitos' },
         { status: 400 }
       );
     }
@@ -76,30 +74,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Crear usuario con signUp() — envía email de confirmación via SMTP
-    const { data: authData, error: authError } = await supabasePublic.auth.signUp({
+    // 2. Validar que exista una verificación de teléfono vigente
+    const { data: verifiedRecord, error: verifiedError } = await supabaseAdmin
+      .from('phone_verifications')
+      .select('id, expires_at, verified, created_at')
+      .eq('phone_number', phoneDigits)
+      .eq('verified', true)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (verifiedError) {
+      console.error('Error verificando phone_verifications:', verifiedError);
+      return NextResponse.json(
+        { error: 'No pudimos validar tu verificación de teléfono. Intenta nuevamente.' },
+        { status: 500 }
+      );
+    }
+
+    if (!verifiedRecord) {
+      return NextResponse.json(
+        { error: 'Debes verificar tu teléfono antes de registrarte' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Crear usuario con Admin API: email técnico marcado confirmado (no hay flujo real por correo)
+    const email = phoneToAuthEmail(phoneDigits);
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone,
-          birth_date: birthDate,
-        },
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        phone: phoneDigits,
+        birth_date: birthDate,
       },
     });
 
     if (authError) {
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
+      const msg = authError.message || '';
 
-      if (authError.message.includes('already been registered') || authError.message.includes('already exists') || authError.message.includes('User already registered')) {
-        errorMessage = 'Este correo electrónico ya está registrado';
-      } else if (authError.message.includes('Password should be at least 6 characters')) {
+      if (
+        msg.includes('already been registered') ||
+        msg.includes('already exists') ||
+        msg.includes('User already registered') ||
+        msg.includes('duplicate')
+      ) {
+        errorMessage = 'Este número de teléfono ya está registrado';
+      } else if (msg.includes('Password should be at least 6 characters')) {
         errorMessage = 'La contraseña debe tener al menos 6 caracteres';
-      } else if (authError.message.includes('Invalid email')) {
-        errorMessage = 'El correo electrónico no es válido';
-      } else if (authError.message.includes('Error sending confirmation')) {
-        errorMessage = 'Error al enviar el correo de confirmación. Intenta de nuevo más tarde.';
+      } else if (msg.includes('Invalid email')) {
+        errorMessage = 'No se pudo crear la cuenta con este número';
       }
 
       return NextResponse.json({ error: errorMessage }, { status: 409 });
@@ -121,7 +149,7 @@ export async function POST(request: NextRequest) {
         p_email: email,
         p_name: fullName,
         p_user_type: userType,
-        p_phone: phone,
+        p_phone: phoneDigits,
         p_birth_date: birthDate,
       });
 
@@ -144,6 +172,30 @@ export async function POST(request: NextRequest) {
           throw new Error(workerError.message || 'Error al crear el perfil de trabajador');
         }
       }
+
+      // El OTP ya se validó antes del registro; al crear filas nuevas el RPC no marca móvil.
+      const { error: mobileOkError } = await supabaseAdmin
+        .from('user_profiles')
+        .update({
+          movil_verificado: true,
+          whatsapp_notifications_enabled: true,
+        })
+        .eq('user_id', userId);
+
+      if (mobileOkError) {
+        console.error('Error marcando movil_verificado en user_profiles:', mobileOkError);
+        throw new Error('No se pudo finalizar la verificación del teléfono');
+      }
+
+      if (userType === 'worker') {
+        await supabaseAdmin
+          .from('worker_profiles')
+          .update({
+            movil_verificado: true,
+            whatsapp_notifications_enabled: true,
+          })
+          .eq('user_id', userId);
+      }
     } catch (profileError) {
       // Rollback: eliminar el usuario auth si falla la creación de perfiles
       console.error('Error creando perfiles, eliminando usuario auth:', profileError);
@@ -151,7 +203,7 @@ export async function POST(request: NextRequest) {
 
       let errorMessage = 'Error al crear la cuenta. Inténtalo de nuevo.';
       if (profileError instanceof Error && profileError.message.includes('duplicate key value')) {
-        errorMessage = 'Este correo electrónico ya está en uso';
+        errorMessage = 'Este número de teléfono ya está en uso';
       }
 
       return NextResponse.json({ error: errorMessage }, { status: 500 });
