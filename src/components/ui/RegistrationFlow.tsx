@@ -114,7 +114,7 @@ export const RegistrationFlow = ({
       case 'type-selection':
         return (
           <UserTypeSelection
-            userEmail={userEmail}
+            userEmail={userPhone}
             onSelectType={handleTypeSelection}
           />
         );
@@ -122,7 +122,7 @@ export const RegistrationFlow = ({
       case 'client-form':
         return (
           <ClientRegistrationForm
-            userEmail={userEmail}
+            userEmail={userPhone}
             onComplete={handleClientComplete}
             onBack={handleBack}
             isLoading={isLoading}
@@ -132,7 +132,7 @@ export const RegistrationFlow = ({
       case 'worker-basic':
         return (
           <WorkerRegistrationForm
-            userEmail={userEmail}
+            userEmail={userPhone}
             onComplete={handleWorkerBasicComplete}
             onBack={handleBack}
             isLoading={isLoading}
@@ -142,7 +142,7 @@ export const RegistrationFlow = ({
       case 'worker-profile':
         return (
           <WorkerProfileForm
-            userEmail={userEmail}
+            userEmail={userPhone}
             basicData={workerBasicData}
             onComplete={handleWorkerProfileComplete}
             onBack={handleBack}
@@ -153,7 +153,7 @@ export const RegistrationFlow = ({
       default:
         return (
           <UserTypeSelection
-            userEmail={userEmail}
+            userEmail={userPhone}
             onSelectType={handleTypeSelection}
           />
         );

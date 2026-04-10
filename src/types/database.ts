@@ -16,6 +16,7 @@ export const SERVICE_STATUS = {
   CONTRATANDO: 'contratando',
   ELIGIENDO: 'eligiendo',
   CONTRATADO: 'contratado',
+  HIRED: 'hired',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   DELETED: 'deleted',
@@ -70,7 +71,7 @@ export interface Service {
   description: string | null;
   category_id: string | null;
   location: string | null;
-  status: ServiceStatus;
+  status: string; // varchar — ver SERVICE_STATUS para los valores conocidos
   images?: string[]; // Array de URLs de imágenes
   created_at: string;
   updated_at: string;
