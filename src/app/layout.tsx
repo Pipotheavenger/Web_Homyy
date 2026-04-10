@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DEBUG_MODE, DebugProvider } from '@/__debug__';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Hommy - Conectando Profesionales',
@@ -19,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body>
         <QueryProvider>
           <AuthProvider>
             {DEBUG_MODE ? (

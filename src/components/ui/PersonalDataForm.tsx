@@ -136,7 +136,7 @@ export default function PersonalDataForm({ phone, onSubmit, onBack, isLoading, e
       </div>
 
       {/* Formulario */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {error && (
@@ -319,15 +319,6 @@ export default function PersonalDataForm({ phone, onSubmit, onBack, isLoading, e
             </button>
           </div>
 
-          {/* Link a login */}
-          <div className="text-center pt-4">
-            <p className="text-sm text-gray-600">
-              ¿Ya tienes una cuenta?{' '}
-              <a href="/login" className="text-purple-600 font-semibold hover:text-purple-700 hover:underline transition-all duration-200">
-                Inicia sesión
-              </a>
-            </p>
-          </div>
         </form>
       </div>
 

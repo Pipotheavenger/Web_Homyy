@@ -17,7 +17,7 @@ export default function RegisterSuccess({ userType }: RegisterSuccessProps) {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-12 text-center">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6 sm:p-12 text-center">
         <div className="mx-auto w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mb-8 animate-bounce">
           <svg className="w-12 h-12 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />

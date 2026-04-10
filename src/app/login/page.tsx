@@ -144,15 +144,28 @@ export default function LoginPage() {
               </span>
             </div>
           </button>
-
-
-          <p className="text-center text-xs sm:text-sm text-gray-600 font-medium mb-0 pb-0">
-            ¿Primera vez aquí?{' '}
-            <a href="/register" className="text-[#743fc6] font-bold hover:text-[#8a5fd1] hover:underline transition-all duration-200">
-              ¡Regístrate gratis!
-            </a>
-          </p>
         </form>
+      </section>
+
+      {/* Tarjeta de registro */}
+      <section className="w-full max-w-xs sm:max-w-sm md:max-w-md mt-3 animate-fade-in-up animation-delay-400">
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/25 shadow-lg p-4 sm:p-5">
+          <p className="text-center text-xs sm:text-sm text-gray-500 mb-3 font-medium">
+            ¿Primera vez en Hommy?
+          </p>
+          <a
+            href="/register"
+            className="group flex items-center justify-center gap-2.5 w-full py-3 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base border-2 border-[#743fc6] text-[#743fc6] hover:bg-gradient-to-r hover:from-[#743fc6] hover:to-[#8a5fd1] hover:text-white hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-purple-500/30 transform hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden"
+          >
+            <svg
+              className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 transition-transform duration-300 group-hover:rotate-12"
+              fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
+            </svg>
+            <span>¡Regístrate gratis!</span>
+          </a>
+        </div>
       </section>
 
       {/* Modal de recuperación de contraseña */}
@@ -185,6 +198,11 @@ export default function LoginPage() {
 
         .animation-delay-200 {
           animation-delay: 200ms;
+        }
+
+        .animation-delay-400 {
+          animation-delay: 400ms;
+          animation-fill-mode: both;
         }
 
         .animate-shake {

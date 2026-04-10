@@ -22,7 +22,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
         {/* Tarjeta Buscar servicios */}
         <div 
           onClick={() => onSelectRole('user')}
-          className="group bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 cursor-pointer transition-all duration-300 hover:bg-white hover:scale-105 hover:shadow-purple-500/20 hover:border-purple-300/50 hover:bg-purple-50/30 transform"
+          className="group bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-5 sm:p-8 cursor-pointer transition-all duration-300 hover:bg-white hover:scale-105 hover:shadow-purple-500/20 hover:border-purple-300/50 hover:bg-purple-50/30 transform"
         >
           <div className="text-center space-y-6">
             {/* Icono */}
@@ -63,7 +63,7 @@ export default function RoleSelection({ onSelectRole }: RoleSelectionProps) {
         {/* Tarjeta Vender servicios */}
         <div 
           onClick={() => onSelectRole('worker')}
-          className="group bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 cursor-pointer transition-all duration-300 hover:bg-white hover:scale-105 hover:shadow-orange-500/20 hover:border-orange-300/50 hover:bg-orange-50/30 transform"
+          className="group bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-5 sm:p-8 cursor-pointer transition-all duration-300 hover:bg-white hover:scale-105 hover:shadow-orange-500/20 hover:border-orange-300/50 hover:bg-orange-50/30 transform"
         >
           <div className="text-center space-y-6">
             {/* Icono */}

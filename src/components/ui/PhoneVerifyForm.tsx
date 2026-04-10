@@ -162,7 +162,7 @@ export default function PhoneVerifyForm({ phoneNumber, onVerified, onBack }: Pho
       </div>
 
       {/* Card */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 space-y-6">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-4 sm:p-8 space-y-6">
         {/* Mensajes de estado */}
         {rateLimitCooldown > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center space-y-2">

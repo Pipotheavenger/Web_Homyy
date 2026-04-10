@@ -159,7 +159,7 @@ export default function WorkerInfoForm({ onContinue, onBack }: WorkerInfoFormPro
       </div>
 
       {/* Formulario */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {submitError && (
