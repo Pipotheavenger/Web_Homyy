@@ -117,7 +117,7 @@ export const RecoverPasswordModal = ({ isOpen, onClose }: RecoverPasswordModalPr
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="3001234567"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 outline-none"
                     disabled={isLoading}
                     autoFocus
                   />
