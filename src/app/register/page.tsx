@@ -206,24 +206,24 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-start sm:justify-center px-4 py-8 bg-lavender overflow-x-hidden">
+    <main className="relative min-h-screen flex flex-col items-center justify-start px-4 py-8 bg-lavender overflow-x-hidden">
       <BgWave />
 
       {/* Header - Solo mostrar en pasos que no sean success */}
       {currentStep !== 'success' && <LoginHeader />}
 
       {/* Contenido principal */}
-      <div className="w-full flex-1 flex items-start sm:items-center justify-center">
+      <div className="w-full flex items-start justify-center mt-6 sm:mt-10 lg:mt-14">
         {renderCurrentStep()}
       </div>
 
       {/* Link a login — visible en todos los pasos excepto success */}
       {currentStep !== 'success' && (
-        <p className="mt-4 mb-2 text-sm text-center text-white/80">
+        <p className="mt-auto pt-8 mb-2 text-base sm:text-lg font-medium text-center text-white/85">
           ¿Ya tienes una cuenta?{' '}
           <a
             href="/login"
-            className="text-white font-bold underline underline-offset-2 hover:text-white/90 transition-colors duration-200"
+            className="text-white font-bold underline underline-offset-4 hover:text-white/90 transition-colors duration-200"
           >
             Inicia sesión
           </a>
